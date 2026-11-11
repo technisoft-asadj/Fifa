@@ -25,6 +25,7 @@ namespace FootballSim.Players
         }
 
         CharacterController cc;
+        PlayerVisual visual;
         Vector3 planarVelocity;
         float shootCharge, touchCooldown, tackleCooldown, lungeTimer;
         Vector3 lungeDir;
@@ -37,6 +38,7 @@ namespace FootballSim.Players
         void Awake()
         {
             cc = GetComponent<CharacterController>();
+            visual = GetComponent<PlayerVisual>();
             if (data == null) data = ScriptableObject.CreateInstance<PlayerData>();
             if (controlMarker) controlMarker.SetActive(false);
         }
@@ -150,6 +152,7 @@ namespace FootballSim.Players
             Vector3 dir = (aim + Vector3.up * loft * power).normalized;
             Vector3 spin = Vector3.Cross(Vector3.up, aim) * Random.Range(-4f, 4f) * power;
             KickBall(dir, maxSpeed * Mathf.Clamp01(power), spin);
+            if (visual != null) visual.PlayKick(Random.value > 0.25f);
             touchCooldown = 0.4f;
         }
 
@@ -159,6 +162,7 @@ namespace FootballSim.Players
             tackleCooldown = 0.9f;
             lungeDir = transform.forward;
             lungeTimer = 0.22f;
+            if (visual != null) visual.PlayTackle();
 
             Vector3 toBall = ball.transform.position - transform.position;
             toBall.y = 0f;

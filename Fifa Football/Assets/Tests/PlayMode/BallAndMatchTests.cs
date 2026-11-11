@@ -5,7 +5,9 @@ using UnityEngine;
 using UnityEngine.TestTools;
 using FootballSim.Ball;
 using FootballSim.Core;
+using FootballSim.Inputs;
 using FootballSim.Match;
+using FootballSim.Players;
 
 namespace FootballSim.Tests
 {
@@ -195,6 +197,70 @@ namespace FootballSim.Tests
             mm.AwardFoul(0, new Vector3(0f, 0f, 5f), "p1");
             mm.AwardFoul(0, new Vector3(0f, 0f, 9f), "p2");
             Assert.AreEqual(1, mm.HomeFouls, "second foul while ball is held must not count");
+        }
+
+        PlayerController MakePlayer(Vector3 pos)
+        {
+            var go = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+            go.transform.SetParent(root.transform);
+            go.transform.position = pos;
+            Object.Destroy(go.GetComponent<CapsuleCollider>());
+            var cc = go.AddComponent<CharacterController>();
+            cc.height = 1.8f; cc.radius = 0.35f; cc.center = Vector3.zero;
+            var pc = go.AddComponent<PlayerController>();
+            go.AddComponent<PlayerVisual>();
+            return pc;
+        }
+
+        [UnityTest]
+        public IEnumerator PlayerVisualBuildsHumanoidAndHidesCapsule()
+        {
+            var pc = MakePlayer(new Vector3(0, 1f, 0));
+            yield return null;
+            Assert.IsFalse(pc.GetComponent<Renderer>().enabled, "placeholder capsule must be hidden");
+            var visual = pc.transform.Find("Visual");
+            Assert.IsNotNull(visual, "visual root");
+            Assert.GreaterOrEqual(visual.GetComponentsInChildren<Renderer>().Length, 12, "head, torso, limbs, boots");
+            Assert.IsNotNull(visual.Find("Body/HipL")); Assert.IsNotNull(visual.Find("Body/HipR"));
+            Assert.AreEqual(0, visual.GetComponentsInChildren<Collider>().Length, "visuals must not add colliders");
+        }
+
+        [UnityTest]
+        public IEnumerator RunningSwingsLegsAndIdleReturnsToRest()
+        {
+            var pc = MakePlayer(new Vector3(0, 1f, 0));
+            var ai = new AIInputSource();
+            pc.SetInput(ai, false);
+            yield return null;
+            var hip = pc.transform.Find("Visual/Body/HipR");
+            ai.MoveVector = new Vector2(0f, 1f); ai.SprintFlag = true;
+            float maxAngle = 0f;
+            for (int i = 0; i < 60; i++)
+            {
+                yield return null;
+                maxAngle = Mathf.Max(maxAngle, Mathf.Abs(Mathf.DeltaAngle(0f, hip.localEulerAngles.x)));
+            }
+            Assert.Greater(maxAngle, 15f, "legs should swing while sprinting");
+            ai.MoveVector = Vector2.zero; ai.SprintFlag = false;
+            yield return new WaitForSeconds(2f);
+            Assert.Less(Mathf.Abs(Mathf.DeltaAngle(0f, hip.localEulerAngles.x)), 6f, "legs settle when standing");
+        }
+
+        [UnityTest]
+        public IEnumerator KickAnimationMovesTheKickingLeg()
+        {
+            var pc = MakePlayer(new Vector3(0, 1f, 0));
+            yield return null;
+            var visual = pc.GetComponent<PlayerVisual>();
+            var hip = pc.transform.Find("Visual/Body/HipR");
+            visual.PlayKick(true);
+            float maxAngle = 0f;
+            for (int i = 0; i < 20; i++)
+            {
+                yield return null;
+                maxAngle = Mathf.Max(maxAngle, Mathf.Abs(Mathf.DeltaAngle(0f, hip.localEulerAngles.x)));
+            }
+            Assert.Greater(maxAngle, 30f, "kick should swing the leg");
         }
     }
 }

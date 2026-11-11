@@ -95,3 +95,17 @@ Next: fouls/offside, difficulty levels, more formations, then player models and 
 Live check (1-minute Legendary AI match): ran without errors, throw-ins were awarded in real play. Fouls/cards not observed in that window.
 Tests: 10/10 EditMode, 12/12 PlayMode pass.
 Not done: penalties, offside, red cards, balanced difficulty (needs playtesting), away-team formation is random.
+
+## Session 2 - Player visuals and procedural animation
+| Item | Status |
+|---|---|
+| PlayerVisual: articulated humanoid from primitives (head, hair, torso, shorts, thighs, shins, boots, arms), kit colour taken from the team material, skin/hair variety per player | IMPLEMENTED, visually checked in Play mode |
+| Procedural run cycle (leg/arm swing and knee bend scale with speed, body lean), idle settle | IMPLEMENTED, unit-tested |
+| Kick animation (on pass/shot) and slide-tackle pose (on tackle) | IMPLEMENTED, kick unit-tested; tackle pose not seen live |
+| No new colliders; gameplay unchanged (CharacterController capsule still drives physics) | VERIFIED by test |
+
+Tests: 10/10 EditMode, 15/15 PlayMode pass.
+Limits: still primitives, no real rig, no goalkeeper dive/catch animation, no celebrations, ~15 renderers per player (22 players) is fine in the editor but needs GPU instancing / merged meshes before mobile device builds.
+Replacement path: a rigged model with an Animator only needs speed (PlayerController.Velocity), PlayKick and PlayTackle.
+
+Dev note: entering Play immediately after the "Build Prototype Scene" menu can race and play a stale scene; wait for the build to finish first.

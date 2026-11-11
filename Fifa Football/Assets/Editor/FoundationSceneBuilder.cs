@@ -143,17 +143,14 @@ public static class FoundationSceneBuilder
                 pl.GetComponent<Renderer>().sharedMaterial = gk ? gkMat : kitMat;
                 var cc = pl.AddComponent<CharacterController>();
                 cc.height = 1.8f; cc.radius = 0.35f; cc.center = Vector3.zero; cc.skinWidth = 0.03f;
-                var nose = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                nose.name = "FacingMarker"; nose.transform.SetParent(pl.transform, false);
-                nose.transform.localPosition = new Vector3(0, 0.5f, 0.4f); nose.transform.localScale = new Vector3(0.25f, 0.2f, 0.3f);
-                Object.DestroyImmediate(nose.GetComponent<Collider>());
                 var marker = GameObject.CreatePrimitive(PrimitiveType.Sphere);
                 marker.name = "ControlMarker"; marker.transform.SetParent(pl.transform, false);
-                marker.transform.localPosition = new Vector3(0, 1.6f, 0); marker.transform.localScale = Vector3.one * 0.5f;
+                marker.transform.localPosition = new Vector3(0, 1.3f, 0); marker.transform.localScale = Vector3.one * 0.3f;
                 marker.GetComponent<Renderer>().sharedMaterial = markerMat;
                 Object.DestroyImmediate(marker.GetComponent<Collider>());
 
                 var pc = pl.AddComponent<PlayerController>();
+                pl.AddComponent<PlayerVisual>();
                 var pso = new SerializedObject(pc);
                 pso.FindProperty("data").objectReferenceValue = pd;
                 pso.FindProperty("ball").objectReferenceValue = ball;
