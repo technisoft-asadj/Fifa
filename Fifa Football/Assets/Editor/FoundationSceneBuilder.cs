@@ -185,6 +185,11 @@ public static class FoundationSceneBuilder
         teamsProp.GetArrayElementAtIndex(1).objectReferenceValue = away;
         mso.ApplyModifiedProperties();
 
+        var hud = new GameObject("MatchHUD").AddComponent<FootballSim.UI.MatchHUD>();
+        hud.transform.SetParent(root.transform);
+        var hso = new SerializedObject(hud);
+        hso.FindProperty("match").objectReferenceValue = mm; hso.ApplyModifiedProperties();
+
         EditorSceneManager.SaveScene(scene, "Assets/Scenes/FootballPrototype.unity");
         var list = new System.Collections.Generic.List<EditorBuildSettingsScene>(EditorBuildSettings.scenes);
         list.RemoveAll(s => s.path == "Assets/Scenes/FootballPrototype.unity");

@@ -69,3 +69,16 @@ Smoke test: scene rebuilt, Play mode ran about a minute with AI vs AI, clock adv
 Still missing: offside, fouls/cards/referee, penalties, per-player stats, marking/passing-lane AI, animations, UI beyond the debug score label.
 
 Run tests: Window > General > Test Runner, or via the MCP run_tests tool.
+
+## Session 2 - Match flow and HUD
+| Item | Status |
+|---|---|
+| MatchManager events (GoalScored, FullTime, RestartAwarded), SetDurationMinutes | IMPLEMENTED |
+| MatchHUD (code-built uGUI): scoreboard, clock, goal/restart banners, controls hint | IMPLEMENTED, visually checked in Play mode |
+| Start screen (3/5/10 min, PLAY) pauses the sim until pressed | VERIFIED via script-invoked click: timeScale 0 -> 1, panel hidden |
+| Full-time screen with result and REMATCH | VERIFIED: 30 s match ended, showed "DRAW 0 - 0"; rematch reloaded scene back to paused start screen |
+| Debug OnGUI score label removed | IMPLEMENTED |
+
+Not verified: mouse/touch clicks on the real buttons (clicks were invoked from script), goal banner during a real goal, UI on phone aspect ratios.
+Tests after this change: 8/8 EditMode, 9/9 PlayMode pass.
+Next: fouls/offside, difficulty levels, more formations, then player models and animation.

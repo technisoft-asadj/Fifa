@@ -44,6 +44,20 @@ namespace FootballSim.Match
         /// <summary>Raised after a goal once the ball has been put back on the centre spot.</summary>
         public event System.Action KickoffReady;
 
+        /// <summary>Raised when a goal is scored; argument = scoring team (0 home, 1 away).</summary>
+        public event System.Action<int> GoalScored;
+        /// <summary>Raised once when the match clock runs out.</summary>
+        public event System.Action FullTime;
+        /// <summary>Raised when an out-of-bounds restart (throw-in, corner, goal kick) is awarded.</summary>
+        public event System.Action<RestartType, int> RestartAwarded;
+
+        public float MatchMinutes => matchMinutes;
+        public bool InGoalPause => resetTimer > 0f;
+        public bool InRestartHold => restartTimer > 0f;
+
+        /// <summary>Set the real-time match length (minutes). Call before the match starts.</summary>
+        public void SetDurationMinutes(float minutes) { matchMinutes = Mathf.Max(0.5f, minutes); }
+
         float resetTimer = -1f;
         float restartTimer = -1f;
 
@@ -51,7 +65,12 @@ namespace FootballSim.Match
         {
             if (Finished) return;
             RealSecondsElapsed += Time.deltaTime;
-            if (RealSecondsElapsed >= matchMinutes * 60f) Finished = true;
+            if (RealSecondsElapsed >= matchMinutes * 60f)
+            {
+                Finished = true;
+                FullTime?.Invoke();
+                return;
+            }
 
             if (resetTimer > 0f)
             {
@@ -82,6 +101,7 @@ namespace FootballSim.Match
             if (scoringTeam == 0) HomeScore++; else AwayScore++;
             Debug.Log($"GOAL! Home {HomeScore} - {AwayScore} Away  ({GameMinute:0}')");
             resetTimer = 3f;
+            GoalScored?.Invoke(scoringTeam);
         }
 
         void CheckOutOfBounds()
@@ -137,14 +157,7 @@ namespace FootballSim.Match
                 foreach (var t in teams)
                     if (t != null && t.teamId == awardedTeam) t.SendTakerTo(spot, facing);
             Debug.Log($"{type} for team {awardedTeam}");
-        }
-
-        void OnGUI()
-        {
-            var style = new GUIStyle(GUI.skin.label) { fontSize = 28, alignment = TextAnchor.UpperCenter };
-            string restart = restartTimer > 0f ? $"  [{LastRestart}]" : "";
-            GUI.Label(new Rect(0, 10, Screen.width, 40),
-                $"HOME {HomeScore} - {AwayScore} AWAY    {GameMinute:00}'" + (Finished ? "  FULL TIME" : restart), style);
+            RestartAwarded?.Invoke(type, awardedTeam);
         }
     }
 }
