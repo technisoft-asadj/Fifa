@@ -128,3 +128,10 @@ Not done: draggable/resizable button layout, left-handed mode, safe-area insets,
 - Set landscape-only orientation (left/right auto-rotate), version 0.2.0, and the build list now contains only `FootballPrototype` (template SampleScene removed).
 - A development build to `Builds/Android/FootballSim-dev.apk` was started through the MCP build tool. The platform switch/reimport was still running when this was committed, so **no APK result is recorded yet**. Do not treat Phase 0 as exited until an APK builds and installs on a device.
 - Open items: ARMv7 and 16 KB page-size checks, release signing (keystore must never be committed; `*.keystore` is git-ignored), device install test.
+
+## Session 2 - First Android development build and a goal-wiring bug
+- **Android dev build: SUCCEEDED** (first build). `Builds/Android/FootballSim-dev.apk`, about 34 MB, IL2CPP, ARM64, min SDK 25, development build. JDK/SDK/NDK were detected automatically. Not yet installed or run on any device; ARMv7 and 16 KB page-size checks still open.
+- The build's scene validation reported: "Script attached to 'Trigger' in scene FootballPrototype is missing". Root cause: `GoalTrigger` lived in `MatchManager.cs` (Unity needs one MonoBehaviour per file, same name). Goal detection was therefore not wired in the saved scene. Fixed by moving it to `GoalTrigger.cs`; scene rebuilt and now references the new script GUID.
+- New `PrototypeSceneTests` load the real saved scene and check: no missing scripts, two teams of 11 with one keeper each, two goal triggers, and a ball placed in each goal scores for the correct team. These would have caught the bug.
+- Tests: 10/10 EditMode, 23/23 PlayMode pass. The APK with the fix is being rebuilt; its result is not recorded here yet.
+- Lesson: the earlier in-editor checks passed because the editor resolved the script by type; only the build's validation exposed it. Run scene-level tests after every scene rebuild.

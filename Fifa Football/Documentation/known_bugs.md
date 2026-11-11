@@ -14,6 +14,6 @@ Severity: H = blocks gameplay, M = noticeable, L = cosmetic. Nothing below was r
 | KB-008 | L | Stale material asset `PlayerHome.mat` is left over from the first prototype. | Open |
 | KB-009 | M | Android: ARM64 only (ARMv7 not enabled); 16 KB page size and device builds not verified. No Android build made yet. | Open |
 | KB-010 | L | Company name `Trisoftic` and package ID `com.trisoftic.footballsim` were chosen from the folder name; confirm before release. | Needs confirmation |
-| KB-011 | L | "The referenced script (Unknown) on this Behaviour is missing" warning appeared twice right after a recompile + scene rebuild. A scan of the saved scene found 0 missing scripts. | Not reproducible; watch |
+| KB-011 | H | "Script attached to 'Trigger' ... is missing" (seen as the Unknown-script warning). Cause: `GoalTrigger` was declared inside `MatchManager.cs`, so the scene could not serialise it and goals were not wired in the saved scene / Android build. | Fixed: GoalTrigger moved to its own file; scene rebuilt; scene-level tests added. Android APK rebuild in progress |
 | KB-012 | M | Touch controls never tested on a real touch device (multi-touch, notch/safe area, ergonomics). No safe-area handling. | Untested |
 | KB-013 | L | Keyboard controls hint is shown at the bottom even on touch devices. | Open |

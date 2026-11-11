@@ -42,3 +42,4 @@ Thumbs.db
 # Test runner artefacts
 /Assets/Resources/PerformanceTestRun*.json
 /Assets/Resources/PerformanceTestRun*.json.meta
+/.utmp/

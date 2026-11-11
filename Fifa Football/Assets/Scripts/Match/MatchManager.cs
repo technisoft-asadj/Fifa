@@ -7,23 +7,6 @@ using FootballSim.Players;
 
 namespace FootballSim.Match
 {
-    /// <summary>Goal trigger placed behind the goal line. Reports to MatchManager which side scored.</summary>
-    [RequireComponent(typeof(BoxCollider))]
-    public class GoalTrigger : MonoBehaviour
-    {
-        [Tooltip("Team that DEFENDS this goal (0 = home, 1 = away). The other team scores.")]
-        public int defendingTeam;
-        public MatchManager match;
-
-        void Reset() { GetComponent<BoxCollider>().isTrigger = true; }
-
-        void OnTriggerEnter(Collider other)
-        {
-            if (match != null && other.GetComponentInParent<BallController>() != null)
-                match.OnGoal(1 - defendingTeam);
-        }
-    }
-
     public enum RestartType { None, KickOff, ThrowIn, GoalKick, Corner, FreeKick }
 
     /// <summary>Match clock, score, kick-off reset and out-of-bounds restarts. Gameplay rules only, no UI.</summary>
