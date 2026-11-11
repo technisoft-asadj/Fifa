@@ -122,3 +122,9 @@ Dev note: entering Play immediately after the "Build Prototype Scene" menu can r
 Tests: 10/10 EditMode, 19/19 PlayMode pass.
 NOT verified: real finger input on a phone/tablet, multi-touch (stick + button together), notch/safe-area handling, button placement ergonomics, joystick feel. The joystick drag path was only driven through test hooks, not real pointer events.
 Not done: draggable/resizable button layout, left-handed mode, safe-area insets, settings screen.
+
+## Session 2 - Android build setup (build NOT yet verified)
+- Android build support is installed in this editor (verified: IsBuildTargetSupported = true). Scripting backend IL2CPP, ARM64 only, min SDK 25.
+- Set landscape-only orientation (left/right auto-rotate), version 0.2.0, and the build list now contains only `FootballPrototype` (template SampleScene removed).
+- A development build to `Builds/Android/FootballSim-dev.apk` was started through the MCP build tool. The platform switch/reimport was still running when this was committed, so **no APK result is recorded yet**. Do not treat Phase 0 as exited until an APK builds and installs on a device.
+- Open items: ARMv7 and 16 KB page-size checks, release signing (keystore must never be committed; `*.keystore` is git-ignored), device install test.

@@ -38,3 +38,7 @@ Thumbs.db
 *.keystore
 *.jks
 *.p12
+
+# Test runner artefacts
+/Assets/Resources/PerformanceTestRun*.json
+/Assets/Resources/PerformanceTestRun*.json.meta
