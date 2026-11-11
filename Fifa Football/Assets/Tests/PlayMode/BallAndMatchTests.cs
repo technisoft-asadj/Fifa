@@ -156,5 +156,45 @@ namespace FootballSim.Tests
             yield return null;
             Assert.AreEqual(RestartType.GoalKick, mm.LastRestart);
         }
+
+        [UnityTest]
+        public IEnumerator FoulAwardsFreeKickToFouledTeam()
+        {
+            var ball = MakeBall(new Vector3(0, 0.12f, 0));
+            var mm = MakeMatch(ball);
+            yield return new WaitForSeconds(0.3f);
+            mm.AwardFoul(0, new Vector3(10f, 0f, 20f), "playerA");
+            Assert.AreEqual(RestartType.FreeKick, mm.LastRestart);
+            Assert.AreEqual(1, mm.HomeFouls);
+            Assert.AreEqual(10f, ball.transform.position.x, 0.2f);
+            Assert.AreEqual(20f, ball.transform.position.z, 0.2f);
+        }
+
+        [UnityTest]
+        public IEnumerator SecondFoulBySamePlayerIsYellowCard()
+        {
+            var ball = MakeBall(new Vector3(0, 0.12f, 0));
+            var mm = MakeMatch(ball);
+            int cards = 0;
+            mm.YellowCard += (team, total) => cards++;
+            yield return new WaitForSeconds(0.3f);
+            mm.AwardFoul(1, new Vector3(0f, 0f, 0f), "playerB");
+            Assert.AreEqual(0, cards, "first foul is only a foul");
+            yield return new WaitForSeconds(1.5f); // restart hold ends
+            mm.AwardFoul(1, new Vector3(0f, 0f, 5f), "playerB");
+            Assert.AreEqual(1, cards, "second foul by same player is a yellow card");
+            Assert.AreEqual(1, mm.AwayYellows);
+        }
+
+        [UnityTest]
+        public IEnumerator FoulDuringRestartHoldIsIgnored()
+        {
+            var ball = MakeBall(new Vector3(0, 0.12f, 0));
+            var mm = MakeMatch(ball);
+            yield return new WaitForSeconds(0.3f);
+            mm.AwardFoul(0, new Vector3(0f, 0f, 5f), "p1");
+            mm.AwardFoul(0, new Vector3(0f, 0f, 9f), "p2");
+            Assert.AreEqual(1, mm.HomeFouls, "second foul while ball is held must not count");
+        }
     }
 }

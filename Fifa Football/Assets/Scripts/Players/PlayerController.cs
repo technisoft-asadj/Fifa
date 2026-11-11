@@ -164,12 +164,32 @@ namespace FootballSim.Players
             toBall.y = 0f;
             bool inReach = toBall.magnitude < 1.7f && Vector3.Dot(transform.forward, toBall.normalized) > 0.3f;
             float winChance = 0.55f + data.strength / 400f;
-            if (inReach && Random.value < winChance)
+            bool won = inReach && Random.value < winChance;
+            if (won)
             {
                 // Poke the ball loose to the side/forward of the tackler
                 Vector3 loose = (transform.forward + Quaternion.Euler(0, Random.Range(-50f, 50f), 0) * transform.forward).normalized;
                 KickBall(loose, 6.5f, Vector3.zero);
                 touchCooldown = 0.5f;
+            }
+            else CheckFoul();
+        }
+
+        /// <summary>Raised when a tackle takes a player instead of the ball. MatchManager listens.</summary>
+        public static event System.Action<PlayerController, PlayerController> Fouled;
+
+        /// <summary>A failed tackle that connects with an opponent is a foul; from behind it is almost certain.</summary>
+        void CheckFoul()
+        {
+            var hits = Physics.OverlapSphere(transform.position + transform.forward * 0.9f, 0.9f);
+            foreach (var h in hits)
+            {
+                var other = h.GetComponentInParent<PlayerController>();
+                if (other == null || other == this || other.TeamId == TeamId || other.isGoalkeeper) continue;
+                bool fromBehind = Vector3.Dot(other.transform.forward, transform.forward) > 0.5f;
+                float chance = fromBehind ? 0.85f : 0.45f;
+                if (Random.value < chance) Fouled?.Invoke(this, other);
+                return;
             }
         }
     }

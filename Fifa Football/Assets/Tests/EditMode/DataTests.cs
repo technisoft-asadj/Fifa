@@ -103,5 +103,41 @@ namespace FootballSim.Tests
             Assert.IsFalse(ai.PassPressed);
             Assert.AreEqual(0f, ai.ActionPower);
         }
+
+        [Test]
+        public void AllFormationPresetsAreValid()
+        {
+            Assert.AreEqual(5, FormationData.PresetNames.Length);
+            for (int p = 0; p < FormationData.PresetNames.Length; p++)
+            {
+                var slots = FormationData.Slots(p);
+                Assert.AreEqual(11, slots.Length, FormationData.PresetNames[p]);
+                Assert.Less(slots[0].y, 0.1f, FormationData.PresetNames[p] + " slot 0 must be GK");
+                int def = 0, mid = 0, fwd = 0;
+                for (int i = 1; i < slots.Length; i++)
+                {
+                    Assert.That(slots[i].x, Is.InRange(-1f, 1f)); Assert.That(slots[i].y, Is.InRange(0f, 1f));
+                    if (slots[i].y < 0.4f) def++; else if (slots[i].y < 0.7f) mid++; else fwd++;
+                }
+                Assert.AreEqual(10, def + mid + fwd);
+                var parts = FormationData.PresetNames[p].Split('-');
+                Assert.AreEqual(int.Parse(parts[0]), def, FormationData.PresetNames[p] + " defenders");
+            }
+        }
+
+        [Test]
+        public void HarderDifficultiesReactFasterAndAimBetter()
+        {
+            var prev = AiTuning.For(Difficulty.Beginner);
+            foreach (Difficulty d in new[] { Difficulty.Amateur, Difficulty.Professional, Difficulty.WorldClass, Difficulty.Legendary })
+            {
+                var t = AiTuning.For(d);
+                Assert.Less(t.reactionDelay, prev.reactionDelay, d + " reaction");
+                Assert.Less(t.aimErrorDeg, prev.aimErrorDeg, d + " aim error");
+                Assert.Greater(t.shootRange, prev.shootRange, d + " shoot range");
+                Assert.Less(t.tackleCooldown, prev.tackleCooldown, d + " tackle cooldown");
+                prev = t;
+            }
+        }
     }
 }

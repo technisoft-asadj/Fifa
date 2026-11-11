@@ -82,3 +82,16 @@ Run tests: Window > General > Test Runner, or via the MCP run_tests tool.
 Not verified: mouse/touch clicks on the real buttons (clicks were invoked from script), goal banner during a real goal, UI on phone aspect ratios.
 Tests after this change: 8/8 EditMode, 9/9 PlayMode pass.
 Next: fouls/offside, difficulty levels, more formations, then player models and animation.
+
+## Session 2 - Fouls, formations, difficulty
+| Item | Status |
+|---|---|
+| Fouls: failed tackle that connects with an opponent (85% from behind, 45% otherwise) -> free kick for fouled team | IMPLEMENTED; logic unit-tested via AwardFoul; no foul seen in a live AI match yet |
+| Yellow card on every 2nd foul by the same player (counted per team, shown in banner and full-time stats) | IMPLEMENTED, unit-tested; no red cards or sending off |
+| 5 formations (4-4-2, 4-3-3, 4-2-3-1, 3-5-2, 5-3-2), player picks theirs, AI picks random | IMPLEMENTED, data validated by tests |
+| 5 difficulty levels (reaction delay, aim error, shoot range, tackle cooldown) | IMPLEMENTED, tuning values unit-tested for ordering only; not balanced by play |
+| Start-screen selectors for formation and difficulty | IMPLEMENTED, rendered in Play mode |
+
+Live check (1-minute Legendary AI match): ran without errors, throw-ins were awarded in real play. Fouls/cards not observed in that window.
+Tests: 10/10 EditMode, 12/12 PlayMode pass.
+Not done: penalties, offside, red cards, balanced difficulty (needs playtesting), away-team formation is random.

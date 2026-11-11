@@ -17,8 +17,16 @@ namespace FootballSim.FootballAI
         public AIInputSource Input { get; } = new AIInputSource();
 
         PlayerController pc;
-        float decisionCooldown;
         float actionCooldown;
+        float nextThink;
+        Vector3 chaseTarget;
+        AiTuning Tune => AiTuning.Current;
+
+        Vector3 Jitter(Vector3 dir)
+        {
+            float e = Tune.aimErrorDeg;
+            return Quaternion.Euler(0f, Random.Range(-e, e), 0f) * dir;
+        }
 
         void Awake() { pc = GetComponent<PlayerController>(); }
 
@@ -55,9 +63,13 @@ namespace FootballSim.FootballAI
 
             if (ballDist > 1.4f)
             {
-                // Run to where the ball will be shortly
-                Vector3 lead = ballPos + Flat(team.ball.Velocity) * 0.25f;
-                MoveToward(lead, 3f);
+                // Run to where the ball will be shortly; slower difficulties re-evaluate less often
+                if (Time.time >= nextThink)
+                {
+                    chaseTarget = ballPos + Flat(team.ball.Velocity) * 0.25f;
+                    nextThink = Time.time + Tune.reactionDelay;
+                }
+                MoveToward(chaseTarget, 3f);
                 TryTackleNearBall(ballDist);
                 return;
             }
@@ -67,10 +79,10 @@ namespace FootballSim.FootballAI
             float goalDist = (goal - Flat(pos)).magnitude;
             Vector3 toGoal = Flat(goal - pos).normalized;
 
-            if (actionCooldown <= 0f && goalDist < 25f && Vector3.Dot(transform.forward, toGoal) > 0.5f)
+            if (actionCooldown <= 0f && goalDist < Tune.shootRange && Vector3.Dot(transform.forward, toGoal) > 0.5f)
             {
                 Vector3 target = goal + new Vector3(Random.Range(-2.8f, 2.8f), 0f, 0f);
-                Input.QueueShoot((target - Flat(pos)).normalized, Mathf.Clamp(0.55f + goalDist / 50f, 0.5f, 1f));
+                Input.QueueShoot(Jitter((target - Flat(pos)).normalized), Mathf.Clamp(0.55f + goalDist / 50f, 0.5f, 1f));
                 actionCooldown = 1.2f;
                 return;
             }
@@ -83,7 +95,7 @@ namespace FootballSim.FootballAI
                     Vector3 mp = Flat(mate.transform.position + mate.Velocity * 0.5f);
                     float dist = (mp - Flat(pos)).magnitude;
                     float speed = Mathf.Clamp(6f + dist * 0.45f, 8f, pc.Data.MaxPassSpeed);
-                    Input.QueuePass((mp - Flat(pos)).normalized, speed / pc.Data.MaxPassSpeed);
+                    Input.QueuePass(Jitter((mp - Flat(pos)).normalized), speed / pc.Data.MaxPassSpeed);
                     actionCooldown = 1.0f;
                     return;
                 }
@@ -110,7 +122,7 @@ namespace FootballSim.FootballAI
                 if ((Flat(o.transform.position) - Flat(team.ball.transform.position)).magnitude < 1.5f)
                 {
                     Input.QueueTackle();
-                    actionCooldown = 1.0f;
+                    actionCooldown = Tune.tackleCooldown;
                     return;
                 }
             }

@@ -1,7 +1,9 @@
+using System.Collections.Generic;
 using UnityEngine;
 using FootballSim.Ball;
 using FootballSim.Core;
 using FootballSim.FootballAI;
+using FootballSim.Players;
 
 namespace FootballSim.Match
 {
@@ -22,7 +24,7 @@ namespace FootballSim.Match
         }
     }
 
-    public enum RestartType { None, KickOff, ThrowIn, GoalKick, Corner }
+    public enum RestartType { None, KickOff, ThrowIn, GoalKick, Corner, FreeKick }
 
     /// <summary>Match clock, score, kick-off reset and out-of-bounds restarts. Gameplay rules only, no UI.</summary>
     public class MatchManager : MonoBehaviour
@@ -50,6 +52,46 @@ namespace FootballSim.Match
         public event System.Action FullTime;
         /// <summary>Raised when an out-of-bounds restart (throw-in, corner, goal kick) is awarded.</summary>
         public event System.Action<RestartType, int> RestartAwarded;
+
+        /// <summary>Raised when a player is booked; arguments = team, total yellow cards for that team.</summary>
+        public event System.Action<int, int> YellowCard;
+
+        public int HomeFouls { get; private set; }
+        public int AwayFouls { get; private set; }
+        public int HomeYellows { get; private set; }
+        public int AwayYellows { get; private set; }
+
+        readonly Dictionary<object, int> foulsByPlayer = new Dictionary<object, int>();
+
+        void OnEnable() { PlayerController.Fouled += OnPlayerFoul; }
+        void OnDisable() { PlayerController.Fouled -= OnPlayerFoul; }
+
+        void OnPlayerFoul(PlayerController fouler, PlayerController victim)
+        {
+            AwardFoul(fouler.TeamId, victim.transform.position, fouler);
+        }
+
+        /// <summary>Award a free kick to the team that was fouled. Every second foul by the same player is a yellow card.</summary>
+        public void AwardFoul(int foulerTeam, Vector3 spot, object foulerKey)
+        {
+            if (Finished || resetTimer > 0f || restartTimer > 0f) return;
+            if (foulerTeam == 0) HomeFouls++; else AwayFouls++;
+
+            foulsByPlayer.TryGetValue(foulerKey, out int n);
+            n++;
+            foulsByPlayer[foulerKey] = n;
+            if (n % 2 == 0)
+            {
+                if (foulerTeam == 0) HomeYellows++; else AwayYellows++;
+                YellowCard?.Invoke(foulerTeam, foulerTeam == 0 ? HomeYellows : AwayYellows);
+            }
+
+            int award = 1 - foulerTeam;
+            float limit = Pitch.HalfLength - 1f;
+            spot = new Vector3(Mathf.Clamp(spot.x, -Pitch.HalfWidth + 1f, Pitch.HalfWidth - 1f), 0.12f, Mathf.Clamp(spot.z, -limit, limit));
+            Vector3 facing = new Vector3(0f, 0f, award == 0 ? 1f : -1f);
+            StartRestart(RestartType.FreeKick, award, spot, facing);
+        }
 
         public float MatchMinutes => matchMinutes;
         public bool InGoalPause => resetTimer > 0f;
