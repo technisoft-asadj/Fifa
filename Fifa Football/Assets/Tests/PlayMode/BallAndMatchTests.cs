@@ -262,5 +262,72 @@ namespace FootballSim.Tests
             }
             Assert.Greater(maxAngle, 30f, "kick should swing the leg");
         }
+
+        TouchControls MakeTouch()
+        {
+            var go = new GameObject("Touch");
+            go.transform.SetParent(root.transform);
+            var t = go.AddComponent<TouchControls>();
+            t.forceShow = true;
+            return t;
+        }
+
+        [UnityTest]
+        public IEnumerator TouchControlsShowAndExposeInput()
+        {
+            var t = MakeTouch();
+            yield return null;
+            Assert.IsTrue(t.IsVisible, "forced visible while match is running");
+            Assert.AreEqual(Vector2.zero, t.Move);
+            t.StickForTest.SetValueForTest(new Vector2(0.5f, 1f));
+            Assert.AreEqual(new Vector2(0.5f, 1f), t.Move);
+            t.PassForTest.Press();
+            Assert.IsTrue(t.PassPressed, "pass latch fires");
+            Assert.IsFalse(t.PassPressed, "pass latch is consumed");
+        }
+
+        [UnityTest]
+        public IEnumerator TouchShootHoldThenReleaseFiresOnce()
+        {
+            var t = MakeTouch();
+            yield return null;
+            t.ShootForTest.Press();
+            Assert.IsTrue(t.ShootHeld);
+            Assert.IsFalse(t.ShootReleased);
+            t.ShootForTest.Release();
+            Assert.IsFalse(t.ShootHeld);
+            Assert.IsTrue(t.ShootReleased);
+            Assert.IsFalse(t.ShootReleased);
+        }
+
+        [UnityTest]
+        public IEnumerator TouchControlsHideWhenGameIsPaused()
+        {
+            var t = MakeTouch();
+            yield return null;
+            Assert.IsTrue(t.IsVisible);
+            Time.timeScale = 0f;
+            yield return null;
+            bool hidden = !t.IsVisible;
+            Time.timeScale = 1f;
+            yield return null;
+            Assert.IsTrue(hidden, "controls hidden while menus pause the game");
+            Assert.IsTrue(t.IsVisible, "controls return when play resumes");
+        }
+
+        [UnityTest]
+        public IEnumerator PlayerInputMergesTouchWithKeyboard()
+        {
+            var t = MakeTouch();
+            var src = new GameObject("Src").AddComponent<PlayerInputSource>();
+            src.transform.SetParent(root.transform);
+            src.touch = t;
+            yield return null;
+            t.StickForTest.SetValueForTest(new Vector2(0f, 1f));
+            Assert.AreEqual(new Vector2(0f, 1f), src.Move, "touch stick drives movement when no keys are pressed");
+            t.PassForTest.Press();
+            Assert.IsTrue(src.PassPressed);
+            Assert.IsFalse(src.PassPressed);
+        }
     }
 }

@@ -125,6 +125,7 @@ public static class FoundationSceneBuilder
 
         var humanInput = new GameObject("HumanInput").AddComponent<PlayerInputSource>();
         humanInput.transform.SetParent(root.transform);
+        humanInput.touch = humanInput.gameObject.AddComponent<TouchControls>();
 
         TeamController MakeTeam(string teamName, int id, float attackDir, bool human, Color kit, Color gkKit)
         {

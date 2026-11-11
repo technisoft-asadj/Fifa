@@ -109,3 +109,16 @@ Limits: still primitives, no real rig, no goalkeeper dive/catch animation, no ce
 Replacement path: a rigged model with an Animator only needs speed (PlayerController.Velocity), PlayKick and PlayTackle.
 
 Dev note: entering Play immediately after the "Build Prototype Scene" menu can race and play a stale scene; wait for the build to finish first.
+
+## Session 2 - Mobile touch controls
+| Item | Status |
+|---|---|
+| TouchControls: floating joystick (left 45% x lower 65% of screen) + SHOOT (hold/release), PASS, TACKLE, SWITCH, SPRINT buttons; implements IPlayerInput | IMPLEMENTED |
+| Merged with keyboard/gamepad in PlayerInputSource (larger stick wins; buttons OR-ed; one-shots latched and consumed) | IMPLEMENTED, unit-tested |
+| Visible only on touch devices (or forceShow) and only while the game is unpaused | IMPLEMENTED, unit-tested |
+| Size/opacity settings persisted in PlayerPrefs (SetAppearance) | IMPLEMENTED, no settings UI yet |
+| Layout rendered in Play mode with forceShow (buttons on right, scaled via 1920x1080 reference) | CHECKED visually at editor game-view size |
+
+Tests: 10/10 EditMode, 19/19 PlayMode pass.
+NOT verified: real finger input on a phone/tablet, multi-touch (stick + button together), notch/safe-area handling, button placement ergonomics, joystick feel. The joystick drag path was only driven through test hooks, not real pointer events.
+Not done: draggable/resizable button layout, left-handed mode, safe-area insets, settings screen.

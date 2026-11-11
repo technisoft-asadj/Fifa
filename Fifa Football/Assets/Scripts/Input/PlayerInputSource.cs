@@ -52,14 +52,25 @@ namespace FootballSim.Inputs
     {
         InputAction move, sprint, pass, shoot, tackle, switchPlayer;
 
-        public Vector2 Move => move.ReadValue<Vector2>();
+        /// <summary>Optional on-screen controls merged with keyboard/gamepad.</summary>
+        public TouchControls touch;
+
+        public Vector2 Move
+        {
+            get
+            {
+                Vector2 kb = move.ReadValue<Vector2>();
+                Vector2 t = touch != null ? touch.Move : Vector2.zero;
+                return t.sqrMagnitude > kb.sqrMagnitude ? t : kb;
+            }
+        }
         public bool MoveIsWorldSpace => false;
-        public bool Sprint => sprint.IsPressed();
-        public bool PassPressed => pass.WasPressedThisFrame();
-        public bool ShootHeld => shoot.IsPressed();
-        public bool ShootReleased => shoot.WasReleasedThisFrame();
-        public bool TacklePressed => tackle.WasPressedThisFrame();
-        public bool SwitchPressed => switchPlayer.WasPressedThisFrame();
+        public bool Sprint => sprint.IsPressed() | (touch != null && touch.Sprint);
+        public bool PassPressed => pass.WasPressedThisFrame() | (touch != null && touch.PassPressed);
+        public bool ShootHeld => shoot.IsPressed() | (touch != null && touch.ShootHeld);
+        public bool ShootReleased => shoot.WasReleasedThisFrame() | (touch != null && touch.ShootReleased);
+        public bool TacklePressed => tackle.WasPressedThisFrame() | (touch != null && touch.TacklePressed);
+        public bool SwitchPressed => switchPlayer.WasPressedThisFrame() | (touch != null && touch.SwitchPressed);
         public Vector3 AimWorld => Vector3.zero;
         public float ActionPower => 0f;
 
