@@ -11,7 +11,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0e3a07007fdf10a46ab0f5517dd1ba73, type: 3}
   m_Name: TestPlayer
-  m_EditorClassIdentifier: Assembly-CSharp::FootballSim.Players.PlayerData
+  m_EditorClassIdentifier: FootballSim.Runtime::FootballSim.Players.PlayerData
   displayName: Test Player
   pace: 70
   acceleration: 70

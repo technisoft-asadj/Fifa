@@ -11,7 +11,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9bee0cafb3648d245a05ceba1c662364, type: 3}
   m_Name: Formation_442
-  m_EditorClassIdentifier: Assembly-CSharp::FootballSim.FootballAI.FormationData
+  m_EditorClassIdentifier: FootballSim.Runtime::FootballSim.FootballAI.FormationData
   formationName: 4-4-2
   slots:
   - {x: 0, y: 0.02}

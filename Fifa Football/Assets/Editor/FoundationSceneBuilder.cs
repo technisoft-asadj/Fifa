@@ -177,7 +177,12 @@ public static class FoundationSceneBuilder
         cso.FindProperty("ball").objectReferenceValue = ballGo.transform;
         cso.FindProperty("player").objectReferenceValue = home.players[9].transform; cso.ApplyModifiedProperties();
         var mso = new SerializedObject(mm);
-        mso.FindProperty("ball").objectReferenceValue = ball; mso.ApplyModifiedProperties();
+        mso.FindProperty("ball").objectReferenceValue = ball;
+        var teamsProp = mso.FindProperty("teams");
+        teamsProp.arraySize = 2;
+        teamsProp.GetArrayElementAtIndex(0).objectReferenceValue = home;
+        teamsProp.GetArrayElementAtIndex(1).objectReferenceValue = away;
+        mso.ApplyModifiedProperties();
 
         EditorSceneManager.SaveScene(scene, "Assets/Scenes/FootballPrototype.unity");
         var list = new System.Collections.Generic.List<EditorBuildSettingsScene>(EditorBuildSettings.scenes);

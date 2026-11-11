@@ -15,6 +15,14 @@ namespace FootballSim.Players
         [SerializeField] float chargeTime = 0.8f;
         [SerializeField] GameObject controlMarker;
         public bool isGoalkeeper;
+        /// <summary>0 = home, 1 = away. Set by TeamController.</summary>
+        public int TeamId { get; set; }
+
+        void KickBall(Vector3 dir, float speed, Vector3 spin)
+        {
+            ball.LastTouchTeam = TeamId;
+            ball.Kick(dir, speed, spin);
+        }
 
         CharacterController cc;
         Vector3 planarVelocity;
@@ -113,7 +121,7 @@ namespace FootballSim.Players
             {
                 float push = planarVelocity.magnitude * 1.15f + 0.8f;
                 Vector3 dirTo = Vector3.Lerp(transform.forward, planarVelocity.normalized, 0.7f).normalized;
-                ball.Kick(dirTo, push, Vector3.zero);
+                KickBall(dirTo, push, Vector3.zero);
                 touchCooldown = Mathf.Lerp(0.35f, 0.18f, data.ballControl / 99f);
             }
 
@@ -141,7 +149,7 @@ namespace FootballSim.Players
             aim = Quaternion.Euler(0f, Random.Range(-inaccuracyDeg, inaccuracyDeg) * power, 0f) * aim;
             Vector3 dir = (aim + Vector3.up * loft * power).normalized;
             Vector3 spin = Vector3.Cross(Vector3.up, aim) * Random.Range(-4f, 4f) * power;
-            ball.Kick(dir, maxSpeed * Mathf.Clamp01(power), spin);
+            KickBall(dir, maxSpeed * Mathf.Clamp01(power), spin);
             touchCooldown = 0.4f;
         }
 
@@ -160,7 +168,7 @@ namespace FootballSim.Players
             {
                 // Poke the ball loose to the side/forward of the tackler
                 Vector3 loose = (transform.forward + Quaternion.Euler(0, Random.Range(-50f, 50f), 0) * transform.forward).normalized;
-                ball.Kick(loose, 6.5f, Vector3.zero);
+                KickBall(loose, 6.5f, Vector3.zero);
                 touchCooldown = 0.5f;
             }
         }

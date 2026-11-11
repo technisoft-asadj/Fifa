@@ -33,8 +33,25 @@ namespace FootballSim.FootballAI
         void OnEnable() { if (match != null) match.KickoffReady += ResetToKickoff; }
         void OnDisable() { if (match != null) match.KickoffReady -= ResetToKickoff; }
 
+        /// <summary>Teleport the player closest to a point next to it (used for throw-ins, corners, goal kicks).</summary>
+        public void SendTakerTo(Vector3 spot, Vector3 facing)
+        {
+            PlayerController best = null; float bd = float.MaxValue;
+            foreach (var p in players)
+            {
+                float d = (p.transform.position - spot).sqrMagnitude;
+                if (d < bd) { bd = d; best = p; }
+            }
+            if (best == null) return;
+            Vector3 behind = spot - facing.normalized * 0.9f;
+            behind.y = 1f;
+            best.TeleportTo(behind, Quaternion.LookRotation(facing.normalized, Vector3.up));
+            if (humanControlled && !best.isGoalkeeper) SetControlled(best);
+        }
+
         void Start()
         {
+            for (int i = 0; i < players.Count; i++) players[i].TeamId = teamId;
             for (int i = 0; i < players.Count; i++)
                 players[i].SetInput(brains[i].Input, false);
             ResetToKickoff();

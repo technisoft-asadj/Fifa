@@ -54,3 +54,18 @@ Known limitations / next:
 - All players share one PlayerData asset; no per-player stats yet.
 - AI has no marking, passing lanes or attacking runs: Phase 4 work.
 - No automated tests yet (EditMode tests for ball, match clock, formation are the next task).
+
+## Session 2 - Out-of-bounds restarts and automated tests
+| Item | Status |
+|---|---|
+| Last-touch tracking (BallController.LastTouchTeam) | IMPLEMENTED |
+| Throw-in, corner, goal kick (MatchManager, taker teleported to ball, 1.2 s hold) | IMPLEMENTED, unit-tested; not yet seen live in a full match |
+| Assembly definitions (FootballSim.Runtime + EditMode/PlayMode test assemblies) | IMPLEMENTED |
+| EditMode tests (8): attribute maths, formation data, pitch size, AI input one-shots | VERIFIED (8/8 passed) |
+| PlayMode tests (9): ball rest, kick, speed clamp, spin curve, freeze, goal scoring + duplicate guard, throw-in, corner, goal kick | VERIFIED (9/9 passed) |
+
+Smoke test: scene rebuilt, Play mode ran about a minute with AI vs AI, clock advanced, 0 errors. No goal or restart happened during that window, so live restarts remain unobserved.
+
+Still missing: offside, fouls/cards/referee, penalties, per-player stats, marking/passing-lane AI, animations, UI beyond the debug score label.
+
+Run tests: Window > General > Test Runner, or via the MCP run_tests tool.

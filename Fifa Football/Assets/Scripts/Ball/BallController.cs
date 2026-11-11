@@ -16,6 +16,15 @@ namespace FootballSim.Ball
         public Rigidbody Body => rb;
         public Vector3 Velocity => rb.linearVelocity;
         public bool IsGrounded => grounded;
+        /// <summary>Team that last touched the ball (-1 = nobody yet). Used for restarts.</summary>
+        public int LastTouchTeam { get; set; } = -1;
+
+        /// <summary>Hold the ball still (set pieces). Unfreezing leaves it at rest.</summary>
+        public void Freeze(bool frozen)
+        {
+            if (frozen) { rb.linearVelocity = Vector3.zero; rb.angularVelocity = Vector3.zero; }
+            rb.isKinematic = frozen;
+        }
 
         void Awake()
         {
