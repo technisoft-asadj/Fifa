@@ -170,6 +170,7 @@ public static class FoundationSceneBuilder
         }
         var home = MakeTeam("Home", 0, 1f, true, new Color(0.85f, 0.1f, 0.1f), new Color(0.9f, 0.8f, 0.1f));
         var away = MakeTeam("Away", 1, -1f, false, new Color(0.1f, 0.25f, 0.85f), new Color(0.1f, 0.8f, 0.3f));
+        home.cameraRig = bcam;
         foreach (var b in home.brains) b.opponents = away;
         foreach (var b in away.brains) b.opponents = home;
 

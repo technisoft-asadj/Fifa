@@ -15,6 +15,9 @@ namespace FootballSim.CameraSystem
 
         Vector3 vel;
 
+        /// <summary>Set the player the camera blends toward (called when control switches).</summary>
+        public void SetPlayer(Transform p) { player = p; }
+
         void LateUpdate()
         {
             if (ball == null) return;

@@ -21,6 +21,7 @@ namespace FootballSim.FootballAI
         public MatchManager match;
         public FormationData formation;
         public PlayerInputSource humanInput;
+        public FootballSim.CameraSystem.BroadcastCamera cameraRig;
         public List<PlayerController> players = new List<PlayerController>();
         public List<PlayerAI> brains = new List<PlayerAI>();
 
@@ -113,6 +114,7 @@ namespace FootballSim.FootballAI
                 brains[oi].enabled = true;
             }
             Controlled = p;
+            if (cameraRig != null) cameraRig.SetPlayer(p.transform);
             int ni = players.IndexOf(p);
             brains[ni].enabled = false;
             brains[ni].Input.Clear();
