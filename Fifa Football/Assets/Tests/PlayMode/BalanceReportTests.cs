@@ -17,7 +17,7 @@ namespace FootballSim.Tests
     /// </summary>
     public class BalanceReportTests
     {
-        [UnityTest]
+        [UnityTest, Timeout(900000)] // 3 matches at ~75 s each exceed NUnit's default 180 s
         public IEnumerator PlayAiMatchesAndWriteReport()
         {
             // Slow (~75 s per match), so it only runs when a file named run_balance.flag exists in the project root.

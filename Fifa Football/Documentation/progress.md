@@ -296,6 +296,17 @@ NOT verified:
   only inside a short range and when facing goal; the same chasing defender keeps fouling, so the 4th foul by one
   player (= red card) arrives quickly.
 
+## Session 3 - AI tuning pass 1 and a frozen-ball bug (UNVERIFIED)
+- Commit `860dcbe` tuned the AI (build-up pass after 1.6 s of possession, 1.25x shooting range, facing > 0.35, AI tackle
+  cooldowns ~1.6x longer). Its effect is NOT known: the 3-match balance run hit NUnit's 180 s default timeout and wrote no report.
+- That run's log exposed a real bug: during a restart hold the ball is kinematic, but players kept "touching" it every
+  frame (hundreds of KB of "Setting linear velocity of a kinematic body" warnings; also changed `LastTouchTeam` during the hold).
+  Fix: `PlayerController` ignores kicks, passes and shots while the ball is kinematic.
+- `BalanceReportTests` now has `[Timeout(900000)]`.
+- Unity was found closed mid-session and was reopened. After the fix: 28/28 EditMode and 41/41 PlayMode pass
+  (the balance test is skipped unless `run_balance.flag` exists). Whether the AI tuning improved the numbers is still
+  being measured; no tuned balance report exists yet.
+
 ## Still unverified from red cards / penalties
 - No red card or penalty has been seen in live play (they depend on random fouls); penalty balance
   (how often the AI scores) is unknown; not yet in the APK on the phone.

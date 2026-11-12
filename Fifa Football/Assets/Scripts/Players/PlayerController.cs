@@ -20,6 +20,7 @@ namespace FootballSim.Players
 
         void KickBall(Vector3 dir, float speed, Vector3 spin)
         {
+            if (ball.Body.isKinematic) return; // ball is held for a restart: nobody can touch it yet (setting velocity on it only spams warnings)
             ball.LastTouchTeam = TeamId;
             ball.LastToucher = this;
             ball.Kick(dir, speed, spin);
@@ -140,10 +141,10 @@ namespace FootballSim.Players
             if (input.ShootReleased)
             {
                 float p = input.ActionPower > 0f ? input.ActionPower : Mathf.Max(0.25f, shootCharge);
-                if (inRange) { Strike(p, data.MaxShotSpeed, data.ShotInaccuracyDeg, 0.18f); Struck?.Invoke(this, true, lastStrikeDir); }
+                if (inRange && !ball.Body.isKinematic) { Strike(p, data.MaxShotSpeed, data.ShotInaccuracyDeg, 0.18f); Struck?.Invoke(this, true, lastStrikeDir); }
                 shootCharge = 0f;
             }
-            else if (input.PassPressed && inRange)
+            else if (input.PassPressed && inRange && !ball.Body.isKinematic)
             {
                 float p = input.ActionPower > 0f ? input.ActionPower : 0.55f;
                 Strike(p, data.MaxPassSpeed, data.PassInaccuracyDeg, 0.02f);
