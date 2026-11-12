@@ -132,15 +132,20 @@ namespace FootballSim.Players
             if (input.ShootReleased)
             {
                 float p = input.ActionPower > 0f ? input.ActionPower : Mathf.Max(0.25f, shootCharge);
-                if (inRange) Strike(p, data.MaxShotSpeed, data.ShotInaccuracyDeg, 0.18f);
+                if (inRange) { Strike(p, data.MaxShotSpeed, data.ShotInaccuracyDeg, 0.18f); Struck?.Invoke(this, true, lastStrikeDir); }
                 shootCharge = 0f;
             }
             else if (input.PassPressed && inRange)
             {
                 float p = input.ActionPower > 0f ? input.ActionPower : 0.55f;
                 Strike(p, data.MaxPassSpeed, data.PassInaccuracyDeg, 0.02f);
+                Struck?.Invoke(this, false, lastStrikeDir);
             }
         }
+
+        /// <summary>Raised after a pass or shot; arguments = player, true for a shot, strike direction.</summary>
+        public static event System.Action<PlayerController, bool, Vector3> Struck;
+        Vector3 lastStrikeDir;
 
         void Strike(float power, float maxSpeed, float inaccuracyDeg, float loft)
         {
@@ -151,6 +156,7 @@ namespace FootballSim.Players
             aim = Quaternion.Euler(0f, Random.Range(-inaccuracyDeg, inaccuracyDeg) * power, 0f) * aim;
             Vector3 dir = (aim + Vector3.up * loft * power).normalized;
             Vector3 spin = Vector3.Cross(Vector3.up, aim) * Random.Range(-4f, 4f) * power;
+            lastStrikeDir = dir;
             KickBall(dir, maxSpeed * Mathf.Clamp01(power), spin);
             if (visual != null) visual.PlayKick(Random.value > 0.25f);
             touchCooldown = 0.4f;

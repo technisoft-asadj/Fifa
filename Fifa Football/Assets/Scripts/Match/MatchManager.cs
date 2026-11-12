@@ -46,8 +46,17 @@ namespace FootballSim.Match
 
         readonly Dictionary<object, int> foulsByPlayer = new Dictionary<object, int>();
 
-        void OnEnable() { PlayerController.Fouled += OnPlayerFoul; }
-        void OnDisable() { PlayerController.Fouled -= OnPlayerFoul; }
+        void OnEnable() { PlayerController.Fouled += OnPlayerFoul; PlayerController.Struck += OnPlayerStruck; }
+        void OnDisable() { PlayerController.Fouled -= OnPlayerFoul; PlayerController.Struck -= OnPlayerStruck; }
+
+        /// <summary>Possession, shots, passes and corners for both teams.</summary>
+        public MatchStats Stats { get; } = new MatchStats();
+
+        void OnPlayerStruck(PlayerController p, bool isShot, Vector3 dir)
+        {
+            if (Finished || ball == null) return;
+            Stats.AddStrike(p.TeamId, isShot, ball.transform.position, dir);
+        }
 
         void OnPlayerFoul(PlayerController fouler, PlayerController victim)
         {
@@ -142,6 +151,7 @@ namespace FootballSim.Match
                 return;
             }
 
+            if (ball != null) Stats.AddPossession(ball.LastTouchTeam, Time.deltaTime); // live play only
             CheckOutOfBounds();
         }
 
@@ -203,6 +213,7 @@ namespace FootballSim.Match
             ball.Freeze(true);
             ball.LastTouchTeam = -1;
             restartTimer = restartDelay;
+            if (type == RestartType.Corner && (awardedTeam == 0 || awardedTeam == 1)) Stats.corners[awardedTeam]++;
             bool penalty = type == RestartType.Penalty;
             PlayerController taker = null;
             if (teams != null)

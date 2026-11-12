@@ -175,6 +175,19 @@ NOT verified:
 - HUD: PENALTY and RED CARD banners; full-time stats show red cards.
 - Tests: 32/32 PlayMode pass (4 new: penalty vs free kick by foul position, red on 4th foul, send-off in the real
   scene with control hand-over, penalty box clearing in the real scene). EditMode tests not rerun this session.
-- NOT verified: no red card or penalty has been seen in live play (they depend on random fouls); penalty balance
+
+## Session 3 - Match statistics
+- `Match/MatchStats.cs`: possession (time since each team last touched the ball, live play only), shots,
+  shots on target, passes, corners. Fouls and cards were already counted.
+- Shots/passes come from a new `PlayerController.Struck` event. "On target" is a flat geometric check at the moment
+  of the strike (would the line cross the goal line between the posts); it ignores height, curve, blocks and saves.
+- Full-time screen now shows a five-line statistics summary.
+- Tests: 13/13 EditMode (3 new for MatchStats). 33/33 PlayMode
+  (1 new: a short AI match in the real scene accumulates possession and at least one pass or shot).
+- NOT verified: the full-time screen layout has not been looked at (in the editor or on the phone); the numbers have
+  not been compared against a watched match.
+
+## Still unverified from red cards / penalties
+- No red card or penalty has been seen in live play (they depend on random fouls); penalty balance
   (how often the AI scores) is unknown; not yet in the APK on the phone.
 - Lesson: the earlier in-editor checks passed because the editor resolved the script by type; only the build's validation exposed it. Run scene-level tests after every scene rebuild.

@@ -97,9 +97,20 @@ namespace FootballSim.UI
             resultText.text = match.HomeScore > match.AwayScore ? $"HOME WINS  {match.HomeScore} - {match.AwayScore}"
                 : match.AwayScore > match.HomeScore ? $"AWAY WINS  {match.AwayScore} - {match.HomeScore}"
                 : $"DRAW  {match.HomeScore} - {match.AwayScore}";
-            statsText.text = $"Fouls  {match.HomeFouls} - {match.AwayFouls}     Yellow  {match.HomeYellows} - {match.AwayYellows}     Red  {match.HomeReds} - {match.AwayReds}";
+            statsText.text = StatsSummary(match);
             fullTimePanel.SetActive(true);
             Time.timeScale = 0f;
+        }
+
+        /// <summary>Full-time statistics, home value first on every line.</summary>
+        public static string StatsSummary(MatchManager m)
+        {
+            var s = m.Stats;
+            return $"Possession   {s.PossessionPercent(0)}%  -  {s.PossessionPercent(1)}%\n"
+                 + $"Shots (on target)   {s.shots[0]} ({s.shotsOnTarget[0]})  -  {s.shots[1]} ({s.shotsOnTarget[1]})\n"
+                 + $"Passes   {s.passes[0]}  -  {s.passes[1]}\n"
+                 + $"Corners   {s.corners[0]}  -  {s.corners[1]}\n"
+                 + $"Fouls   {m.HomeFouls}  -  {m.AwayFouls}      Yellow   {m.HomeYellows}  -  {m.AwayYellows}      Red   {m.HomeReds}  -  {m.AwayReds}";
         }
 
         void Banner(string text, float seconds) { bannerText.text = text; bannerTimer = seconds; }
@@ -215,12 +226,13 @@ namespace FootballSim.UI
             CycleDifficulty(0);
 
             // Full-time panel
-            fullTimePanel = Rect("FullTimePanel", root, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(900, 460), Panel).gameObject;
+            fullTimePanel = Rect("FullTimePanel", root, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(900, 700), Panel).gameObject;
             var ft = fullTimePanel.transform;
-            var ftTitle = Label("FT", ft, 72, TextAnchor.MiddleCenter, new Vector2(0, 120), new Vector2(860, 100)); ftTitle.text = "FULL TIME"; ftTitle.fontStyle = FontStyle.Bold;
-            resultText = Label("Result", ft, 48, TextAnchor.MiddleCenter, new Vector2(0, 30), new Vector2(860, 80));
-            statsText = Label("Stats", ft, 28, TextAnchor.MiddleCenter, new Vector2(0, -40), new Vector2(860, 50));
-            Button(ft, "REMATCH", new Vector2(0, -150), new Vector2(420, 110), Rematch, Accent);
+            var ftTitle = Label("FT", ft, 72, TextAnchor.MiddleCenter, new Vector2(0, 270), new Vector2(860, 100)); ftTitle.text = "FULL TIME"; ftTitle.fontStyle = FontStyle.Bold;
+            resultText = Label("Result", ft, 48, TextAnchor.MiddleCenter, new Vector2(0, 180), new Vector2(860, 80));
+            statsText = Label("Stats", ft, 28, TextAnchor.MiddleCenter, new Vector2(0, 20), new Vector2(860, 220));
+            statsText.verticalOverflow = VerticalWrapMode.Overflow; statsText.lineSpacing = 1.25f;
+            Button(ft, "REMATCH", new Vector2(0, -250), new Vector2(420, 110), Rematch, Accent);
             fullTimePanel.SetActive(false);
 
             // Pause button (top-right) and pause panel with touch-control settings

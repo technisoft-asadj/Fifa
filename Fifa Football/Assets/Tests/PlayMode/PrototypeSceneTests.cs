@@ -103,6 +103,24 @@ namespace FootballSim.Tests
             hud.TogglePause();
         }
 
+        [UnityTest]
+        public IEnumerator LiveMatchAccumulatesStatsAndSummaryText()
+        {
+            yield return LoadScene();
+            Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>().BeginMatch();
+            var match = Object.FindFirstObjectByType<MatchManager>();
+            Time.timeScale = 4f;
+            yield return new WaitForSeconds(24f); // 6 real seconds of AI play
+            Time.timeScale = 1f;
+            var s = match.Stats;
+            Assert.Greater(s.possessionSeconds[0] + s.possessionSeconds[1], 1f, "someone must have had the ball");
+            Assert.AreEqual(100, s.PossessionPercent(0) + s.PossessionPercent(1));
+            Assert.Greater(s.passes[0] + s.passes[1] + s.shots[0] + s.shots[1], 0, "AI should pass or shoot within 24 game seconds");
+            Assert.LessOrEqual(s.shotsOnTarget[0], s.shots[0]);
+            Assert.LessOrEqual(s.shotsOnTarget[1], s.shots[1]);
+            StringAssert.Contains("Possession", FootballSim.UI.MatchHUD.StatsSummary(match));
+        }
+
         IEnumerator FoulWhenReady(MatchManager match, int team, Vector3 spot, object key)
         {
             float t = 0f;
