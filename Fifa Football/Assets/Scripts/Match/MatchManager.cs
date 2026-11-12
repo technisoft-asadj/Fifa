@@ -65,8 +65,56 @@ namespace FootballSim.Match
         /// <summary>+1 if the team currently attacks +Z, -1 if it attacks -Z. Home starts by attacking +Z.</summary>
         public float AttackSign(int team) { return (team == 0) != SidesSwapped ? 1f : -1f; }
 
+        // ---- kick-off ----
+        /// <summary>Team that takes the current/next kick-off: home to start, the conceding team after a goal, away to start the second half.</summary>
+        public int KickoffTeam { get; private set; }
+        /// <summary>True from the whistle until the ball is first played; the other team must stay out of the centre circle.</summary>
+        public bool KickoffPending { get; private set; } = true;
+        public const float CentreCircleRadius = 9.15f;
+        float kickoffWait;
+
+        /// <summary>Put the kick-off taker beside the ball and move the other team out of the centre circle.</summary>
+        public void PrepareKickoff()
+        {
+            KickoffPending = true;
+            kickoffWait = 0f;
+            if (teams == null) return;
+            foreach (var t in teams)
+            {
+                if (t == null) continue;
+                if (t.teamId == KickoffTeam)
+                {
+                    PlayerController taker = null; float bd = float.MaxValue;
+                    foreach (var p in t.players)
+                    {
+                        if (p.isGoalkeeper || !TeamController.IsOn(p)) continue;
+                        float d = p.transform.position.sqrMagnitude;
+                        if (d < bd) { bd = d; taker = p; }
+                    }
+                    if (taker != null)
+                    {
+                        taker.TeleportTo(new Vector3(0f, 1f, -t.attackDir * 0.8f), Quaternion.LookRotation(new Vector3(0f, 0f, t.attackDir)));
+                        if (t.humanControlled) t.SetControlled(taker);
+                    }
+                }
+                else
+                {
+                    float side = -t.attackDir; // this team's own half
+                    foreach (var p in t.players)
+                    {
+                        if (!TeamController.IsOn(p)) continue;
+                        Vector3 pos = p.transform.position;
+                        if (new Vector2(pos.x, pos.z).magnitude >= CentreCircleRadius) continue;
+                        pos.z = side * Mathf.Sqrt(Mathf.Max(0f, CentreCircleRadius * CentreCircleRadius - pos.x * pos.x)) + side * 0.3f;
+                        p.TeleportTo(pos, p.transform.rotation);
+                    }
+                }
+            }
+        }
+
         void SwapSides()
         {
+            KickoffTeam = 1; // away starts the second half
             SidesSwapped = !SidesSwapped;
             if (teams != null) foreach (var t in teams) if (t != null) t.attackDir = AttackSign(t.teamId);
             foreach (var g in Object.FindObjectsByType<GoalTrigger>(FindObjectsSortMode.None)) g.defendingTeam = 1 - g.defendingTeam;
@@ -232,6 +280,7 @@ namespace FootballSim.Match
                     ball.ResetTo(kickoffSpot);
                     LastRestart = RestartType.KickOff;
                     KickoffReady?.Invoke();
+                    PrepareKickoff();
                 }
                 return;
             }
@@ -243,6 +292,12 @@ namespace FootballSim.Match
                 return;
             }
 
+            if (KickoffPending)
+            {
+                kickoffWait += Time.deltaTime;
+                // ends when the ball is played, or after a failsafe so nobody waits forever for a taker who never kicks
+                if (kickoffWait > 8f || (ball != null && (ball.LastTouchTeam != -1 || (ball.transform.position - kickoffSpot).sqrMagnitude > 1f))) KickoffPending = false;
+            }
             if (ball != null) Stats.AddPossession(ball.LastTouchTeam, Time.deltaTime); // live play only
             CheckOffside();
             if (restartTimer > 0f) return; // an offside was just given
@@ -255,6 +310,7 @@ namespace FootballSim.Match
             if (scoringTeam == 0) HomeScore++; else AwayScore++;
             Debug.Log($"GOAL! Home {HomeScore} - {AwayScore} Away  ({GameMinute:0}')");
             resetTimer = 3f;
+            KickoffTeam = 1 - scoringTeam; // the conceding team restarts
             GoalScored?.Invoke(scoringTeam);
         }
 

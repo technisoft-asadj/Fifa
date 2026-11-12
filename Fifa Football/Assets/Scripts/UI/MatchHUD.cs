@@ -148,6 +148,7 @@ namespace FootballSim.UI
         {
             match.SetDurationMinutes(selectedMinutes);
             ApplyFormations();
+            match.PrepareKickoff();
             startPanel.SetActive(false);
             Time.timeScale = 1f;
         }

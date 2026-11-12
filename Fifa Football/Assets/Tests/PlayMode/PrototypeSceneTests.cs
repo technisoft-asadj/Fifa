@@ -190,6 +190,57 @@ namespace FootballSim.Tests
             Assert.AreEqual(1, keepersOnLine);
         }
 
+        static void AssertKickoffLayout(MatchManager match, TeamController[] teams)
+        {
+            foreach (var t in teams)
+                foreach (var p in t.players)
+                {
+                    if (!TeamController.IsOn(p)) continue;
+                    var pos = p.transform.position;
+                    float fromCentre = new Vector2(pos.x, pos.z).magnitude;
+                    if (t.teamId != match.KickoffTeam)
+                    {
+                        Assert.GreaterOrEqual(fromCentre, MatchManager.CentreCircleRadius - 0.1f, "non-kicking team stays out of the centre circle");
+                        Assert.AreEqual(-t.attackDir, Mathf.Sign(pos.z), "and in its own half");
+                    }
+                }
+        }
+
+        [UnityTest]
+        public IEnumerator KickoffGoesToTheTeamThatConcedesAndOtherTeamStaysOut()
+        {
+            yield return LoadScene();
+            Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>().BeginMatch();
+            var match = Object.FindFirstObjectByType<MatchManager>();
+            var ball = Object.FindFirstObjectByType<BallController>();
+            var teams = Object.FindObjectsByType<TeamController>(FindObjectsSortMode.None);
+            yield return null;
+            Assert.AreEqual(0, match.KickoffTeam, "home starts");
+            Assert.IsTrue(match.KickoffPending);
+            AssertKickoffLayout(match, teams);
+            foreach (var t in teams) if (t.teamId == 0)
+            {
+                float nearest = float.MaxValue;
+                foreach (var p in t.players) if (!p.isGoalkeeper) nearest = Mathf.Min(nearest, p.transform.position.magnitude);
+                Assert.Less(nearest, 1.5f, "home taker stands at the ball");
+            }
+
+            // Home scores: away must take the next kick-off
+            match.OnGoal(0);
+            Assert.AreEqual(1, match.KickoffTeam);
+            float t0 = 0f;
+            while (match.InGoalPause && t0 < 8f) { t0 += Time.deltaTime; yield return null; }
+            yield return null;
+            Assert.AreEqual(RestartType.KickOff, match.LastRestart);
+            AssertKickoffLayout(match, teams);
+            foreach (var t in teams) if (t.teamId == 1)
+            {
+                float nearest = float.MaxValue;
+                foreach (var p in t.players) if (!p.isGoalkeeper) nearest = Mathf.Min(nearest, p.transform.position.magnitude);
+                Assert.Less(nearest, 1.5f, "away taker stands at the ball");
+            }
+        }
+
         [UnityTest]
         public IEnumerator SoundIsWiredAndMuteSwitchWorks()
         {

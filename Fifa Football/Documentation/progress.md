@@ -241,6 +241,17 @@ NOT verified:
   unknown; the editor/tests have no meaningful audio output. Not tested on the phone. No music, no ambient crowd loop,
   no per-event volume tuning, and the pause panel layout with the new button has not been looked at.
 
+## Session 3 - Proper kick-offs
+- `MatchManager.KickoffTeam`: home starts, the conceding team restarts after a goal, away starts the second half.
+  `PrepareKickoff()` (also called when the match begins) puts the kicking team's nearest outfielder beside the ball and
+  moves any player of the other team out of the 9.15 m centre circle into its own half.
+- `KickoffPending` holds the non-kicking AI team in its formation until the ball is first played (or 8 s pass, so a taker
+  who never kicks cannot freeze the game). The old behaviour had both teams sprinting at the ball from the whistle.
+- Tests: 38/38 PlayMode (1 new: first kick-off, then kick-off after a goal goes to the other team, circle clear, taker at the ball);
+  25/25 EditMode unchanged.
+- NOT verified: not watched live or on the phone. A HUMAN-controlled player on the non-kicking team is not stopped from
+  entering the circle (only AI is held). No dedicated kick-off pass animation or "must play forward" rule.
+
 ## Still unverified from red cards / penalties
 - No red card or penalty has been seen in live play (they depend on random fouls); penalty balance
   (how often the AI scores) is unknown; not yet in the APK on the phone.

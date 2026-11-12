@@ -55,6 +55,13 @@ namespace FootballSim.FootballAI
             float ballDist = (ballPos - Flat(pos)).magnitude;
             bool isChaser = team.Chaser == pc;
 
+            // Kick-off: the team that is not kicking off waits in its own half until the ball is played
+            if (team.match != null && team.match.KickoffPending && team.match.KickoffTeam != team.teamId)
+            {
+                MoveToward(team.HomePosition(slot, true), 10f);
+                return;
+            }
+
             if (!isChaser)
             {
                 MoveToward(team.HomePosition(slot), 10f);
