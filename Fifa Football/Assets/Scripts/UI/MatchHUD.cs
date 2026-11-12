@@ -102,7 +102,11 @@ namespace FootballSim.UI
         // ---- match events ----
         void OnHalfTime() { Banner($"HALF TIME  {match.HomeScore} - {match.AwayScore}", MatchManager.HalfTimeSeconds - 0.5f); }
 
-        void OnGoal(int team) { Banner(team == 0 ? "GOAL!  HOME SCORES" : "GOAL!  AWAY SCORES", 3f); }
+        void OnGoal(int team)
+        {
+            bool og = match.Goals.Count > 0 && match.Goals[match.Goals.Count - 1].ownGoal;
+            Banner((team == 0 ? "GOAL!  HOME SCORES" : "GOAL!  AWAY SCORES") + (og ? "  (OWN GOAL)" : ""), 3f);
+        }
 
         void OnRestart(RestartType type, int team)
         {
@@ -127,7 +131,12 @@ namespace FootballSim.UI
         public static string StatsSummary(MatchManager m)
         {
             var s = m.Stats;
-            return $"Possession   {s.PossessionPercent(0)}%  -  {s.PossessionPercent(1)}%\n"
+            string goals = "";
+            for (int i = 0; i < m.Goals.Count && i < 5; i++) goals += m.Goals[i] + "\n";
+            if (m.Goals.Count > 5) goals += $"+{m.Goals.Count - 5} more\n";
+            if (goals.Length > 0) goals += "\n";
+            return goals
+                 + $"Possession   {s.PossessionPercent(0)}%  -  {s.PossessionPercent(1)}%\n"
                  + $"Shots (on target)   {s.shots[0]} ({s.shotsOnTarget[0]})  -  {s.shots[1]} ({s.shotsOnTarget[1]})\n"
                  + $"Passes   {s.passes[0]}  -  {s.passes[1]}\n"
                  + $"Corners   {s.corners[0]}  -  {s.corners[1]}      Offsides   {s.offsides[0]}  -  {s.offsides[1]}\n"

@@ -262,6 +262,14 @@ NOT verified:
   AI play, and forces one queued AI pass to prove passes are counted. The earlier "AI passes within 60 s" assertion was luck.
 - NOT verified: the saved values were checked only through the store, not by restarting the real app; not on the phone.
 
+## Session 3 - Goal log and own goals
+- `MatchManager.Goals` records each goal: team it counts for, game minute, last toucher's name and whether he was an
+  opponent (own goal). The goal banner adds "(OWN GOAL)" and the full-time screen lists up to 5 goals above the stats.
+- Tests: 40/40 PlayMode (2 new: scorer + minute recorded; defender's touch gives an own goal). 28/28 EditMode unchanged.
+- NOT verified: the full-time screen with goal lines has not been looked at (the panel is not resized for them);
+  "scorer" is the GameObject name of the last toucher (e.g. a generated name, not a squad number or real name), and a
+  deflection off the keeper counts as the keeper's touch; no assists; not on the phone.
+
 ## Still unverified from red cards / penalties
 - No red card or penalty has been seen in live play (they depend on random fouls); penalty balance
   (how often the AI scores) is unknown; not yet in the APK on the phone.

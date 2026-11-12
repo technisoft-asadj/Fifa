@@ -7,6 +7,17 @@ using FootballSim.Players;
 
 namespace FootballSim.Match
 {
+    /// <summary>One goal: the team it counts for, game minute, who last touched the ball, and whether that was a defender.</summary>
+    public struct GoalRecord
+    {
+        public int team;
+        public int minute;
+        public string scorer;
+        public bool ownGoal;
+
+        public override string ToString() { return $"{minute}'  {(team == 0 ? "HOME" : "AWAY")}  {scorer}{(ownGoal ? " (og)" : "")}"; }
+    }
+
     public enum RestartType { None, KickOff, ThrowIn, GoalKick, Corner, FreeKick, Penalty, Offside }
 
     /// <summary>Match clock, score, kick-off reset and out-of-bounds restarts. Gameplay rules only, no UI.</summary>
@@ -18,6 +29,9 @@ namespace FootballSim.Match
         [SerializeField] Vector3 kickoffSpot = new Vector3(0f, 0.12f, 0f);
         [SerializeField] TeamController[] teams;
         [SerializeField] float restartDelay = 1.2f;
+
+        /// <summary>Every goal in the order it was scored.</summary>
+        public System.Collections.Generic.List<GoalRecord> Goals { get; } = new System.Collections.Generic.List<GoalRecord>();
 
         public int HomeScore { get; private set; }
         public int AwayScore { get; private set; }
@@ -308,6 +322,14 @@ namespace FootballSim.Match
         {
             if (Finished || resetTimer > 0f) return;
             if (scoringTeam == 0) HomeScore++; else AwayScore++;
+            var toucher = ball != null ? ball.LastToucher as PlayerController : null;
+            Goals.Add(new GoalRecord
+            {
+                team = scoringTeam,
+                minute = Mathf.Max(1, Mathf.CeilToInt(GameMinute)),
+                scorer = toucher != null ? toucher.name : "Unknown",
+                ownGoal = toucher != null && toucher.TeamId != scoringTeam
+            });
             Debug.Log($"GOAL! Home {HomeScore} - {AwayScore} Away  ({GameMinute:0}')");
             resetTimer = 3f;
             KickoffTeam = 1 - scoringTeam; // the conceding team restarts

@@ -254,6 +254,51 @@ namespace FootballSim.Tests
             }
         }
 
+        PlayerController FirstOutfielder(int teamId)
+        {
+            foreach (var t in Object.FindObjectsByType<TeamController>(FindObjectsSortMode.None))
+                if (t.teamId == teamId) foreach (var p in t.players) if (!p.isGoalkeeper) return p;
+            return null;
+        }
+
+        [UnityTest]
+        public IEnumerator GoalIsRecordedWithScorerAndMinute()
+        {
+            yield return LoadScene();
+            Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>().BeginMatch();
+            var match = Object.FindFirstObjectByType<MatchManager>();
+            var ball = Object.FindFirstObjectByType<BallController>();
+            var scorer = FirstOutfielder(0);
+            yield return null;
+            ball.LastTouchTeam = 0; ball.LastToucher = scorer;
+            ball.ResetTo(new Vector3(0f, 1.2f, Pitch.HalfLength + 1.2f));
+            yield return new WaitForSeconds(0.5f);
+            Assert.AreEqual(1, match.Goals.Count);
+            var g = match.Goals[0];
+            Assert.AreEqual(0, g.team);
+            Assert.AreEqual(scorer.name, g.scorer);
+            Assert.GreaterOrEqual(g.minute, 1);
+            Assert.IsFalse(g.ownGoal);
+            StringAssert.Contains(scorer.name, FootballSim.UI.MatchHUD.StatsSummary(match));
+        }
+
+        [UnityTest]
+        public IEnumerator DefenderTouchingLastMakesItAnOwnGoal()
+        {
+            yield return LoadScene();
+            Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>().BeginMatch();
+            var match = Object.FindFirstObjectByType<MatchManager>();
+            var ball = Object.FindFirstObjectByType<BallController>();
+            var defender = FirstOutfielder(1); // away defends +Z
+            yield return null;
+            ball.LastTouchTeam = 1; ball.LastToucher = defender;
+            ball.ResetTo(new Vector3(0f, 1.2f, Pitch.HalfLength + 1.2f));
+            yield return new WaitForSeconds(0.5f);
+            Assert.AreEqual(1, match.HomeScore, "the goal counts for home");
+            Assert.IsTrue(match.Goals[0].ownGoal);
+            StringAssert.Contains("(og)", match.Goals[0].ToString());
+        }
+
         [UnityTest]
         public IEnumerator SoundIsWiredAndMuteSwitchWorks()
         {
