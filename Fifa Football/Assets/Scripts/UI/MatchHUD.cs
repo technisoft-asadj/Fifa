@@ -165,24 +165,29 @@ namespace FootballSim.UI
             if (awayTeam != null) { awayTeam.formation = FormationData.Create(Random.Range(0, FormationData.PresetNames.Length)); awayTeam.ResetToKickoff(); }
         }
 
-        void CycleFormation(int step)
+        void SaveSettings() { MatchSettingsStore.Save(selectedMinutes, selectedFormation, (int)AiTuning.CurrentDifficulty); }
+
+        void CycleFormation(int step, bool save = true)
         {
             int n = FormationData.PresetNames.Length;
             selectedFormation = (selectedFormation + step + n) % n;
             formationLabel.text = $"Your formation: {FormationData.PresetNames[selectedFormation]}";
+            if (save) SaveSettings();
         }
 
-        void CycleDifficulty(int step)
+        void CycleDifficulty(int step, bool save = true)
         {
             int n = System.Enum.GetValues(typeof(Difficulty)).Length;
             AiTuning.CurrentDifficulty = (Difficulty)(((int)AiTuning.CurrentDifficulty + step + n) % n);
             difficultyLabel.text = $"Difficulty: {AiTuning.CurrentDifficulty}";
+            if (save) SaveSettings();
         }
 
-        void SetMinutes(float m)
+        void SetMinutes(float m, bool save = true)
         {
             selectedMinutes = m;
             durationLabel.text = $"Match length: {m:0} min";
+            if (save) SaveSettings();
         }
 
         // ---- UI construction ----
@@ -253,9 +258,12 @@ namespace FootballSim.UI
             Button(st, "<", new Vector2(-370, -90), new Vector2(90, 70), () => CycleDifficulty(-1), btnCol);
             Button(st, ">", new Vector2(370, -90), new Vector2(90, 70), () => CycleDifficulty(1), btnCol);
             Button(st, "PLAY", new Vector2(0, -260), new Vector2(420, 110), BeginMatch, Accent);
-            SetMinutes(selectedMinutes);
-            CycleFormation(0);
-            CycleDifficulty(0);
+            var saved = MatchSettingsStore.Load(selectedMinutes, FormationData.PresetNames.Length, (int)AiTuning.CurrentDifficulty, System.Enum.GetValues(typeof(Difficulty)).Length);
+            selectedFormation = saved.formation;
+            AiTuning.CurrentDifficulty = (Difficulty)saved.difficulty;
+            SetMinutes(saved.minutes, false);
+            CycleFormation(0, false);
+            CycleDifficulty(0, false);
 
             // Full-time panel
             fullTimePanel = Rect("FullTimePanel", root, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(900, 700), Panel).gameObject;

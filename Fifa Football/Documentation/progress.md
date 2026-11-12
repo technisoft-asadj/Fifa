@@ -252,6 +252,16 @@ NOT verified:
 - NOT verified: not watched live or on the phone. A HUMAN-controlled player on the non-kicking team is not stopped from
   entering the circle (only AI is held). No dedicated kick-off pass animation or "must play forward" rule.
 
+## Session 3 - Remembered start-screen choices
+- `Core/MatchSettingsStore.cs`: match length, your formation and difficulty are saved in PlayerPrefs whenever you change
+  them and restored when the start screen opens. Missing, unknown (e.g. 7 min) or out-of-range values fall back to
+  the defaults. The AI team's random formation is not saved.
+- Tests: 28/28 EditMode (3 new, they back up and restore the real prefs), 38/38 PlayMode.
+- Test fix: `LiveMatchAccumulatesStatsAndSummaryText` failed intermittently (and once more after the kick-off change)
+  because the AI only passes under pressure and the human-controlled home team idles. It now checks possession from the
+  AI play, and forces one queued AI pass to prove passes are counted. The earlier "AI passes within 60 s" assertion was luck.
+- NOT verified: the saved values were checked only through the store, not by restarting the real app; not on the phone.
+
 ## Still unverified from red cards / penalties
 - No red card or penalty has been seen in live play (they depend on random fouls); penalty balance
   (how often the AI scores) is unknown; not yet in the APK on the phone.
