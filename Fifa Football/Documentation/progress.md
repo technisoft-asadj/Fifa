@@ -270,6 +270,17 @@ NOT verified:
   "scorer" is the GameObject name of the last toucher (e.g. a generated name, not a squad number or real name), and a
   deflection off the keeper counts as the keeper's touch; no assists; not on the phone.
 
+## Session 3 - Full-match soak test
+- New PlayMode test `FullMatchPlaysThroughHalfTimeToFullTimeWithoutErrors`: a 90-game-second match at 4x speed in the real
+  scene (human team idle, AI plays). Every frame it checks: clock never goes backwards, ball and player positions are
+  finite and on/near the pitch, the ball does not stand still in live play for 12 s (catches a deadlocked kick-off), and
+  Unity logs no errors. At the end: full time reached, half-time happened, sides swapped, goal log matches the score,
+  possession adds to 100.
+- Result: passed on two consecutive runs (~24 s each). It found no bugs, so nothing was changed in the game code.
+- NOT covered: it plays 90 game seconds, not a 5-10 minute match; the human team never acts (so human-controlled
+  paths, touch input and the pause menu are not exercised in it); it runs at 4x with the editor's frame rate, not at
+  phone speed; a different random seed could still hit a rare state.
+
 ## Still unverified from red cards / penalties
 - No red card or penalty has been seen in live play (they depend on random fouls); penalty balance
   (how often the AI scores) is unknown; not yet in the APK on the phone.

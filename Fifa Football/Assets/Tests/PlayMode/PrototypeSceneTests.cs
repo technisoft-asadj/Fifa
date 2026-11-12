@@ -254,6 +254,46 @@ namespace FootballSim.Tests
             }
         }
 
+        [UnityTest]
+        public IEnumerator FullMatchPlaysThroughHalfTimeToFullTimeWithoutErrors()
+        {
+            yield return LoadScene();
+            Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>().BeginMatch();
+            var match = Object.FindFirstObjectByType<MatchManager>();
+            var ball = Object.FindFirstObjectByType<BallController>();
+            var teams = Object.FindObjectsByType<TeamController>(FindObjectsSortMode.None);
+            match.SetDurationMinutes(1.5f); // 90 game seconds, half-time at 45
+            bool fullTime = false; match.FullTime += () => fullTime = true;
+            Time.timeScale = 4f;
+            float guard = 0f, lastClock = 0f, stuck = 0f; Vector3 lastBall = ball.transform.position;
+            while (!fullTime && guard < 60f) // 90 game s is ~23 real s at 4x; 60 is a generous cap
+            {
+                guard += Time.unscaledDeltaTime;
+                Assert.GreaterOrEqual(match.RealSecondsElapsed, lastClock, "clock never runs backwards");
+                lastClock = match.RealSecondsElapsed;
+                var bp = ball.transform.position;
+                Assert.IsFalse(float.IsNaN(bp.x) || float.IsNaN(bp.y) || float.IsNaN(bp.z), "ball position is a number");
+                Assert.Less(Mathf.Abs(bp.x), 80f); Assert.Less(Mathf.Abs(bp.z), 90f); Assert.Less(bp.y, 60f);
+                foreach (var t in teams) foreach (var p in t.players)
+                {
+                    var pp = p.transform.position;
+                    Assert.IsFalse(float.IsNaN(pp.x) || float.IsNaN(pp.z), "player position is a number");
+                    Assert.Less(Mathf.Abs(pp.x), 120f); Assert.Less(Mathf.Abs(pp.z), 120f);
+                }
+                // The game must never stand still for long (deadlocked kick-off, ball stuck, etc.)
+                stuck = (bp - lastBall).sqrMagnitude > 0.01f || match.InGoalPause || match.InRestartHold ? 0f : stuck + Time.unscaledDeltaTime;
+                lastBall = bp;
+                Assert.Less(stuck, 12f, "ball stopped moving in live play for 12 real seconds");
+                yield return null;
+            }
+            Time.timeScale = 1f;
+            Assert.IsTrue(fullTime, "match reached full time");
+            Assert.IsTrue(match.HalfTimeReached);
+            Assert.IsTrue(match.SidesSwapped);
+            Assert.AreEqual(match.HomeScore + match.AwayScore, match.Goals.Count, "every goal is logged");
+            Assert.AreEqual(100, match.Stats.PossessionPercent(0) + match.Stats.PossessionPercent(1));
+        }
+
         PlayerController FirstOutfielder(int teamId)
         {
             foreach (var t in Object.FindObjectsByType<TeamController>(FindObjectsSortMode.None))
