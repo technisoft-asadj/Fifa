@@ -18,6 +18,8 @@ namespace FootballSim.Ball
         public bool IsGrounded => grounded;
         /// <summary>Team that last touched the ball (-1 = nobody yet). Used for restarts.</summary>
         public int LastTouchTeam { get; set; } = -1;
+        /// <summary>Player who last kicked the ball (null after a restart). Used for offside.</summary>
+        public Component LastToucher { get; set; }
 
         /// <summary>Hold the ball still (set pieces). Unfreezing leaves it at rest.</summary>
         public void Freeze(bool frozen)

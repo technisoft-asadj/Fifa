@@ -85,7 +85,7 @@ namespace FootballSim.UI
 
         void OnRestart(RestartType type, int team)
         {
-            string name = type == RestartType.ThrowIn ? "THROW-IN" : type == RestartType.Corner ? "CORNER" : type == RestartType.FreeKick ? "FOUL - FREE KICK" : type == RestartType.Penalty ? "PENALTY" : "GOAL KICK";
+            string name = type == RestartType.ThrowIn ? "THROW-IN" : type == RestartType.Corner ? "CORNER" : type == RestartType.FreeKick ? "FOUL - FREE KICK" : type == RestartType.Penalty ? "PENALTY" : type == RestartType.Offside ? "OFFSIDE - FREE KICK" : "GOAL KICK";
             Banner($"{name}  -  {(team == 0 ? "HOME" : "AWAY")}", 1.4f);
         }
 
@@ -109,7 +109,7 @@ namespace FootballSim.UI
             return $"Possession   {s.PossessionPercent(0)}%  -  {s.PossessionPercent(1)}%\n"
                  + $"Shots (on target)   {s.shots[0]} ({s.shotsOnTarget[0]})  -  {s.shots[1]} ({s.shotsOnTarget[1]})\n"
                  + $"Passes   {s.passes[0]}  -  {s.passes[1]}\n"
-                 + $"Corners   {s.corners[0]}  -  {s.corners[1]}\n"
+                 + $"Corners   {s.corners[0]}  -  {s.corners[1]}      Offsides   {s.offsides[0]}  -  {s.offsides[1]}\n"
                  + $"Fouls   {m.HomeFouls}  -  {m.AwayFouls}      Yellow   {m.HomeYellows}  -  {m.AwayYellows}      Red   {m.HomeReds}  -  {m.AwayReds}";
         }
 

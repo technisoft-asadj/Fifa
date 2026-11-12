@@ -187,6 +187,20 @@ NOT verified:
 - NOT verified: the full-time screen layout has not been looked at (in the editor or on the phone); the numbers have
   not been compared against a watched match.
 
+## Session 3 - Offside
+- `Match/OffsideRule.cs` (pure geometry): a receiver is offside if, when the ball is played, he is in the opponent half
+  and ahead of both the ball and the second-last opponent (keeper counts), with 0.3 m tolerance.
+- `MatchManager` snapshots the offside team-mates on every pass/shot (`SnapshotOffside`); if one of them is the next
+  player to touch the ball, play stops and the opponents get an indirect-style free kick (`RestartType.Offside`,
+  "OFFSIDE - FREE KICK" banner, counted in `Stats.offsides`, shown on the full-time screen). An opponent touch,
+  or any restart/goal, cancels the pending offside. Throw-ins, goal kicks, corners and kick-offs are exempt for the first strike.
+- `BallController.LastToucher` added. AI no longer passes to a team-mate who is offside at that moment.
+- Tests: 16/16 EditMode (3 new OffsideRule), 35/35 PlayMode (2 new: offside gives a free kick; opponent touch cancels it).
+  The existing stats test was flaky because AI only passes under pressure; its window was raised from 24 to 60 game seconds.
+- NOT verified: never seen in a watched live match; the tests place players and set the last toucher by hand.
+  Simplifications: no "interfering with play" judgement (any touch counts), tolerance is a flat 0.3 m,
+  no assistant-referee flag/animation. Not in the phone APK yet. Logged as KB-017.
+
 ## Still unverified from red cards / penalties
 - No red card or penalty has been seen in live play (they depend on random fouls); penalty balance
   (how often the AI scores) is unknown; not yet in the APK on the phone.

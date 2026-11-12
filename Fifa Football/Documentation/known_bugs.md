@@ -19,4 +19,5 @@ Severity: H = blocks gameplay, M = noticeable, L = cosmetic. Nothing below was r
 | KB-013 | L | Keyboard controls hint is shown at the bottom even on touch devices. | Fixed, confirmed on device |
 | KB-015 | M | Android back key does not pause/resume on device (tested with adb `keyevent 4` on Infinix X6881). Code checks `Keyboard.current.escapeKey`; the key may not reach the Input System under GameActivity, or adb injection may differ from the real button. | Open - needs a check with the real back gesture |
 | KB-016 | L | Goalkeepers are never sent off (no replacement-keeper logic). Penalties resume as normal play; no aiming/dive mechanic. | Open (by design for now) |
+| KB-017 | L | Offside is approximate: any touch by an offside-positioned player is penalised (no "interfering" check), and the exempt-first-strike flag for throw-ins/corners/goal kicks persists if the taker never strikes. Not watched in a live match. | Open |
 | KB-014 | M | Game ran at a locked 30 fps on Android (Unity's default mobile cap). | Fixed: `AppBootstrap` sets 60 fps; measured steady 60 on device |

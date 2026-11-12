@@ -7,7 +7,7 @@ using FootballSim.Players;
 
 namespace FootballSim.Match
 {
-    public enum RestartType { None, KickOff, ThrowIn, GoalKick, Corner, FreeKick, Penalty }
+    public enum RestartType { None, KickOff, ThrowIn, GoalKick, Corner, FreeKick, Penalty, Offside }
 
     /// <summary>Match clock, score, kick-off reset and out-of-bounds restarts. Gameplay rules only, no UI.</summary>
     public class MatchManager : MonoBehaviour
@@ -56,6 +56,58 @@ namespace FootballSim.Match
         {
             if (Finished || ball == null) return;
             Stats.AddStrike(p.TeamId, isShot, ball.transform.position, dir);
+            SnapshotOffside(p);
+        }
+
+        // ---- offside ----
+        readonly HashSet<PlayerController> offsideRunners = new HashSet<PlayerController>();
+        int offsideTeam = -1;
+        bool exemptNextStrike; // throw-ins, goal kicks and corners cannot be offside
+
+        /// <summary>Players of the passing team who were in an offside position when 'passer' played the ball.</summary>
+        public IReadOnlyCollection<PlayerController> OffsideRunners => offsideRunners;
+
+        /// <summary>Record which team-mates of 'passer' are offside right now. Called automatically on every pass or shot.</summary>
+        public void SnapshotOffside(PlayerController passer)
+        {
+            offsideRunners.Clear();
+            offsideTeam = -1;
+            if (exemptNextStrike) { exemptNextStrike = false; return; }
+            if (teams == null) return;
+            TeamController own = null, opp = null;
+            foreach (var t in teams)
+            {
+                if (t == null) continue;
+                if (t.teamId == passer.TeamId) own = t; else opp = t;
+            }
+            if (own == null || opp == null) return;
+            var defZ = new List<float>();
+            foreach (var d in opp.players) if (TeamController.IsOn(d)) defZ.Add(d.transform.position.z);
+            float line = OffsideRule.SecondLastDefenderZ(passer.TeamId, defZ);
+            float ballZ = ball.transform.position.z;
+            foreach (var m in own.players)
+                if (m != passer && TeamController.IsOn(m) && OffsideRule.IsOffside(passer.TeamId, m.transform.position.z, ballZ, line))
+                    offsideRunners.Add(m);
+            if (offsideRunners.Count > 0) offsideTeam = passer.TeamId;
+        }
+
+        void CheckOffside()
+        {
+            if (offsideRunners.Count == 0) return;
+            var toucher = ball.LastToucher as PlayerController;
+            if (ball.LastTouchTeam != offsideTeam) { offsideRunners.Clear(); return; } // opponent got there first
+            if (toucher == null) return;
+            if (offsideRunners.Contains(toucher))
+            {
+                int team = offsideTeam;
+                Vector3 spot = toucher.transform.position;
+                offsideRunners.Clear();
+                Stats.offsides[team]++;
+                float limit = Pitch.HalfLength - 1f;
+                spot = new Vector3(Mathf.Clamp(spot.x, -Pitch.HalfWidth + 1f, Pitch.HalfWidth - 1f), 0.12f, Mathf.Clamp(spot.z, -limit, limit));
+                StartRestart(RestartType.Offside, 1 - team, spot, new Vector3(0f, 0f, team == 0 ? -1f : 1f));
+            }
+            // any other touch by a team-mate means the pass was not to an offside player: stays pending only for the runners
         }
 
         void OnPlayerFoul(PlayerController fouler, PlayerController victim)
@@ -137,6 +189,9 @@ namespace FootballSim.Match
                 if (resetTimer <= 0f)
                 {
                     ball.LastTouchTeam = -1;
+                    ball.LastToucher = null;
+                    offsideRunners.Clear();
+                    exemptNextStrike = true; // a goal can't be scored offside and kick-off is exempt too
                     ball.ResetTo(kickoffSpot);
                     LastRestart = RestartType.KickOff;
                     KickoffReady?.Invoke();
@@ -152,6 +207,8 @@ namespace FootballSim.Match
             }
 
             if (ball != null) Stats.AddPossession(ball.LastTouchTeam, Time.deltaTime); // live play only
+            CheckOffside();
+            if (restartTimer > 0f) return; // an offside was just given
             CheckOutOfBounds();
         }
 
@@ -212,6 +269,9 @@ namespace FootballSim.Match
             ball.ResetTo(spot);
             ball.Freeze(true);
             ball.LastTouchTeam = -1;
+            ball.LastToucher = null;
+            offsideRunners.Clear();
+            exemptNextStrike = type == RestartType.ThrowIn || type == RestartType.GoalKick || type == RestartType.Corner;
             restartTimer = restartDelay;
             if (type == RestartType.Corner && (awardedTeam == 0 || awardedTeam == 1)) Stats.corners[awardedTeam]++;
             bool penalty = type == RestartType.Penalty;

@@ -11,6 +11,7 @@ namespace FootballSim.Match
         public readonly int[] shotsOnTarget = new int[2];
         public readonly int[] passes = new int[2];
         public readonly int[] corners = new int[2];
+        public readonly int[] offsides = new int[2];
 
         /// <summary>Share of possession in whole percent; 50 when nobody has had the ball yet.</summary>
         public int PossessionPercent(int team)

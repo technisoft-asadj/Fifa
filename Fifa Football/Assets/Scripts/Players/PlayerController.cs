@@ -21,6 +21,7 @@ namespace FootballSim.Players
         void KickBall(Vector3 dir, float speed, Vector3 spin)
         {
             ball.LastTouchTeam = TeamId;
+            ball.LastToucher = this;
             ball.Kick(dir, speed, spin);
         }
 

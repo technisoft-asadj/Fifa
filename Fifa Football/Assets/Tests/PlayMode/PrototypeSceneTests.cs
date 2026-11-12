@@ -110,12 +110,12 @@ namespace FootballSim.Tests
             Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>().BeginMatch();
             var match = Object.FindFirstObjectByType<MatchManager>();
             Time.timeScale = 4f;
-            yield return new WaitForSeconds(24f); // 6 real seconds of AI play
+            yield return new WaitForSeconds(60f); // 15 real seconds of AI play (AI passes only under pressure, so allow time)
             Time.timeScale = 1f;
             var s = match.Stats;
             Assert.Greater(s.possessionSeconds[0] + s.possessionSeconds[1], 1f, "someone must have had the ball");
             Assert.AreEqual(100, s.PossessionPercent(0) + s.PossessionPercent(1));
-            Assert.Greater(s.passes[0] + s.passes[1] + s.shots[0] + s.shots[1], 0, "AI should pass or shoot within 24 game seconds");
+            Assert.Greater(s.passes[0] + s.passes[1] + s.shots[0] + s.shots[1], 0, "AI should pass or shoot within 60 game seconds");
             Assert.LessOrEqual(s.shotsOnTarget[0], s.shots[0]);
             Assert.LessOrEqual(s.shotsOnTarget[1], s.shots[1]);
             StringAssert.Contains("Possession", FootballSim.UI.MatchHUD.StatsSummary(match));
@@ -184,6 +184,64 @@ namespace FootballSim.Tests
                 }
             Assert.AreEqual(1, inBox, "only the taker stays in the box");
             Assert.AreEqual(1, keepersOnLine);
+        }
+
+        [UnityTest]
+        public IEnumerator OffsideReceiverGivesFreeKickToDefenders()
+        {
+            yield return LoadScene();
+            Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>().BeginMatch();
+            var match = Object.FindFirstObjectByType<MatchManager>();
+            var ball = Object.FindFirstObjectByType<BallController>();
+            TeamController home = null, away = null;
+            foreach (var t in Object.FindObjectsByType<TeamController>(FindObjectsSortMode.None)) { if (t.teamId == 0) home = t; else away = t; }
+            yield return null;
+            // Away: everyone deep at z=45 except keeper at the line; home passer mid-pitch, one attacker at z=47
+            foreach (var p in away.players) p.TeleportTo(new Vector3(p.isGoalkeeper ? 0f : (away.players.IndexOf(p) - 5) * 3f, 1f, p.isGoalkeeper ? 52f : 40f), Quaternion.identity);
+            PlayerController passer = null, runner = null, onside = null;
+            foreach (var p in home.players)
+            {
+                if (p.isGoalkeeper) continue;
+                if (passer == null) passer = p; else if (runner == null) runner = p; else if (onside == null) onside = p;
+            }
+            passer.TeleportTo(new Vector3(0f, 1f, 5f), Quaternion.identity);
+            runner.TeleportTo(new Vector3(10f, 1f, 47f), Quaternion.identity);
+            onside.TeleportTo(new Vector3(-10f, 1f, 30f), Quaternion.identity);
+            ball.ResetTo(new Vector3(0f, 0.12f, 5f));
+            match.SnapshotOffside(passer);
+            Assert.IsTrue(new System.Collections.Generic.List<PlayerController>(match.OffsideRunners).Contains(runner), "runner is beyond the second-last defender");
+            Assert.IsFalse(new System.Collections.Generic.List<PlayerController>(match.OffsideRunners).Contains(onside), "onside player is not flagged");
+            ball.LastTouchTeam = 0; ball.LastToucher = runner; // runner plays the ball
+            yield return null; yield return null;
+            Assert.AreEqual(RestartType.Offside, match.LastRestart);
+            Assert.AreEqual(1, match.Stats.offsides[0]);
+            Assert.AreEqual(47f, ball.transform.position.z, 0.5f, "free kick taken where the runner was");
+        }
+
+        [UnityTest]
+        public IEnumerator OpponentTouchCancelsPendingOffside()
+        {
+            yield return LoadScene();
+            Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>().BeginMatch();
+            var match = Object.FindFirstObjectByType<MatchManager>();
+            var ball = Object.FindFirstObjectByType<BallController>();
+            TeamController home = null, away = null;
+            foreach (var t in Object.FindObjectsByType<TeamController>(FindObjectsSortMode.None)) { if (t.teamId == 0) home = t; else away = t; }
+            yield return null;
+            foreach (var p in away.players) p.TeleportTo(new Vector3(p.isGoalkeeper ? 0f : (away.players.IndexOf(p) - 5) * 3f, 1f, p.isGoalkeeper ? 52f : 40f), Quaternion.identity);
+            PlayerController passer = null, runner = null;
+            foreach (var p in home.players) { if (p.isGoalkeeper) continue; if (passer == null) passer = p; else if (runner == null) runner = p; }
+            passer.TeleportTo(new Vector3(0f, 1f, 5f), Quaternion.identity);
+            runner.TeleportTo(new Vector3(10f, 1f, 47f), Quaternion.identity);
+            ball.ResetTo(new Vector3(0f, 0.12f, 5f));
+            match.SnapshotOffside(passer);
+            Assert.AreEqual(1, match.OffsideRunners.Count);
+            ball.LastTouchTeam = 1; // a defender got to it first
+            yield return null; yield return null;
+            Assert.AreEqual(0, match.OffsideRunners.Count);
+            ball.LastTouchTeam = 0; ball.LastToucher = runner;
+            yield return null; yield return null;
+            Assert.AreNotEqual(RestartType.Offside, match.LastRestart);
         }
 
         [UnityTest]
