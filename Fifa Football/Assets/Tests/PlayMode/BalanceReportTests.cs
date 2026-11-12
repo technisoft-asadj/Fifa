@@ -5,6 +5,7 @@ using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
+using FootballSim.Core;
 using FootballSim.FootballAI;
 using FootballSim.Match;
 
