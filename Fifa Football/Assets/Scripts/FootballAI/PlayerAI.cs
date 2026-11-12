@@ -18,6 +18,10 @@ namespace FootballSim.FootballAI
 
         PlayerController pc;
         float actionCooldown;
+        float holdTimer;
+        // Tuned from the AI-vs-AI balance measurement (see progress.md, KB-018)
+        const float BuildUpPassAfterSeconds = 1.6f;
+        const float ShootRangeScale = 1.25f;
         float nextThink;
         Vector3 chaseTarget;
         AiTuning Tune => AiTuning.Current;
@@ -54,6 +58,7 @@ namespace FootballSim.FootballAI
             Vector3 pos = transform.position;
             float ballDist = (ballPos - Flat(pos)).magnitude;
             bool isChaser = team.Chaser == pc;
+            if (!isChaser || ballDist > 1.4f) holdTimer = 0f;
 
             // Kick-off: the team that is not kicking off waits in its own half until the ball is played
             if (team.match != null && team.match.KickoffPending && team.match.KickoffTeam != team.teamId)
@@ -82,11 +87,12 @@ namespace FootballSim.FootballAI
             }
 
             // Has the ball: decide shoot / pass / dribble
+            holdTimer += Time.deltaTime;
             Vector3 goal = team.OpponentGoalPos;
             float goalDist = (goal - Flat(pos)).magnitude;
             Vector3 toGoal = Flat(goal - pos).normalized;
 
-            if (actionCooldown <= 0f && goalDist < Tune.shootRange && Vector3.Dot(transform.forward, toGoal) > 0.5f)
+            if (actionCooldown <= 0f && goalDist < Tune.shootRange * ShootRangeScale && Vector3.Dot(transform.forward, toGoal) > 0.35f)
             {
                 Vector3 target = goal + new Vector3(Random.Range(-2.8f, 2.8f), 0f, 0f);
                 Input.QueueShoot(Jitter((target - Flat(pos)).normalized), Mathf.Clamp(0.55f + goalDist / 50f, 0.5f, 1f));
@@ -94,11 +100,13 @@ namespace FootballSim.FootballAI
                 return;
             }
 
-            if (actionCooldown <= 0f && OpponentNear(pos, 3f))
+            // Pass when pressed, or after holding the ball for a while (build-up play) so the team moves the ball around
+            if (actionCooldown <= 0f && (OpponentNear(pos, 3f) || holdTimer > BuildUpPassAfterSeconds))
             {
                 var mate = BestPassTarget(pos);
                 if (mate != null)
                 {
+                    holdTimer = 0f;
                     Vector3 mp = Flat(mate.transform.position + mate.Velocity * 0.5f);
                     float dist = (mp - Flat(pos)).magnitude;
                     float speed = Mathf.Clamp(6f + dist * 0.45f, 8f, pc.Data.MaxPassSpeed);

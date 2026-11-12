@@ -27,11 +27,11 @@ namespace FootballSim.Core
         {
             switch (d)
             {
-                case Difficulty.Beginner:     return new AiTuning(0.55f, 12f, 17f, 2.4f);
-                case Difficulty.Amateur:      return new AiTuning(0.35f, 8f, 21f, 1.7f);
-                case Difficulty.Professional: return new AiTuning(0.20f, 5f, 24f, 1.2f);
-                case Difficulty.WorldClass:   return new AiTuning(0.10f, 3f, 28f, 0.9f);
-                default:                      return new AiTuning(0.05f, 1.5f, 31f, 0.7f);
+                case Difficulty.Beginner:     return new AiTuning(0.55f, 12f, 17f, 3.4f);
+                case Difficulty.Amateur:      return new AiTuning(0.35f, 8f, 21f, 2.5f);
+                case Difficulty.Professional: return new AiTuning(0.20f, 5f, 24f, 1.9f);
+                case Difficulty.WorldClass:   return new AiTuning(0.10f, 3f, 28f, 1.4f);
+                default:                      return new AiTuning(0.05f, 1.5f, 31f, 1.1f);
             }
         }
     }

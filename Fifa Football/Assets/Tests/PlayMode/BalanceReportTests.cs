@@ -24,7 +24,7 @@ namespace FootballSim.Tests
             // (Unity's runner would not start a test marked [Explicit] when selected by name.)
             Assume.That(File.Exists(Path.Combine(Application.dataPath, "..", "run_balance.flag")), "create run_balance.flag to run");
 
-            const int matches = 2;
+            const int matches = 3;
             var sb = new StringBuilder();
             sb.AppendLine("AI vs AI, 5-minute matches (= 90 simulated minutes), 4x speed, difficulty " + AiTuning.CurrentDifficulty);
             for (int m = 0; m < matches; m++)

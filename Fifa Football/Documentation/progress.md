@@ -281,6 +281,21 @@ NOT verified:
   paths, touch input and the pause menu are not exercised in it); it runs at 4x with the editor's frame rate, not at
   phone speed; a different random seed could still hit a rare state.
 
+## Session 3 - AI-vs-AI balance measurement (first numbers)
+- `TeamController.ReleaseHumanControl()` lets the AI play both sides. `BalanceReportTests` (runs only when a file named
+  `run_balance.flag` exists in the project root) plays full 5-minute matches at 4x and writes `Documentation/balance_report.txt`.
+- Mistake worth recording: I pushed two commits (`148d3d9`, `f137f6c`) whose PlayMode test assembly did not compile (missing
+  `using FootballSim.Core`); every test run then failed to start until `781455a` fixed it. I also first blamed `[Explicit]`.
+- Results, Professional difficulty, 2 matches (90 simulated minutes each): scores 0-1 and 0-0; shots 4-1 and 1-0 (on target
+  0-1 and 0-0); passes about 26-45 per team; corners 0-3, 0-4; offsides 0-0 in both; fouls 6-11 and 8-4; yellows 1-3, 2-2;
+  reds 1-1 and 1-0.
+- Reading: the AI-only game is far too quiet and too hard on cards. A real match has roughly 20 shots, 300+ passes
+  per team, 1-3 offsides, and a red card in far fewer than half of matches. Here shots and passes are an order of
+  magnitude low and reds are almost every match. Only 2 matches, so these are indications, not statistics.
+- Likely causes (NOT yet confirmed or fixed): the AI passes only when an opponent is within 3 m and otherwise dribbles; it shoots
+  only inside a short range and when facing goal; the same chasing defender keeps fouling, so the 4th foul by one
+  player (= red card) arrives quickly.
+
 ## Still unverified from red cards / penalties
 - No red card or penalty has been seen in live play (they depend on random fouls); penalty balance
   (how often the AI scores) is unknown; not yet in the APK on the phone.
