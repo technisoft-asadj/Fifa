@@ -154,6 +154,19 @@ namespace FootballSim.FootballAI
             Chaser = best;
         }
 
+        /// <summary>Hand the human's player back to the AI so the whole team plays itself (demo / simulation mode).</summary>
+        public void ReleaseHumanControl()
+        {
+            if (Controlled != null)
+            {
+                int i = players.IndexOf(Controlled);
+                Controlled.SetInput(brains[i].Input, false);
+                brains[i].enabled = true;
+                Controlled = null;
+            }
+            humanControlled = false;
+        }
+
         public void SetControlled(PlayerController p)
         {
             if (p == null || p == Controlled) return;
