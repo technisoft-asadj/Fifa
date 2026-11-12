@@ -21,6 +21,8 @@ namespace FootballSim.UI
 
         Font font;
         Text scoreText, clockText, bannerText, resultText, durationLabel, formationLabel, difficultyLabel, statsText, hintText;
+        RectTransform staminaFill;
+        Image staminaImage;
         int selectedFormation;
         GameObject startPanel, fullTimePanel, pausePanel, pauseButton;
         Text touchScaleLabel, touchOpacityLabel;
@@ -73,6 +75,12 @@ namespace FootballSim.UI
             if (match == null) return;
             scoreText.text = $"HOME  {match.HomeScore}  -  {match.AwayScore}  AWAY";
             clockText.text = $"{Mathf.FloorToInt(match.GameMinute):00}:00";
+            var me = homeTeam != null ? homeTeam.Controlled : null;
+            if (me != null)
+            {
+                staminaFill.anchorMax = new Vector2(Mathf.Clamp01(me.Stamina), 1f);
+                staminaImage.color = me.Exhausted ? new Color(0.9f, 0.25f, 0.2f) : Color.Lerp(new Color(0.95f, 0.75f, 0.2f), new Color(0.25f, 0.85f, 0.35f), me.Stamina);
+            }
             if (bannerTimer > 0f)
             {
                 bannerTimer -= Time.unscaledDeltaTime;
@@ -196,6 +204,16 @@ namespace FootballSim.UI
             var brt = bannerText.rectTransform; brt.anchorMin = brt.anchorMax = new Vector2(0.5f, 0.5f);
             bannerText.fontStyle = FontStyle.Bold;
             bannerText.gameObject.AddComponent<Outline>().effectDistance = new Vector2(3, -3);
+
+            // Stamina bar of the player you control (bottom centre)
+            var staminaBg = Rect("StaminaBar", root, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0, 62), new Vector2(320, 16), new Color(0, 0, 0, 0.55f));
+            var fillGo = new GameObject("Fill", typeof(RectTransform), typeof(Image));
+            staminaFill = (RectTransform)fillGo.transform;
+            staminaFill.SetParent(staminaBg, false);
+            staminaFill.anchorMin = Vector2.zero; staminaFill.anchorMax = Vector2.one;
+            staminaFill.offsetMin = new Vector2(2, 2); staminaFill.offsetMax = new Vector2(-2, -2);
+            staminaImage = fillGo.GetComponent<Image>();
+            staminaImage.raycastTarget = false;
 
             // Controls hint (bottom)
             var hint = Label("Hint", root, 22, TextAnchor.LowerCenter, new Vector2(0, 16), new Vector2(1700, 40));

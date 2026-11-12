@@ -119,6 +119,10 @@ namespace FootballSim.Tests
             Assert.LessOrEqual(s.shotsOnTarget[0], s.shots[0]);
             Assert.LessOrEqual(s.shotsOnTarget[1], s.shots[1]);
             StringAssert.Contains("Possession", FootballSim.UI.MatchHUD.StatsSummary(match));
+            float lowest = 1f;
+            foreach (var t in Object.FindObjectsByType<TeamController>(FindObjectsSortMode.None))
+                foreach (var p in t.players) lowest = Mathf.Min(lowest, p.Stamina);
+            Assert.Less(lowest, 1f, "sprinting AI players must have used some stamina");
         }
 
         IEnumerator FoulWhenReady(MatchManager match, int team, Vector3 spot, object key)

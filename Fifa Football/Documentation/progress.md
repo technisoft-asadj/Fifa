@@ -201,6 +201,15 @@ NOT verified:
   Simplifications: no "interfering with play" judgement (any touch counts), tolerance is a flat 0.3 m,
   no assistant-referee flag/animation. Not in the phone APK yet. Logged as KB-017.
 
+## Session 3 - Stamina
+- `Players/StaminaModel.cs` (pure): sprint drains a full bar in 20 s, recovery takes 14 s when not sprinting; if it runs
+  dry, sprint is locked (jog only) until 25% is back. `PlayerController.Stamina` / `Exhausted` apply it to every player
+  (human and AI), so AI players that sprint-dribble tire too.
+- HUD: stamina bar at bottom centre for the player you control (green to amber, red while exhausted).
+- Tests: 19/19 EditMode (3 new), 35/35 PlayMode (the live-match test also checks that AI stamina was used).
+- NOT verified: how it feels (20 s / 14 s / 25% are guesses, not tuned); bar position vs. touch buttons on the phone;
+  not in the phone APK; stamina does not reset at half/kick-off and has no per-player attribute yet.
+
 ## Still unverified from red cards / penalties
 - No red card or penalty has been seen in live play (they depend on random fouls); penalty balance
   (how often the AI scores) is unknown; not yet in the APK on the phone.

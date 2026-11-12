@@ -32,6 +32,10 @@ namespace FootballSim.Players
         Vector3 lungeDir;
         IPlayerInput input;
 
+        /// <summary>0..1; sprinting drains it. When it hits 0 the player jogs until it recovers to 25%.</summary>
+        public float Stamina { get; set; } = 1f;
+        public bool Exhausted { get; private set; }
+
         public Vector3 Velocity => planarVelocity;
         public PlayerData Data => data;
         public IPlayerInput Input => input;
@@ -89,7 +93,10 @@ namespace FootballSim.Players
             }
             else
             {
-                float topSpeed = input.Sprint ? data.SprintSpeedMs : data.JogSpeed;
+                bool sprinting = input.Sprint && dir.sqrMagnitude > 0.01f && !Exhausted;
+                Stamina = StaminaModel.Step(Stamina, sprinting, Time.deltaTime);
+                Exhausted = StaminaModel.UpdateExhausted(Stamina, Exhausted);
+                float topSpeed = sprinting ? data.SprintSpeedMs : data.JogSpeed;
                 float accel = data.AccelerationMs2 * (dir.sqrMagnitude > 0.01f ? 1f : 1.6f);
                 planarVelocity = Vector3.MoveTowards(planarVelocity, dir * topSpeed, accel * Time.deltaTime);
             }
