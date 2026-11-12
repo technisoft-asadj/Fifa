@@ -47,6 +47,7 @@ namespace FootballSim.UI
             match.RestartAwarded += OnRestart;
             match.YellowCard += OnYellow;
             match.RedCard += OnRed;
+            match.HalfTime += OnHalfTime;
         }
 
         void OnDisable()
@@ -57,6 +58,7 @@ namespace FootballSim.UI
             match.RestartAwarded -= OnRestart;
             match.YellowCard -= OnYellow;
             match.RedCard -= OnRed;
+            match.HalfTime -= OnHalfTime;
         }
 
         void Start() { ShowStart(); }
@@ -89,6 +91,8 @@ namespace FootballSim.UI
         }
 
         // ---- match events ----
+        void OnHalfTime() { Banner($"HALF TIME  {match.HomeScore} - {match.AwayScore}", MatchManager.HalfTimeSeconds - 0.5f); }
+
         void OnGoal(int team) { Banner(team == 0 ? "GOAL!  HOME SCORES" : "GOAL!  AWAY SCORES", 3f); }
 
         void OnRestart(RestartType type, int team)

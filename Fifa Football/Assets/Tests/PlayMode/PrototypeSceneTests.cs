@@ -191,6 +191,29 @@ namespace FootballSim.Tests
         }
 
         [UnityTest]
+        public IEnumerator HalfTimeBreakStopsPlayThenRestartsFromCentre()
+        {
+            yield return LoadScene();
+            Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>().BeginMatch();
+            var match = Object.FindFirstObjectByType<MatchManager>();
+            var ball = Object.FindFirstObjectByType<BallController>();
+            match.SetDurationMinutes(0.5f); // half-time at 15 game seconds
+            bool fired = false; match.HalfTime += () => fired = true;
+            float t = 0f;
+            while (!match.HalfTimeReached && t < 30f) { t += Time.deltaTime; yield return null; }
+            Assert.IsTrue(match.HalfTimeReached);
+            Assert.IsTrue(fired, "HalfTime event raised");
+            Assert.IsTrue(match.InGoalPause, "play is stopped during the break");
+            Assert.IsTrue(ball.Body.isKinematic, "ball is held still");
+            t = 0f;
+            while (match.InGoalPause && t < 10f) { t += Time.deltaTime; yield return null; }
+            Assert.IsFalse(match.InGoalPause);
+            Assert.AreEqual(RestartType.KickOff, match.LastRestart);
+            Assert.IsFalse(ball.Body.isKinematic);
+            Assert.Less(ball.transform.position.magnitude, 1f, "restart from the centre spot");
+        }
+
+        [UnityTest]
         public IEnumerator OffsideReceiverGivesFreeKickToDefenders()
         {
             yield return LoadScene();

@@ -169,6 +169,12 @@ namespace FootballSim.Match
         /// <summary>Set the real-time match length (minutes). Call before the match starts.</summary>
         public void SetDurationMinutes(float minutes) { matchMinutes = Mathf.Max(0.5f, minutes); }
 
+        /// <summary>True once the first half has ended (the break itself lasts HalfTimeSeconds).</summary>
+        public bool HalfTimeReached { get; private set; }
+        public const float HalfTimeSeconds = 4f;
+        /// <summary>Raised when the first half ends. Teams keep their ends in this prototype (no side swap yet).</summary>
+        public event System.Action HalfTime;
+
         float resetTimer = -1f;
         float restartTimer = -1f;
 
@@ -183,11 +189,23 @@ namespace FootballSim.Match
                 return;
             }
 
+            if (!HalfTimeReached && resetTimer <= 0f && restartTimer <= 0f && RealSecondsElapsed >= matchMinutes * 30f)
+            {
+                // Half-time: stop play for a few seconds, then restart from the centre spot
+                HalfTimeReached = true;
+                offsideRunners.Clear();
+                ball.Freeze(true);
+                resetTimer = HalfTimeSeconds;
+                HalfTime?.Invoke();
+                return;
+            }
+
             if (resetTimer > 0f)
             {
                 resetTimer -= Time.deltaTime;
                 if (resetTimer <= 0f)
                 {
+                    ball.Freeze(false);
                     ball.LastTouchTeam = -1;
                     ball.LastToucher = null;
                     offsideRunners.Clear();

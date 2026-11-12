@@ -210,6 +210,14 @@ NOT verified:
 - NOT verified: how it feels (20 s / 14 s / 25% are guesses, not tuned); bar position vs. touch buttons on the phone;
   not in the phone APK; stamina does not reset at half/kick-off and has no per-player attribute yet.
 
+## Session 3 - Half-time break
+- At half of the match length (once no goal pause or restart is in progress) `MatchManager` raises `HalfTime`, holds the
+  ball for 4 s (`HalfTimeSeconds`, goals are blocked) and then restarts from the centre spot via the existing kick-off
+  path. HUD banner "HALF TIME h - a". The match clock keeps running during the break.
+- Tests: 36/36 PlayMode (1 new: break fires, ball held, then centre restart). 19/19 EditMode unchanged.
+- NOT verified: not seen on screen or on the phone. Simplifications (known): teams do NOT swap ends, the second half
+  is not kicked off by the other team, the clock is not paused, no half-time stats screen.
+
 ## Still unverified from red cards / penalties
 - No red card or penalty has been seen in live play (they depend on random fouls); penalty balance
   (how often the AI scores) is unknown; not yet in the APK on the phone.
