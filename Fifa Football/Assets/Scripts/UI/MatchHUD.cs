@@ -61,7 +61,16 @@ namespace FootballSim.UI
             match.HalfTime -= OnHalfTime;
         }
 
-        void Start() { ShowStart(); }
+        void Start()
+        {
+            if (match != null)
+            {
+                var audio = gameObject.GetComponent<FootballSim.Audio.MatchAudio>();
+                if (audio == null) audio = gameObject.AddComponent<FootballSim.Audio.MatchAudio>();
+                audio.Init(match);
+            }
+            ShowStart();
+        }
         void OnDestroy() { Time.timeScale = 1f; }
 
         void Update()
@@ -270,8 +279,11 @@ namespace FootballSim.UI
             touchOpacityLabel = Label("TouchOpacity", pp, 32, TextAnchor.MiddleCenter, new Vector2(0, 30), new Vector2(520, 50));
             Button(pp, "-", new Vector2(-330, 30), new Vector2(90, 70), () => AdjustTouch(0f, -0.1f), btnCol);
             Button(pp, "+", new Vector2(330, 30), new Vector2(90, 70), () => AdjustTouch(0f, 0.1f), btnCol);
-            Button(pp, "RESUME", new Vector2(0, -100), new Vector2(420, 100), TogglePause, Accent);
-            Button(pp, "RESTART", new Vector2(0, -220), new Vector2(420, 80), Rematch, btnCol);
+            Button(pp, "RESUME", new Vector2(-215, -120), new Vector2(390, 90), TogglePause, Accent);
+            var soundBtn = Button(pp, "", new Vector2(215, -120), new Vector2(390, 90), ToggleSound, btnCol);
+            soundLabel = soundBtn.GetComponentInChildren<Text>();
+            RefreshSoundLabel();
+            Button(pp, "RESTART", new Vector2(0, -230), new Vector2(420, 80), Rematch, btnCol);
             pausePanel.SetActive(false);
         }
 
@@ -295,6 +307,10 @@ namespace FootballSim.UI
             if (touch == null) touch = FindFirstObjectByType<FootballSim.Inputs.TouchControls>();
             return touch;
         }
+
+        Text soundLabel;
+        public void ToggleSound() { FootballSim.Audio.MatchAudio.SoundOn = !FootballSim.Audio.MatchAudio.SoundOn; RefreshSoundLabel(); }
+        void RefreshSoundLabel() { if (soundLabel != null) soundLabel.text = FootballSim.Audio.MatchAudio.SoundOn ? "SOUND: ON" : "SOUND: OFF"; }
 
         void AdjustTouch(float dScale, float dOpacity)
         {

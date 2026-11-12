@@ -229,6 +229,18 @@ NOT verified:
 - NOT verified: the swapped second half has not been watched (AI behaviour, touch controls feel, camera snap), and not on
   the phone. Pre-existing tests that assume home attacks +Z only cover the first half.
 
+## Session 3 - Procedural sound effects
+- No audio assets are downloaded or licensed: `Audio/ProceduralAudio.cs` synthesises ball kick, tackle thud, referee
+  whistle and crowd cheer from maths (deterministic, 22.05 kHz mono). `Audio/MatchAudio.cs` (added to the HUD object at
+  runtime, no scene rebuild needed) plays them on kicks/passes, fouls, goals, free kicks/penalties/offsides, cards,
+  half-time and full-time.
+- Pause menu has a SOUND: ON/OFF button (saved in PlayerPrefs, applied through `AudioListener.volume`).
+- Tests: 25/25 EditMode (5 new: each sound is audible, unclipped, ends silent; deterministic), 37/37 PlayMode (audio
+  player exists, mute switch works).
+- NOT verified: I have not LISTENED to any of it, so how it sounds (levels, harshness, whether the whistle is annoying) is
+  unknown; the editor/tests have no meaningful audio output. Not tested on the phone. No music, no ambient crowd loop,
+  no per-event volume tuning, and the pause panel layout with the new button has not been looked at.
+
 ## Still unverified from red cards / penalties
 - No red card or penalty has been seen in live play (they depend on random fouls); penalty balance
   (how often the AI scores) is unknown; not yet in the APK on the phone.

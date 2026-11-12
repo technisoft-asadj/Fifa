@@ -191,6 +191,21 @@ namespace FootballSim.Tests
         }
 
         [UnityTest]
+        public IEnumerator SoundIsWiredAndMuteSwitchWorks()
+        {
+            yield return LoadScene();
+            Assert.IsNotNull(Object.FindFirstObjectByType<FootballSim.Audio.MatchAudio>(), "HUD adds the audio player");
+            bool was = FootballSim.Audio.MatchAudio.SoundOn;
+            var hud = Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>();
+            hud.ToggleSound();
+            Assert.AreEqual(!was, FootballSim.Audio.MatchAudio.SoundOn);
+            Assert.AreEqual(was ? 0f : 1f, AudioListener.volume);
+            hud.ToggleSound();
+            Assert.AreEqual(was, FootballSim.Audio.MatchAudio.SoundOn);
+            Assert.AreEqual(was ? 1f : 0f, AudioListener.volume);
+        }
+
+        [UnityTest]
         public IEnumerator HalfTimeBreakStopsPlayThenRestartsFromCentre()
         {
             yield return LoadScene();
