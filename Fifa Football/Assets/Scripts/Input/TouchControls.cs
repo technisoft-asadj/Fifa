@@ -120,7 +120,11 @@ namespace FootballSim.Inputs
             scaler.matchWidthOrHeight = 0.5f;
             canvasGo.AddComponent<GraphicRaycaster>();
             root = canvasGo;
-            var rt = (RectTransform)canvasGo.transform;
+            // Everything sits inside the device safe area so notches / punch-holes never cover a button.
+            var safeGo = new GameObject("SafeArea", typeof(RectTransform));
+            safeGo.transform.SetParent(canvasGo.transform, false);
+            var rt = (RectTransform)safeGo.transform;
+            ApplySafeArea(rt, Screen.safeArea, Screen.width, Screen.height);
             var font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
 
             // Joystick touch area: left 45% of the screen, lower 65%
@@ -139,6 +143,22 @@ namespace FootballSim.Inputs
             tackle = Button(rt, font, "TACKLE", new Vector2(-120, 450), 150 * s, new Color(0.95f, 0.7f, 0.1f));
             switchBtn = Button(rt, font, "SWITCH", new Vector2(-390, 380), 130 * s, new Color(0.5f, 0.5f, 0.55f));
             sprint = Button(rt, font, "SPRINT", new Vector2(-640, 100), 130 * s, new Color(0.2f, 0.75f, 0.4f), anchorLeft: false);
+        }
+
+        /// <summary>Stretch a rect to the safe area, given in screen pixels.</summary>
+        public static void ApplySafeArea(RectTransform rt, Rect safe, float screenW, float screenH)
+        {
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            if (screenW <= 0f || screenH <= 0f || safe.width <= 0f || safe.height <= 0f)
+            {
+                rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one;
+            }
+            else
+            {
+                rt.anchorMin = new Vector2(Mathf.Clamp01(safe.xMin / screenW), Mathf.Clamp01(safe.yMin / screenH));
+                rt.anchorMax = new Vector2(Mathf.Clamp01(safe.xMax / screenW), Mathf.Clamp01(safe.yMax / screenH));
+            }
+            rt.offsetMin = rt.offsetMax = Vector2.zero;
         }
 
         HoldButton Button(RectTransform parent, Font font, string label, Vector2 pos, float size, Color color, bool anchorLeft = false)

@@ -133,5 +133,26 @@ Not done: draggable/resizable button layout, left-handed mode, safe-area insets,
 - **Android dev build: SUCCEEDED** (first build). `Builds/Android/FootballSim-dev.apk`, about 34 MB, IL2CPP, ARM64, min SDK 25, development build. JDK/SDK/NDK were detected automatically. Not yet installed or run on any device; ARMv7 and 16 KB page-size checks still open.
 - The build's scene validation reported: "Script attached to 'Trigger' in scene FootballPrototype is missing". Root cause: `GoalTrigger` lived in `MatchManager.cs` (Unity needs one MonoBehaviour per file, same name). Goal detection was therefore not wired in the saved scene. Fixed by moving it to `GoalTrigger.cs`; scene rebuilt and now references the new script GUID.
 - New `PrototypeSceneTests` load the real saved scene and check: no missing scripts, two teams of 11 with one keeper each, two goal triggers, and a ball placed in each goal scores for the correct team. These would have caught the bug.
-- Tests: 10/10 EditMode, 23/23 PlayMode pass. The APK with the fix is being rebuilt; its result is not recorded here yet.
+- Tests: 10/10 EditMode, 23/23 PlayMode pass. The APK with the fix was rebuilt successfully (34.1 MB).
+
+## Session 3 - First run on a real phone
+Device: Infinix X6881, Android 14 (API 34), arm64, 1080x2436, 8 GB RAM, 4 KB page size, punch-hole cutout.
+VERIFIED on device (driven over adb: install, taps, swipes, screenshots, frame timestamps from SurfaceFlinger):
+- APK installs and launches; no exceptions or missing-script messages in the Unity log.
+- Start screen renders correctly in landscape; tapping PLAY starts the match.
+- Touch buttons appear; the floating joystick appears under a drag and the knob follows it.
+- Frame rate was locked at 30 fps (33.5 ms every frame) - Unity's mobile default cap, not a performance limit.
+  Added `Core/AppBootstrap.cs` (target 60 fps, vSync off, screen never sleeps). Re-measured: 16.77 ms average,
+  p95 16.79 ms, max 17.06 ms over 126 frames = steady 60 fps with 22 players.
+- Memory: about 400 MB PSS (development build). Not yet compared with a release build.
+- Keyboard hint no longer shows on a touch device (KB-013 fixed).
+- Touch canvas now sits inside `Screen.safeArea` (KB-012 partly addressed).
+- Tests: 10 EditMode, 26/26 PlayMode pass (3 new: safe-area anchors x2, frame-rate target).
+
+NOT verified:
+- Human play feel: nobody has played a match by hand on the phone yet. Multi-touch (joystick + button together),
+  button reach and size were not judged; adb can only inject one pointer.
+- Only one device and only the first seconds of a match were measured; no thermal or battery run, no low-end phone.
+- 32-bit (ARMv7) devices and 16 KB page-size devices: this phone is 64-bit with 4 KB pages, so neither is covered.
+- The safe-area change was not checked visually with the cutout on the button side.
 - Lesson: the earlier in-editor checks passed because the editor resolved the script by type; only the build's validation exposed it. Run scene-level tests after every scene rebuild.

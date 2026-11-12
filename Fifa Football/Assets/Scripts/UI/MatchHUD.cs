@@ -20,7 +20,7 @@ namespace FootballSim.UI
         [SerializeField] TeamController awayTeam;
 
         Font font;
-        Text scoreText, clockText, bannerText, resultText, durationLabel, formationLabel, difficultyLabel, statsText;
+        Text scoreText, clockText, bannerText, resultText, durationLabel, formationLabel, difficultyLabel, statsText, hintText;
         int selectedFormation;
         GameObject startPanel, fullTimePanel;
         float bannerTimer;
@@ -58,6 +58,9 @@ namespace FootballSim.UI
 
         void Update()
         {
+            // Keyboard hint is noise on a phone; show it only when there is no touchscreen.
+            bool touchDevice = Application.isMobilePlatform || UnityEngine.InputSystem.Touchscreen.current != null;
+            if (hintText.gameObject.activeSelf == touchDevice) hintText.gameObject.SetActive(!touchDevice);
             if (match == null) return;
             scoreText.text = $"HOME  {match.HomeScore}  -  {match.AwayScore}  AWAY";
             clockText.text = $"{Mathf.FloorToInt(match.GameMinute):00}:00";
@@ -175,6 +178,7 @@ namespace FootballSim.UI
 
             // Controls hint (bottom)
             var hint = Label("Hint", root, 22, TextAnchor.LowerCenter, new Vector2(0, 16), new Vector2(1700, 40));
+            hintText = hint;
             var hrt = hint.rectTransform; hrt.anchorMin = hrt.anchorMax = new Vector2(0.5f, 0f);
             hint.text = "WASD move  |  Shift sprint  |  Space shoot (hold)  |  K pass  |  J tackle  |  Tab switch player";
             hint.color = new Color(1, 1, 1, 0.75f);
