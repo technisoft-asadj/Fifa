@@ -22,7 +22,9 @@ namespace FootballSim.UI
         Font font;
         Text scoreText, clockText, bannerText, resultText, durationLabel, formationLabel, difficultyLabel, statsText, hintText;
         int selectedFormation;
-        GameObject startPanel, fullTimePanel;
+        GameObject startPanel, fullTimePanel, pausePanel, pauseButton;
+        Text touchScaleLabel, touchOpacityLabel;
+        FootballSim.Inputs.TouchControls touch;
         float bannerTimer;
         float selectedMinutes = 5f;
         static readonly Color Panel = new Color(0.05f, 0.08f, 0.12f, 0.88f);
@@ -61,6 +63,11 @@ namespace FootballSim.UI
             // Keyboard hint is noise on a phone; show it only when there is no touchscreen.
             bool touchDevice = Application.isMobilePlatform || UnityEngine.InputSystem.Touchscreen.current != null;
             if (hintText.gameObject.activeSelf == touchDevice) hintText.gameObject.SetActive(!touchDevice);
+            // Pause: on-screen button, Esc, or the Android back button (reported as Escape).
+            bool inMenu = startPanel.activeSelf || fullTimePanel.activeSelf;
+            if (pauseButton.activeSelf == inMenu) pauseButton.SetActive(!inMenu);
+            var kb = UnityEngine.InputSystem.Keyboard.current;
+            if (kb != null && kb.escapeKey.wasPressedThisFrame) TogglePause();
             if (match == null) return;
             scoreText.text = $"HOME  {match.HomeScore}  -  {match.AwayScore}  AWAY";
             clockText.text = $"{Mathf.FloorToInt(match.GameMinute):00}:00";
@@ -102,7 +109,7 @@ namespace FootballSim.UI
             fullTimePanel.SetActive(false);
         }
 
-        void BeginMatch()
+        public void BeginMatch()
         {
             match.SetDurationMinutes(selectedMinutes);
             ApplyFormations();
@@ -212,6 +219,59 @@ namespace FootballSim.UI
             statsText = Label("Stats", ft, 28, TextAnchor.MiddleCenter, new Vector2(0, -40), new Vector2(860, 50));
             Button(ft, "REMATCH", new Vector2(0, -150), new Vector2(420, 110), Rematch, Accent);
             fullTimePanel.SetActive(false);
+
+            // Pause button (top-right) and pause panel with touch-control settings
+            var pb = Button(root, "II", new Vector2(-150, -70), new Vector2(100, 90), TogglePause, new Color(0.05f, 0.08f, 0.12f, 0.7f));
+            pb.anchorMin = pb.anchorMax = new Vector2(1f, 1f);
+            pauseButton = pb.gameObject;
+            pausePanel = Rect("PausePanel", root, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 40), new Vector2(820, 600), Panel).gameObject;
+            var pp = pausePanel.transform;
+            var pTitle = Label("Paused", pp, 64, TextAnchor.MiddleCenter, new Vector2(0, 230), new Vector2(780, 90)); pTitle.text = "PAUSED"; pTitle.fontStyle = FontStyle.Bold;
+            touchScaleLabel = Label("TouchScale", pp, 32, TextAnchor.MiddleCenter, new Vector2(0, 130), new Vector2(520, 50));
+            Button(pp, "-", new Vector2(-330, 130), new Vector2(90, 70), () => AdjustTouch(-0.1f, 0f), btnCol);
+            Button(pp, "+", new Vector2(330, 130), new Vector2(90, 70), () => AdjustTouch(0.1f, 0f), btnCol);
+            touchOpacityLabel = Label("TouchOpacity", pp, 32, TextAnchor.MiddleCenter, new Vector2(0, 30), new Vector2(520, 50));
+            Button(pp, "-", new Vector2(-330, 30), new Vector2(90, 70), () => AdjustTouch(0f, -0.1f), btnCol);
+            Button(pp, "+", new Vector2(330, 30), new Vector2(90, 70), () => AdjustTouch(0f, 0.1f), btnCol);
+            Button(pp, "RESUME", new Vector2(0, -100), new Vector2(420, 100), TogglePause, Accent);
+            Button(pp, "RESTART", new Vector2(0, -220), new Vector2(420, 80), Rematch, btnCol);
+            pausePanel.SetActive(false);
+        }
+
+        // ---- pause ----
+        public bool IsPaused => pausePanel != null && pausePanel.activeSelf;
+
+        /// <summary>Pause or resume. Ignored while the start or full-time screen is showing.</summary>
+        public void TogglePause()
+        {
+            if (startPanel.activeSelf || fullTimePanel.activeSelf) return;
+            bool pause = !IsPaused;
+            pausePanel.SetActive(pause);
+            Time.timeScale = pause ? 0f : 1f;
+            var tc = Touch();
+            if (tc != null) tc.SetPreview(pause);
+            if (pause) RefreshTouchLabels();
+        }
+
+        FootballSim.Inputs.TouchControls Touch()
+        {
+            if (touch == null) touch = FindFirstObjectByType<FootballSim.Inputs.TouchControls>();
+            return touch;
+        }
+
+        void AdjustTouch(float dScale, float dOpacity)
+        {
+            var tc = Touch();
+            if (tc == null) return;
+            tc.SetAppearance(Mathf.Round((tc.controlScale + dScale) * 10f) / 10f, Mathf.Round((tc.controlOpacity + dOpacity) * 10f) / 10f);
+            RefreshTouchLabels();
+        }
+
+        void RefreshTouchLabels()
+        {
+            var tc = Touch();
+            touchScaleLabel.text = tc == null ? "Touch controls: none" : $"Button size: {tc.controlScale * 100f:0}%";
+            touchOpacityLabel.text = tc == null ? "" : $"Button opacity: {tc.controlOpacity * 100f:0}%";
         }
 
         RectTransform Rect(string name, Transform parent, Vector2 anchorMin, Vector2 anchorMax, Vector2 pos, Vector2 size, Color color)
@@ -239,7 +299,7 @@ namespace FootballSim.UI
             return t;
         }
 
-        void Button(Transform parent, string label, Vector2 pos, Vector2 size, UnityEngine.Events.UnityAction onClick, Color color)
+        RectTransform Button(Transform parent, string label, Vector2 pos, Vector2 size, UnityEngine.Events.UnityAction onClick, Color color)
         {
             var go = new GameObject(label + "Button", typeof(RectTransform), typeof(Image), typeof(UnityEngine.UI.Button));
             go.transform.SetParent(parent, false);
@@ -254,6 +314,7 @@ namespace FootballSim.UI
             btn.onClick.AddListener(onClick);
             var t = Label("Text", go.transform, 40, TextAnchor.MiddleCenter, Vector2.zero, size);
             t.text = label; t.fontStyle = FontStyle.Bold;
+            return rt;
         }
     }
 }

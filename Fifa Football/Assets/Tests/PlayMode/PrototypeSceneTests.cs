@@ -64,6 +64,46 @@ namespace FootballSim.Tests
         }
 
         [UnityTest]
+        public IEnumerator PauseStopsTimeAndResumeRestoresIt()
+        {
+            yield return LoadScene();
+            var hud = Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>();
+            hud.TogglePause();
+            Assert.IsFalse(hud.IsPaused, "cannot pause on the start screen");
+            hud.BeginMatch();
+            yield return null;
+            hud.TogglePause();
+            Assert.IsTrue(hud.IsPaused);
+            Assert.AreEqual(0f, Time.timeScale);
+            hud.TogglePause();
+            Assert.IsFalse(hud.IsPaused);
+            Assert.AreEqual(1f, Time.timeScale);
+        }
+
+        [UnityTest]
+        public IEnumerator TouchControlsPreviewWhilePausedAndClampSettings()
+        {
+            yield return LoadScene();
+            var hud = Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>();
+            var touch = Object.FindFirstObjectByType<FootballSim.Inputs.TouchControls>();
+            touch.forceShow = true;
+            hud.BeginMatch();
+            yield return null; yield return null;
+            Assert.IsTrue(touch.IsVisible, "visible during play");
+            hud.TogglePause();
+            yield return null; yield return null;
+            Assert.IsTrue(touch.IsVisible, "previewed while paused so settings can be seen");
+            float scale = touch.controlScale, opacity = touch.controlOpacity;
+            touch.SetAppearance(9f, -1f);
+            Assert.AreEqual(1.6f, touch.controlScale, 1e-4f);
+            Assert.AreEqual(0.2f, touch.controlOpacity, 1e-4f);
+            yield return null; yield return null;
+            Assert.IsTrue(touch.IsVisible, "still visible after rebuild");
+            touch.SetAppearance(scale, opacity); // restore saved prefs
+            hud.TogglePause();
+        }
+
+        [UnityTest]
         public IEnumerator BallInsideHomeGoalScoresForAway()
         {
             yield return LoadScene();

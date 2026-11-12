@@ -155,4 +155,11 @@ NOT verified:
 - Only one device and only the first seconds of a match were measured; no thermal or battery run, no low-end phone.
 - 32-bit (ARMv7) devices and 16 KB page-size devices: this phone is 64-bit with 4 KB pages, so neither is covered.
 - The safe-area change was not checked visually with the cutout on the button side.
+
+## Session 3 - Pause menu and touch-control settings
+- Pause button (top-right), Esc key and Android back button pause the match; ignored on the start and full-time screens.
+- Pause panel: RESUME, RESTART, button size (50-160 %) and button opacity (20-100 %), saved in PlayerPrefs.
+- Touch controls stay visible (but do not take touches) while paused, so changes are previewed live.
+- Tests: 28/28 PlayMode pass (2 new: pause/resume time scale; preview while paused + setting clamps).
+- NOT verified at the time of this commit: the pause menu on the phone (layout, back button, tapping +/-).
 - Lesson: the earlier in-editor checks passed because the editor resolved the script by type; only the build's validation exposed it. Run scene-level tests after every scene rebuild.

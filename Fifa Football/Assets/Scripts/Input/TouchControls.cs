@@ -23,6 +23,8 @@ namespace FootballSim.Inputs
         Joystick joystick;
         HoldButton shoot, pass, tackle, switchBtn, sprint;
         GameObject root;
+        CanvasGroup group;
+        bool preview;
 
         public bool IsVisible => root != null && root.activeSelf;
 
@@ -58,9 +60,14 @@ namespace FootballSim.Inputs
         void Update()
         {
             bool want = forceShow || Application.isMobilePlatform || Touchscreen.current != null;
-            want &= Time.timeScale > 0f; // hide during menus / pause
+            bool running = Time.timeScale > 0f;
+            want &= running || preview; // hide during menus, except while previewing from the pause settings
             if (root.activeSelf != want) root.SetActive(want);
+            if (group != null) group.blocksRaycasts = running; // a preview must not swallow menu touches
         }
+
+        /// <summary>Show the controls while the game is paused so size/opacity changes can be seen.</summary>
+        public void SetPreview(bool on) { preview = on; }
 
         /// <summary>Persist and apply a new scale/opacity (used by a future settings screen).</summary>
         public void SetAppearance(float scale, float opacity)
@@ -119,6 +126,7 @@ namespace FootballSim.Inputs
             scaler.referenceResolution = new Vector2(1920, 1080);
             scaler.matchWidthOrHeight = 0.5f;
             canvasGo.AddComponent<GraphicRaycaster>();
+            group = canvasGo.AddComponent<CanvasGroup>();
             root = canvasGo;
             // Everything sits inside the device safe area so notches / punch-holes never cover a button.
             var safeGo = new GameObject("SafeArea", typeof(RectTransform));
