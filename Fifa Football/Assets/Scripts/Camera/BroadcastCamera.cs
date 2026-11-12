@@ -14,6 +14,19 @@ namespace FootballSim.CameraSystem
         [SerializeField] Vector2 pitchHalfExtents = new Vector2(30f, 45f);
 
         Vector3 vel;
+        float viewSign = 1f;
+
+        /// <summary>+1 = looking toward +Z (default); -1 = looking toward -Z after the teams change ends. Snaps so players see the new view at once.</summary>
+        public void SetViewSign(float sign)
+        {
+            viewSign = sign;
+            vel = Vector3.zero;
+            if (ball == null) return;
+            Vector3 focus = ball.position; focus.y = 0f;
+            transform.position = focus + new Vector3(0f, height, -distance * viewSign);
+            transform.rotation = Quaternion.LookRotation(focus - transform.position, Vector3.up);
+        }
+        public float ViewSign => viewSign;
 
         /// <summary>Set the player the camera blends toward (called when control switches).</summary>
         public void SetPlayer(Transform p) { player = p; }
@@ -27,7 +40,7 @@ namespace FootballSim.CameraSystem
             focus.z = Mathf.Clamp(focus.z, -pitchHalfExtents.y, pitchHalfExtents.y);
             focus.y = 0f;
 
-            Vector3 desired = focus + new Vector3(0f, height, -distance);
+            Vector3 desired = focus + new Vector3(0f, height, -distance * viewSign);
             transform.position = Vector3.SmoothDamp(transform.position, desired, ref vel, smoothTime);
             Quaternion look = Quaternion.LookRotation(focus - transform.position, Vector3.up);
             transform.rotation = Quaternion.Slerp(transform.rotation, look, 1f - Mathf.Exp(-6f * Time.deltaTime));

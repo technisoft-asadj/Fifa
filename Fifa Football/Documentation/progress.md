@@ -215,8 +215,19 @@ NOT verified:
   ball for 4 s (`HalfTimeSeconds`, goals are blocked) and then restarts from the centre spot via the existing kick-off
   path. HUD banner "HALF TIME h - a". The match clock keeps running during the break.
 - Tests: 36/36 PlayMode (1 new: break fires, ball held, then centre restart). 19/19 EditMode unchanged.
-- NOT verified: not seen on screen or on the phone. Simplifications (known): teams do NOT swap ends, the second half
+- NOT verified: not seen on screen or on the phone. Simplifications (known): the second half
   is not kicked off by the other team, the clock is not paused, no half-time stats screen.
+
+## Session 3 - Teams change ends at half-time
+- `MatchManager.SidesSwapped` / `AttackSign(team)` replace every "home attacks +Z" assumption in match rules
+  (free-kick/penalty direction and spot, corner vs goal kick decision, offside, shot-on-target, offside free kick).
+  At the end of the break: both `TeamController.attackDir` flip, both `GoalTrigger.defendingTeam` flip, and
+  `BroadcastCamera.SetViewSign(-1)` turns the view round (snapped) so the human still attacks "up the screen".
+  `OffsideRule` and `MatchStats.IsOnTarget/AddStrike` gained attack-sign overloads (old signatures kept).
+- Tests: 20/20 EditMode (1 new), 36/36 PlayMode (half-time test now also checks attackDir, camera sign and that a ball in
+  the +Z goal scores for AWAY after the swap).
+- NOT verified: the swapped second half has not been watched (AI behaviour, touch controls feel, camera snap), and not on
+  the phone. Pre-existing tests that assume home attacks +Z only cover the first half.
 
 ## Still unverified from red cards / penalties
 - No red card or penalty has been seen in live play (they depend on random fouls); penalty balance

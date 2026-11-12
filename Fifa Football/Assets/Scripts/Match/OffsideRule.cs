@@ -15,7 +15,13 @@ namespace FootballSim.Match
         /// <summary>World Z of the second-last defender (second nearest to his own goal line); the only one if there is one; 0 if none.</summary>
         public static float SecondLastDefenderZ(int attackTeam, IEnumerable<float> defenderZs)
         {
-            float s = attackTeam == 0 ? 1f : -1f;
+            return SecondLastDefenderZ(attackTeam == 0 ? 1f : -1f, defenderZs);
+        }
+
+        /// <summary>Same, for a team attacking along attackSign (+1 = +Z, -1 = -Z).</summary>
+        public static float SecondLastDefenderZ(float attackSign, IEnumerable<float> defenderZs)
+        {
+            float s = attackSign;
             float first = float.MinValue, second = float.MinValue;
             foreach (var z in defenderZs)
             {
@@ -29,7 +35,12 @@ namespace FootballSim.Match
 
         public static bool IsOffside(int attackTeam, float receiverZ, float ballZ, float secondLastDefenderZ)
         {
-            float s = attackTeam == 0 ? 1f : -1f;
+            return IsOffside(attackTeam == 0 ? 1f : -1f, receiverZ, ballZ, secondLastDefenderZ);
+        }
+
+        public static bool IsOffside(float attackSign, float receiverZ, float ballZ, float secondLastDefenderZ)
+        {
+            float s = attackSign;
             float r = receiverZ * s;
             return r > 0f && r > ballZ * s + Tolerance && r > secondLastDefenderZ * s + Tolerance;
         }

@@ -55,8 +55,23 @@ namespace FootballSim.Match
         void OnPlayerStruck(PlayerController p, bool isShot, Vector3 dir)
         {
             if (Finished || ball == null) return;
-            Stats.AddStrike(p.TeamId, isShot, ball.transform.position, dir);
+            Stats.AddStrike(p.TeamId, isShot, ball.transform.position, dir, AttackSign(p.TeamId));
             SnapshotOffside(p);
+        }
+
+        /// <summary>True after the half-time break: the teams have changed ends.</summary>
+        public bool SidesSwapped { get; private set; }
+
+        /// <summary>+1 if the team currently attacks +Z, -1 if it attacks -Z. Home starts by attacking +Z.</summary>
+        public float AttackSign(int team) { return (team == 0) != SidesSwapped ? 1f : -1f; }
+
+        void SwapSides()
+        {
+            SidesSwapped = !SidesSwapped;
+            if (teams != null) foreach (var t in teams) if (t != null) t.attackDir = AttackSign(t.teamId);
+            foreach (var g in Object.FindObjectsByType<GoalTrigger>(FindObjectsSortMode.None)) g.defendingTeam = 1 - g.defendingTeam;
+            var cam = Object.FindFirstObjectByType<FootballSim.CameraSystem.BroadcastCamera>();
+            if (cam != null) cam.SetViewSign(SidesSwapped ? -1f : 1f);
         }
 
         // ---- offside ----
@@ -83,10 +98,11 @@ namespace FootballSim.Match
             if (own == null || opp == null) return;
             var defZ = new List<float>();
             foreach (var d in opp.players) if (TeamController.IsOn(d)) defZ.Add(d.transform.position.z);
-            float line = OffsideRule.SecondLastDefenderZ(passer.TeamId, defZ);
+            float dirSign = AttackSign(passer.TeamId);
+            float line = OffsideRule.SecondLastDefenderZ(dirSign, defZ);
             float ballZ = ball.transform.position.z;
             foreach (var m in own.players)
-                if (m != passer && TeamController.IsOn(m) && OffsideRule.IsOffside(passer.TeamId, m.transform.position.z, ballZ, line))
+                if (m != passer && TeamController.IsOn(m) && OffsideRule.IsOffside(dirSign, m.transform.position.z, ballZ, line))
                     offsideRunners.Add(m);
             if (offsideRunners.Count > 0) offsideTeam = passer.TeamId;
         }
@@ -105,7 +121,7 @@ namespace FootballSim.Match
                 Stats.offsides[team]++;
                 float limit = Pitch.HalfLength - 1f;
                 spot = new Vector3(Mathf.Clamp(spot.x, -Pitch.HalfWidth + 1f, Pitch.HalfWidth - 1f), 0.12f, Mathf.Clamp(spot.z, -limit, limit));
-                StartRestart(RestartType.Offside, 1 - team, spot, new Vector3(0f, 0f, team == 0 ? -1f : 1f));
+                StartRestart(RestartType.Offside, 1 - team, spot, new Vector3(0f, 0f, -AttackSign(team)));
             }
             // any other touch by a team-mate means the pass was not to an offside player: stays pending only for the runners
         }
@@ -144,8 +160,8 @@ namespace FootballSim.Match
             }
 
             int award = 1 - foulerTeam;
-            Vector3 facing = new Vector3(0f, 0f, award == 0 ? 1f : -1f);
-            float foulerGoalZ = foulerTeam == 0 ? -Pitch.HalfLength : Pitch.HalfLength; // home defends -Z
+            Vector3 facing = new Vector3(0f, 0f, AttackSign(award));
+            float foulerGoalZ = -AttackSign(foulerTeam) * Pitch.HalfLength; // the end the fouler defends
             if (Pitch.InPenaltyArea(spot, foulerGoalZ))
             {
                 Vector3 mark = new Vector3(0f, 0.12f, foulerGoalZ - Mathf.Sign(foulerGoalZ) * Pitch.PenaltySpotDistance);
@@ -172,6 +188,7 @@ namespace FootballSim.Match
         /// <summary>True once the first half has ended (the break itself lasts HalfTimeSeconds).</summary>
         public bool HalfTimeReached { get; private set; }
         public const float HalfTimeSeconds = 4f;
+        bool swapPending;
         /// <summary>Raised when the first half ends. Teams keep their ends in this prototype (no side swap yet).</summary>
         public event System.Action HalfTime;
 
@@ -193,6 +210,7 @@ namespace FootballSim.Match
             {
                 // Half-time: stop play for a few seconds, then restart from the centre spot
                 HalfTimeReached = true;
+                swapPending = true;
                 offsideRunners.Clear();
                 ball.Freeze(true);
                 resetTimer = HalfTimeSeconds;
@@ -206,6 +224,7 @@ namespace FootballSim.Match
                 if (resetTimer <= 0f)
                 {
                     ball.Freeze(false);
+                    if (swapPending) { swapPending = false; SwapSides(); } // change ends before the second-half kick-off
                     ball.LastTouchTeam = -1;
                     ball.LastToucher = null;
                     offsideRunners.Clear();
@@ -262,8 +281,8 @@ namespace FootballSim.Match
             }
 
             // Crossed an end line (outside the goal mouth)
-            float endSign = Mathf.Sign(p.z);                 // +1 = away goal end (home attacks +Z)
-            int defendingTeam = endSign > 0 ? 1 : 0;
+            float endSign = Mathf.Sign(p.z);                 // +1 = the +Z end
+            int defendingTeam = AttackSign(0) > 0f ? (endSign > 0 ? 1 : 0) : (endSign > 0 ? 0 : 1); // the team attacking the other way defends this end
             if (last == defendingTeam)
             {
                 // Defender touched last -> corner for attackers

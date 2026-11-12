@@ -149,11 +149,11 @@ namespace FootballSim.FootballAI
             // AI does not pass to a team-mate who is offside right now
             var defZ = new System.Collections.Generic.List<float>();
             foreach (var o in opponents.players) if (o.gameObject.activeSelf) defZ.Add(o.transform.position.z);
-            float line = FootballSim.Match.OffsideRule.SecondLastDefenderZ(pc.TeamId, defZ);
+            float line = FootballSim.Match.OffsideRule.SecondLastDefenderZ(team.attackDir, defZ);
             foreach (var m in team.players)
             {
                 if (m == pc || m.isGoalkeeper || !m.gameObject.activeSelf) continue;
-                if (FootballSim.Match.OffsideRule.IsOffside(pc.TeamId, m.transform.position.z, team.ball.transform.position.z, line)) continue;
+                if (FootballSim.Match.OffsideRule.IsOffside(team.attackDir, m.transform.position.z, team.ball.transform.position.z, line)) continue;
                 Vector3 d = Flat(m.transform.position - pos);
                 float dist = d.magnitude;
                 if (dist < 6f || dist > 35f) continue;

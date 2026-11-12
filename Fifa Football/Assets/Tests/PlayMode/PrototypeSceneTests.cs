@@ -211,6 +211,19 @@ namespace FootballSim.Tests
             Assert.AreEqual(RestartType.KickOff, match.LastRestart);
             Assert.IsFalse(ball.Body.isKinematic);
             Assert.Less(ball.transform.position.magnitude, 1f, "restart from the centre spot");
+
+            // Ends have changed: home now attacks -Z and a ball in the +Z goal counts for the AWAY team
+            Assert.IsTrue(match.SidesSwapped);
+            foreach (var tc in Object.FindObjectsByType<TeamController>(FindObjectsSortMode.None))
+                Assert.AreEqual(tc.teamId == 0 ? -1f : 1f, tc.attackDir);
+            Assert.AreEqual(-1f, match.AttackSign(0));
+            Assert.AreEqual(-1f, Object.FindFirstObjectByType<FootballSim.CameraSystem.BroadcastCamera>().ViewSign);
+            int homeBefore = match.HomeScore, awayBefore = match.AwayScore;
+            yield return new WaitForSeconds(1.5f); // let any kick-off restart hold finish
+            ball.ResetTo(new Vector3(0f, 1.2f, Pitch.HalfLength + 1.2f));
+            yield return new WaitForSeconds(0.5f);
+            Assert.AreEqual(awayBefore + 1, match.AwayScore, "the +Z goal is now defended by home");
+            Assert.AreEqual(homeBefore, match.HomeScore);
         }
 
         [UnityTest]

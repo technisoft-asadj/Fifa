@@ -29,10 +29,25 @@ namespace FootballSim.Match
 
         public void AddStrike(int team, bool isShot, Vector3 from, Vector3 dir)
         {
+            AddStrike(team, isShot, from, dir, team == 0 ? 1f : -1f);
+        }
+
+        /// <summary>attackSign = +1 when the team currently attacks +Z, -1 when it attacks -Z (sides swap at half-time).</summary>
+        public void AddStrike(int team, bool isShot, Vector3 from, Vector3 dir, float attackSign)
+        {
             if (team != 0 && team != 1) return;
             if (!isShot) { passes[team]++; return; }
             shots[team]++;
-            if (IsOnTarget(from, dir, team)) shotsOnTarget[team]++;
+            if (IsOnTarget(from, dir, attackSign)) shotsOnTarget[team]++;
+        }
+
+        public static bool IsOnTarget(Vector3 from, Vector3 dir, float attackSign)
+        {
+            float goalZ = attackSign * Pitch.HalfLength;
+            float dz = goalZ - from.z;
+            if (Mathf.Abs(dir.z) < 1e-4f || Mathf.Sign(dir.z) != Mathf.Sign(dz)) return false;
+            float x = from.x + dir.x * (dz / dir.z);
+            return Mathf.Abs(x) <= Pitch.GoalHalfWidth;
         }
 
         /// <summary>
