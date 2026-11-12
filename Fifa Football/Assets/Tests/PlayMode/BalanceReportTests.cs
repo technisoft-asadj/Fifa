@@ -12,13 +12,17 @@ namespace FootballSim.Tests
 {
     /// <summary>
     /// Not a pass/fail check: plays full AI-vs-AI matches and writes the match statistics to a file so game balance
-    /// (goals, fouls, cards, offsides ...) can be read as numbers. Explicit: runs only when selected by name.
+    /// (goals, fouls, cards, offsides ...) can be read as numbers. Skipped unless run_balance.flag exists.
     /// </summary>
     public class BalanceReportTests
     {
-        [UnityTest, Explicit("balance measurement, ~75 s per match")]
+        [UnityTest]
         public IEnumerator PlayAiMatchesAndWriteReport()
         {
+            // Slow (~75 s per match), so it only runs when a file named run_balance.flag exists in the project root.
+            // (Unity's runner would not start a test marked [Explicit] when selected by name.)
+            Assume.That(File.Exists(Path.Combine(Application.dataPath, "..", "run_balance.flag")), "create run_balance.flag to run");
+
             const int matches = 2;
             var sb = new StringBuilder();
             sb.AppendLine("AI vs AI, 5-minute matches (= 90 simulated minutes), 4x speed, difficulty " + AiTuning.CurrentDifficulty);
