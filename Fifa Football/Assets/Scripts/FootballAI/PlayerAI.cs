@@ -58,7 +58,8 @@ namespace FootballSim.FootballAI
             Vector3 pos = transform.position;
             float ballDist = (ballPos - Flat(pos)).magnitude;
             bool isChaser = team.Chaser == pc;
-            if (!isChaser || ballDist > 1.4f) holdTimer = 0f;
+            // The ball runs ahead of a dribbler between touches, so allow it a few metres before counting possession as lost
+            if (!isChaser || ballDist > 3.5f) holdTimer = 0f;
 
             // Kick-off: the team that is not kicking off waits in its own half until the ball is played
             if (team.match != null && team.match.KickoffPending && team.match.KickoffTeam != team.teamId)
@@ -131,6 +132,9 @@ namespace FootballSim.FootballAI
         void TryTackleNearBall(float ballDist)
         {
             if (ballDist > 2.4f || actionCooldown > 0f) return;
+            // Only lunge when the ball is actually in reach and in front: a tackle that misses but connects with a man is a foul
+            Vector3 toBall = Flat(team.ball.transform.position - transform.position);
+            if (ballDist > 1.7f || Vector3.Dot(transform.forward, toBall.normalized) < 0.4f) return;
             // Tackle only if an opponent is controlling the ball (near it)
             foreach (var o in opponents.players)
             {

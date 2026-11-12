@@ -307,6 +307,26 @@ NOT verified:
   (the balance test is skipped unless `run_balance.flag` exists). Whether the AI tuning improved the numbers is still
   being measured; no tuned balance report exists yet.
 
+## Session 3 - AI tuning results (3 AI-vs-AI matches per row, Professional, raw files in Documentation/balance_report_*.txt)
+| | before (2 matches) | pass 1 (3) | pass 2 (3) |
+|---|---|---|---|
+| shots per team per match | 0-4 | 1-14 | 6-16 |
+| passes per team | 26-45 | 17-25 | 21-32 |
+| fouls per match (both teams) | 12-19 | 19-31 | 1-6 |
+| red cards per match | 1-2 | 1-4 | 0 in all 3 |
+| offsides | 0 | 0 | 0 |
+| goals per match (total) | 0-1 | 0-3 | 0-1 |
+- Pass 1 (commit `860dcbe`) did NOT help: the build-up-pass timer was reset whenever the ball was over 1.4 m away, which a
+  dribbler's ball often is between touches, so it rarely reached 1.6 s; and AI tackles that missed the ball but touched a
+  man were fouls, which went up.
+- Pass 2 (this change, in `PlayerAI`): the possession timer only resets beyond 3.5 m; the AI only tackles when the ball is
+  within 1.7 m and in front (dot > 0.4). Result: red cards disappeared, shots are now in a realistic range, tests 28 EditMode / 41 PlayMode pass.
+- Still wrong (KB-018 stays open): passes are still about a tenth of real football, so offsides never happen; fouls (1-6)
+  are now below realistic (~20) - the pendulum went too far; goals are low (conversion of on-target shots is poor).
+  Sample is only 3 matches per row and varies a lot (e.g. shots 1 vs 16), so treat these as indications.
+- Next idea (not done): let non-ball-carriers make forward runs and let the nearest teammate offer a pass, so the ball is passed
+  more than dribbled; and let defenders tackle somewhat more often to bring fouls to a realistic count.
+
 ## Still unverified from red cards / penalties
 - No red card or penalty has been seen in live play (they depend on random fouls); penalty balance
   (how often the AI scores) is unknown; not yet in the APK on the phone.
