@@ -44,6 +44,7 @@ namespace FootballSim.UI
             match.FullTime += OnFullTime;
             match.RestartAwarded += OnRestart;
             match.YellowCard += OnYellow;
+            match.RedCard += OnRed;
         }
 
         void OnDisable()
@@ -53,6 +54,7 @@ namespace FootballSim.UI
             match.FullTime -= OnFullTime;
             match.RestartAwarded -= OnRestart;
             match.YellowCard -= OnYellow;
+            match.RedCard -= OnRed;
         }
 
         void Start() { ShowStart(); }
@@ -83,18 +85,19 @@ namespace FootballSim.UI
 
         void OnRestart(RestartType type, int team)
         {
-            string name = type == RestartType.ThrowIn ? "THROW-IN" : type == RestartType.Corner ? "CORNER" : type == RestartType.FreeKick ? "FOUL - FREE KICK" : "GOAL KICK";
+            string name = type == RestartType.ThrowIn ? "THROW-IN" : type == RestartType.Corner ? "CORNER" : type == RestartType.FreeKick ? "FOUL - FREE KICK" : type == RestartType.Penalty ? "PENALTY" : "GOAL KICK";
             Banner($"{name}  -  {(team == 0 ? "HOME" : "AWAY")}", 1.4f);
         }
 
         void OnYellow(int team, int total) { Banner($"YELLOW CARD  -  {(team == 0 ? "HOME" : "AWAY")}", 2f); }
+        void OnRed(int team, int total) { Banner($"RED CARD  -  {(team == 0 ? "HOME" : "AWAY")} DOWN TO {(team == 0 ? homeTeam : awayTeam)?.ActiveCount ?? 0}", 3f); }
 
         void OnFullTime()
         {
             resultText.text = match.HomeScore > match.AwayScore ? $"HOME WINS  {match.HomeScore} - {match.AwayScore}"
                 : match.AwayScore > match.HomeScore ? $"AWAY WINS  {match.AwayScore} - {match.HomeScore}"
                 : $"DRAW  {match.HomeScore} - {match.AwayScore}";
-            statsText.text = $"Fouls  {match.HomeFouls} - {match.AwayFouls}     Yellow cards  {match.HomeYellows} - {match.AwayYellows}";
+            statsText.text = $"Fouls  {match.HomeFouls} - {match.AwayFouls}     Yellow  {match.HomeYellows} - {match.AwayYellows}     Red  {match.HomeReds} - {match.AwayReds}";
             fullTimePanel.SetActive(true);
             Time.timeScale = 0f;
         }

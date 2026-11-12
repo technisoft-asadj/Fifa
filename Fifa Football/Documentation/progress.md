@@ -161,5 +161,20 @@ NOT verified:
 - Pause panel: RESUME, RESTART, button size (50-160 %) and button opacity (20-100 %), saved in PlayerPrefs.
 - Touch controls stay visible (but do not take touches) while paused, so changes are previewed live.
 - Tests: 28/28 PlayMode pass (2 new: pause/resume time scale; preview while paused + setting clamps).
-- NOT verified at the time of this commit: the pause menu on the phone (layout, back button, tapping +/-).
+- VERIFIED on the phone afterwards (adb taps + screenshots): pause button pauses, panel layout is correct,
+  size +/- and opacity +/- change the buttons live (100 -> 120 %, 60 -> 50 %), RESUME continues the match.
+- FAILED on the phone: the Android back key (adb `keyevent 4`) did not resume/pause. See KB-015.
+
+## Session 3 - Red cards and penalties
+- Cards: a player's 2nd foul is a yellow, the 4th is a second yellow = red. The player is removed from the pitch
+  (GameObject disabled, formation slot kept); human control moves to the nearest team-mate; AI ignores sent-off players.
+  Goalkeepers are not sent off yet (no replacement-keeper logic).
+- Penalties: a foul inside the fouling team's own penalty area (40.32 m x 16.5 m) gives a penalty. Ball on the spot
+  (11 m), an outfield taker behind it, everyone else moved out of the area, defending keeper on the goal line.
+  After the 1.2 s hold normal play resumes: there is no dedicated penalty aiming / keeper-dive mini-game yet.
+- HUD: PENALTY and RED CARD banners; full-time stats show red cards.
+- Tests: 32/32 PlayMode pass (4 new: penalty vs free kick by foul position, red on 4th foul, send-off in the real
+  scene with control hand-over, penalty box clearing in the real scene). EditMode tests not rerun this session.
+- NOT verified: no red card or penalty has been seen in live play (they depend on random fouls); penalty balance
+  (how often the AI scores) is unknown; not yet in the APK on the phone.
 - Lesson: the earlier in-editor checks passed because the editor resolved the script by type; only the build's validation exposed it. Run scene-level tests after every scene rebuild.

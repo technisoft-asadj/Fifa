@@ -199,6 +199,41 @@ namespace FootballSim.Tests
             Assert.AreEqual(1, mm.HomeFouls, "second foul while ball is held must not count");
         }
 
+        [UnityTest]
+        public IEnumerator FoulInOwnPenaltyAreaIsAPenalty()
+        {
+            var ball = MakeBall(new Vector3(0, 0.12f, 0));
+            var mm = MakeMatch(ball);
+            yield return new WaitForSeconds(0.3f);
+            mm.AwardFoul(0, new Vector3(5f, 0f, -45f), "defender"); // home defends -Z
+            Assert.AreEqual(RestartType.Penalty, mm.LastRestart);
+            Assert.AreEqual(0f, ball.transform.position.x, 0.1f);
+            Assert.AreEqual(-Pitch.HalfLength + Pitch.PenaltySpotDistance, ball.transform.position.z, 0.1f);
+            yield return new WaitForSeconds(1.5f);
+            mm.AwardFoul(0, new Vector3(5f, 0f, 45f), "striker"); // foul in the OPPONENT's box is only a free kick
+            Assert.AreEqual(RestartType.FreeKick, mm.LastRestart);
+        }
+
+        [UnityTest]
+        public IEnumerator FourthFoulBySamePlayerIsRedCard()
+        {
+            var ball = MakeBall(new Vector3(0, 0.12f, 0));
+            var mm = MakeMatch(ball);
+            int reds = 0, yellows = 0;
+            mm.RedCard += (team, total) => reds++;
+            mm.YellowCard += (team, total) => yellows++;
+            yield return new WaitForSeconds(0.3f);
+            for (int i = 0; i < 4; i++)
+            {
+                mm.AwardFoul(1, new Vector3(0f, 0f, 0f), "hothead");
+                yield return new WaitForSeconds(1.5f);
+            }
+            Assert.AreEqual(1, yellows);
+            Assert.AreEqual(1, reds);
+            Assert.AreEqual(1, mm.AwayReds);
+            Assert.AreEqual(4, mm.AwayFouls);
+        }
+
         PlayerController MakePlayer(Vector3 pos)
         {
             var go = GameObject.CreatePrimitive(PrimitiveType.Capsule);

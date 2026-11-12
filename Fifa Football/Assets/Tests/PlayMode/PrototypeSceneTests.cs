@@ -103,6 +103,71 @@ namespace FootballSim.Tests
             hud.TogglePause();
         }
 
+        IEnumerator FoulWhenReady(MatchManager match, int team, Vector3 spot, object key)
+        {
+            float t = 0f;
+            while ((match.InRestartHold || match.InGoalPause) && t < 8f) { t += Time.deltaTime; yield return null; }
+            int before = match.HomeFouls + match.AwayFouls;
+            match.AwardFoul(team, spot, key);
+            Assert.AreEqual(before + 1, match.HomeFouls + match.AwayFouls, "foul must be accepted");
+        }
+
+        [UnityTest]
+        public IEnumerator RedCardRemovesPlayerAndTeamPlaysOn()
+        {
+            yield return LoadScene();
+            Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>().BeginMatch();
+            var match = Object.FindFirstObjectByType<MatchManager>();
+            TeamController home = null;
+            foreach (var t in Object.FindObjectsByType<TeamController>(FindObjectsSortMode.None)) if (t.teamId == 0) home = t;
+            yield return null;
+            var victim = home.Controlled; // the human-controlled player: control must move to a team-mate
+            Assert.IsNotNull(victim);
+            for (int i = 0; i < 4; i++) yield return FoulWhenReady(match, 0, new Vector3(0f, 0f, 10f), victim);
+            Assert.AreEqual(1, match.HomeReds);
+            Assert.IsFalse(victim.gameObject.activeSelf, "sent-off player leaves the pitch");
+            Assert.AreEqual(10, home.ActiveCount);
+            Assert.IsNotNull(home.Controlled);
+            Assert.AreNotSame(victim, home.Controlled);
+            Assert.IsTrue(home.Controlled.gameObject.activeSelf);
+            yield return new WaitForSeconds(2f); // play continues without errors
+        }
+
+        [UnityTest]
+        public IEnumerator PenaltyClearsTheBoxAndPutsKeeperOnLine()
+        {
+            yield return LoadScene();
+            Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>().BeginMatch();
+            var match = Object.FindFirstObjectByType<MatchManager>();
+            var ball = Object.FindFirstObjectByType<BallController>();
+            var teams = Object.FindObjectsByType<TeamController>(FindObjectsSortMode.None);
+            yield return null;
+            // Away (team 1) defends +Z; put two outfielders in that box first
+            foreach (var t in teams)
+            {
+                int moved = 0;
+                foreach (var p in t.players)
+                    if (!p.isGoalkeeper && moved++ < 2) p.TeleportTo(new Vector3(4f * moved * (t.teamId == 0 ? 1 : -1), 1f, Pitch.HalfLength - 6f), Quaternion.identity);
+            }
+            yield return FoulWhenReady(match, 1, new Vector3(3f, 0f, Pitch.HalfLength - 8f), "awayDefender");
+            Assert.AreEqual(RestartType.Penalty, match.LastRestart);
+            Assert.AreEqual(Pitch.HalfLength - Pitch.PenaltySpotDistance, ball.transform.position.z, 0.2f);
+            yield return null;
+            int inBox = 0, keepersOnLine = 0;
+            foreach (var t in teams)
+                foreach (var p in t.players)
+                {
+                    if (p.isGoalkeeper && t.teamId == 1)
+                    {
+                        if (Mathf.Abs(p.transform.position.z - Pitch.HalfLength) < 1.5f && Mathf.Abs(p.transform.position.x) < 1f) keepersOnLine++;
+                        continue;
+                    }
+                    if (Pitch.InPenaltyArea(p.transform.position, Pitch.HalfLength)) inBox++;
+                }
+            Assert.AreEqual(1, inBox, "only the taker stays in the box");
+            Assert.AreEqual(1, keepersOnLine);
+        }
+
         [UnityTest]
         public IEnumerator BallInsideHomeGoalScoresForAway()
         {

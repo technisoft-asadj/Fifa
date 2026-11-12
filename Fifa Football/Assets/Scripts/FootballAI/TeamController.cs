@@ -35,19 +35,69 @@ namespace FootballSim.FootballAI
         void OnDisable() { if (match != null) match.KickoffReady -= ResetToKickoff; }
 
         /// <summary>Teleport the player closest to a point next to it (used for throw-ins, corners, goal kicks).</summary>
-        public void SendTakerTo(Vector3 spot, Vector3 facing)
+        public PlayerController SendTakerTo(Vector3 spot, Vector3 facing, bool outfieldOnly = false)
         {
             PlayerController best = null; float bd = float.MaxValue;
             foreach (var p in players)
             {
+                if (!IsOn(p) || (outfieldOnly && p.isGoalkeeper)) continue;
                 float d = (p.transform.position - spot).sqrMagnitude;
                 if (d < bd) { bd = d; best = p; }
             }
-            if (best == null) return;
+            if (best == null) return null;
             Vector3 behind = spot - facing.normalized * 0.9f;
             behind.y = 1f;
             best.TeleportTo(behind, Quaternion.LookRotation(facing.normalized, Vector3.up));
             if (humanControlled && !best.isGoalkeeper) SetControlled(best);
+            return best;
+        }
+
+        /// <summary>True while the player is on the pitch (not sent off).</summary>
+        public static bool IsOn(PlayerController p) { return p != null && p.gameObject.activeSelf; }
+
+        /// <summary>Players still on the pitch.</summary>
+        public int ActiveCount { get { int n = 0; foreach (var p in players) if (IsOn(p)) n++; return n; } }
+
+        /// <summary>Red card: remove a player from the pitch for the rest of the match. Slots keep their indices.</summary>
+        public void SendOff(PlayerController p)
+        {
+            if (!players.Contains(p) || !IsOn(p)) return;
+            if (p == Controlled)
+            {
+                PlayerController next = null; float bd = float.MaxValue;
+                foreach (var q in players)
+                {
+                    if (q == p || q.isGoalkeeper || !IsOn(q)) continue;
+                    float d = Dist(q);
+                    if (d < bd) { bd = d; next = q; }
+                }
+                if (next != null) SetControlled(next);
+            }
+            p.gameObject.SetActive(false);
+            if (Chaser == p) Chaser = null;
+        }
+
+        /// <summary>
+        /// Penalty set-up: move everyone except the taker out of the penalty area at goalZ.
+        /// The keeper defending that goal is put on the goal line.
+        /// </summary>
+        public void ClearPenaltyArea(float goalZ, PlayerController taker)
+        {
+            float inward = -Mathf.Sign(goalZ); // direction from the goal line toward the centre
+            bool defending = Mathf.Approximately(Mathf.Sign(OwnGoalZ), Mathf.Sign(goalZ));
+            foreach (var p in players)
+            {
+                if (!IsOn(p) || p == taker) continue;
+                if (p.isGoalkeeper && defending)
+                {
+                    p.TeleportTo(new Vector3(0f, 1f, goalZ + inward * 0.6f), Quaternion.LookRotation(new Vector3(0, 0, inward)));
+                    continue;
+                }
+                Vector3 pos = p.transform.position;
+                if (!Pitch.InPenaltyArea(pos, goalZ)) continue;
+                pos.z = goalZ + inward * (Pitch.PenaltyAreaDepth + 2.5f);
+                p.TeleportTo(pos, Quaternion.LookRotation(new Vector3(0, 0, -inward)));
+            }
         }
 
         void Start()
@@ -83,7 +133,7 @@ namespace FootballSim.FootballAI
             PlayerController best = null; float bd = float.MaxValue;
             foreach (var p in players)
             {
-                if (p.isGoalkeeper) continue;
+                if (p.isGoalkeeper || !IsOn(p)) continue;
                 float d = Dist(p);
                 if (d < bd) { bd = d; best = p; }
             }
@@ -95,7 +145,7 @@ namespace FootballSim.FootballAI
             PlayerController best = null; float bd = float.MaxValue;
             foreach (var p in players)
             {
-                if (p.isGoalkeeper || p == Controlled) continue;
+                if (p.isGoalkeeper || p == Controlled || !IsOn(p)) continue;
                 float d = Dist(p);
                 if (d < bd) { bd = d; best = p; }
             }
@@ -144,6 +194,7 @@ namespace FootballSim.FootballAI
         {
             for (int i = 0; i < players.Count; i++)
             {
+                if (!IsOn(players[i])) continue; // sent off
                 Vector3 pos = HomePosition(i, true);
                 players[i].TeleportTo(pos, Quaternion.LookRotation(new Vector3(0, 0, attackDir)));
             }

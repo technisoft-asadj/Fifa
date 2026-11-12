@@ -7,7 +7,7 @@ using FootballSim.Players;
 
 namespace FootballSim.Match
 {
-    public enum RestartType { None, KickOff, ThrowIn, GoalKick, Corner, FreeKick }
+    public enum RestartType { None, KickOff, ThrowIn, GoalKick, Corner, FreeKick, Penalty }
 
     /// <summary>Match clock, score, kick-off reset and out-of-bounds restarts. Gameplay rules only, no UI.</summary>
     public class MatchManager : MonoBehaviour
@@ -63,18 +63,43 @@ namespace FootballSim.Match
             foulsByPlayer.TryGetValue(foulerKey, out int n);
             n++;
             foulsByPlayer[foulerKey] = n;
-            if (n % 2 == 0)
+            if (n == 4)
+            {
+                // Second yellow = red. The player leaves the pitch (goalkeepers are not sent off yet: no substitute keeper logic).
+                var pc = foulerKey as PlayerController;
+                if (pc == null || !pc.isGoalkeeper)
+                {
+                    if (foulerTeam == 0) HomeReds++; else AwayReds++;
+                    if (pc != null && teams != null)
+                        foreach (var t in teams)
+                            if (t != null && t.teamId == foulerTeam) t.SendOff(pc);
+                    RedCard?.Invoke(foulerTeam, foulerTeam == 0 ? HomeReds : AwayReds);
+                }
+            }
+            else if (n == 2)
             {
                 if (foulerTeam == 0) HomeYellows++; else AwayYellows++;
                 YellowCard?.Invoke(foulerTeam, foulerTeam == 0 ? HomeYellows : AwayYellows);
             }
 
             int award = 1 - foulerTeam;
+            Vector3 facing = new Vector3(0f, 0f, award == 0 ? 1f : -1f);
+            float foulerGoalZ = foulerTeam == 0 ? -Pitch.HalfLength : Pitch.HalfLength; // home defends -Z
+            if (Pitch.InPenaltyArea(spot, foulerGoalZ))
+            {
+                Vector3 mark = new Vector3(0f, 0.12f, foulerGoalZ - Mathf.Sign(foulerGoalZ) * Pitch.PenaltySpotDistance);
+                StartRestart(RestartType.Penalty, award, mark, facing);
+                return;
+            }
             float limit = Pitch.HalfLength - 1f;
             spot = new Vector3(Mathf.Clamp(spot.x, -Pitch.HalfWidth + 1f, Pitch.HalfWidth - 1f), 0.12f, Mathf.Clamp(spot.z, -limit, limit));
-            Vector3 facing = new Vector3(0f, 0f, award == 0 ? 1f : -1f);
             StartRestart(RestartType.FreeKick, award, spot, facing);
         }
+
+        /// <summary>Raised when a player is sent off; arguments = team, total red cards for that team.</summary>
+        public event System.Action<int, int> RedCard;
+        public int HomeReds { get; private set; }
+        public int AwayReds { get; private set; }
 
         public float MatchMinutes => matchMinutes;
         public bool InGoalPause => resetTimer > 0f;
@@ -178,9 +203,18 @@ namespace FootballSim.Match
             ball.Freeze(true);
             ball.LastTouchTeam = -1;
             restartTimer = restartDelay;
+            bool penalty = type == RestartType.Penalty;
+            PlayerController taker = null;
             if (teams != null)
+            {
                 foreach (var t in teams)
-                    if (t != null && t.teamId == awardedTeam) t.SendTakerTo(spot, facing);
+                    if (t != null && t.teamId == awardedTeam) taker = t.SendTakerTo(spot, facing, penalty);
+                if (penalty)
+                {
+                    float goalZ = Mathf.Sign(facing.z) * Pitch.HalfLength;
+                    foreach (var t in teams) if (t != null) t.ClearPenaltyArea(goalZ, taker);
+                }
+            }
             Debug.Log($"{type} for team {awardedTeam}");
             RestartAwarded?.Invoke(type, awardedTeam);
         }

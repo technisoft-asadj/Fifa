@@ -119,6 +119,7 @@ namespace FootballSim.FootballAI
             // Tackle only if an opponent is controlling the ball (near it)
             foreach (var o in opponents.players)
             {
+                if (!o.gameObject.activeSelf) continue; // sent off
                 if ((Flat(o.transform.position) - Flat(team.ball.transform.position)).magnitude < 1.5f)
                 {
                     Input.QueueTackle();
@@ -135,6 +136,7 @@ namespace FootballSim.FootballAI
             PlayerController best = null; dist = float.MaxValue;
             foreach (var o in opponents.players)
             {
+                if (!o.gameObject.activeSelf) continue; // sent off
                 float d = (Flat(o.transform.position) - Flat(pos)).magnitude;
                 if (d < dist) { dist = d; best = o; }
             }
@@ -146,7 +148,7 @@ namespace FootballSim.FootballAI
             PlayerController best = null; float bestScore = float.MinValue;
             foreach (var m in team.players)
             {
-                if (m == pc || m.isGoalkeeper) continue;
+                if (m == pc || m.isGoalkeeper || !m.gameObject.activeSelf) continue;
                 Vector3 d = Flat(m.transform.position - pos);
                 float dist = d.magnitude;
                 if (dist < 6f || dist > 35f) continue;
