@@ -24,6 +24,7 @@ namespace FootballSim.FootballAI
         // Tuned from the AI-vs-AI balance measurement (see progress.md, KB-018)
         const float BuildUpPassAfterSeconds = 0.7f;
         const float ShootRangeScale = 1.25f;
+        const float StrikeRange = 0.95f; // a little inside PlayerController.controlRadius (1.1 m)
         float nextThink;
         Vector3 chaseTarget;
         AiTuning Tune => AiTuning.Current;
@@ -95,7 +96,10 @@ namespace FootballSim.FootballAI
             float goalDist = (goal - Flat(pos)).magnitude;
             Vector3 toGoal = Flat(goal - pos).normalized;
 
-            if (actionCooldown <= 0f && goalDist < Tune.shootRange * ShootRangeScale && Vector3.Dot(transform.forward, toGoal) > 0.35f)
+            // Strikes only work while the ball is inside the player's control radius (1.1 m); a queued pass or shot made
+            // outside it is consumed and wasted (diagnostics showed about half of queued passes never happened)
+            bool canStrike = ballDist <= StrikeRange;
+            if (canStrike && actionCooldown <= 0f && goalDist < Tune.shootRange * ShootRangeScale && Vector3.Dot(transform.forward, toGoal) > 0.35f)
             {
                 Vector3 target = goal + new Vector3(Random.Range(-2.8f, 2.8f), 0f, 0f);
                 Input.QueueShoot(Jitter((target - Flat(pos)).normalized), Mathf.Clamp(0.55f + goalDist / 50f, 0.5f, 1f));
@@ -105,7 +109,7 @@ namespace FootballSim.FootballAI
 
             // Pass when pressed, or after holding the ball for a while (build-up play) so the team moves the ball around
             DiagHasBallFrames++;
-            if (actionCooldown <= 0f && (OpponentNear(pos, 3f) || holdTimer > BuildUpPassAfterSeconds))
+            if (canStrike && actionCooldown <= 0f && (OpponentNear(pos, 3f) || holdTimer > BuildUpPassAfterSeconds))
             {
                 var mate = BestPassTarget(pos);
                 if (mate == null) DiagNoPassTarget++;

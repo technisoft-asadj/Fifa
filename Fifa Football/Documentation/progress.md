@@ -332,6 +332,12 @@ NOT verified:
 - Added static diagnostics in `PlayerAI` (frames with ball, passes queued, times no pass target was found), printed by the
   balance report, to find the real limit instead of guessing. Result of that diagnostic run: not yet read.
 - The full test suite has not been re-run on pass 3.
+- Diagnostic finding (`balance_report_tuning3b_diag.txt`, counters are cumulative over the 3 matches): about 100 passes were
+  queued per match but only about 55-60 were counted, and "no pass target" was rare (3-15). So roughly half of the AI's
+  passes were wasted: the AI decides while the ball is up to 1.4 m away but `PlayerController` only strikes within 1.1 m,
+  and the queued request is consumed either way.
+- Pass 4 change (`StrikeRange` 0.95 m in `PlayerAI`: pass or shoot only when the ball is that close): effect on the
+  numbers NOT yet known (measurement running when this was committed); full suite not re-run.
 
 ## Still unverified from red cards / penalties
 - No red card or penalty has been seen in live play (they depend on random fouls); penalty balance
