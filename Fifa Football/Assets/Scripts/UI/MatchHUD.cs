@@ -69,6 +69,7 @@ namespace FootballSim.UI
                 if (audio == null) audio = gameObject.AddComponent<FootballSim.Audio.MatchAudio>();
                 audio.Init(match);
             }
+            SetHomeKit(selectedKit, false); // players are built by now (Awake order is undefined), so colour them
             ShowStart();
         }
         void OnDestroy() { Time.timeScale = 1f; }
@@ -196,6 +197,31 @@ namespace FootballSim.UI
             if (save) SaveSettings();
         }
 
+        int selectedKit;
+        Text kitLabel, subtitleLabel;
+
+        /// <summary>Choose the home shirt colour (index into KitPalette); the away team gets a colour that does not clash.</summary>
+        public void SetHomeKit(int index, bool save = true)
+        {
+            selectedKit = ((index % KitPalette.Count) + KitPalette.Count) % KitPalette.Count;
+            int away = KitPalette.AwayFor(selectedKit);
+            Recolour(homeTeam, KitPalette.Colors[selectedKit]);
+            Recolour(awayTeam, KitPalette.Colors[away]);
+            if (kitLabel != null) kitLabel.text = $"Your kit: {KitPalette.Names[selectedKit]}";
+            if (subtitleLabel != null) subtitleLabel.text = $"Kick-Off  -  Home ({KitPalette.Names[selectedKit].ToLower()}) vs Away ({KitPalette.Names[away].ToLower()})";
+            if (save) KitPalette.Save(selectedKit);
+        }
+
+        static void Recolour(TeamController team, Color shirt)
+        {
+            if (team == null) return;
+            foreach (var p in team.players)
+            {
+                var v = p.GetComponent<FootballSim.Players.PlayerVisual>();
+                if (v != null) v.SetKit(shirt);
+            }
+        }
+
         void CycleDifficulty(int step, bool save = true)
         {
             int n = System.Enum.GetValues(typeof(Difficulty)).Length;
@@ -266,7 +292,8 @@ namespace FootballSim.UI
             startPanel = Rect("StartPanel", root, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(900, 800), Panel).gameObject;
             var st = startPanel.transform;
             var title = Label("Title", st, 72, TextAnchor.MiddleCenter, new Vector2(0, 320), new Vector2(860, 100)); title.text = "FOOTBALL SIMULATOR"; title.fontStyle = FontStyle.Bold;
-            var sub = Label("Sub", st, 30, TextAnchor.MiddleCenter, new Vector2(0, 245), new Vector2(860, 50)); sub.text = "Kick-Off  -  Home (red) vs Away (blue)";
+            var sub = Label("Sub", st, 30, TextAnchor.MiddleCenter, new Vector2(0, 245), new Vector2(860, 50)); sub.text = "Kick-Off  -  Home vs Away";
+            subtitleLabel = sub;
             var btnCol = new Color(0.2f, 0.3f, 0.45f);
             durationLabel = Label("Duration", st, 34, TextAnchor.MiddleCenter, new Vector2(0, 170), new Vector2(860, 50));
             Button(st, "3 min", new Vector2(-260, 100), new Vector2(220, 70), () => SetMinutes(3f), btnCol);
@@ -278,13 +305,17 @@ namespace FootballSim.UI
             difficultyLabel = Label("Difficulty", st, 34, TextAnchor.MiddleCenter, new Vector2(0, -90), new Vector2(560, 50));
             Button(st, "<", new Vector2(-370, -90), new Vector2(90, 70), () => CycleDifficulty(-1), btnCol);
             Button(st, ">", new Vector2(370, -90), new Vector2(90, 70), () => CycleDifficulty(1), btnCol);
-            Button(st, "PLAY", new Vector2(0, -260), new Vector2(420, 110), BeginMatch, Accent);
+            kitLabel = Label("Kit", st, 34, TextAnchor.MiddleCenter, new Vector2(0, -190), new Vector2(560, 50));
+            Button(st, "<", new Vector2(-370, -190), new Vector2(90, 70), () => SetHomeKit(selectedKit - 1), btnCol);
+            Button(st, ">", new Vector2(370, -190), new Vector2(90, 70), () => SetHomeKit(selectedKit + 1), btnCol);
+            Button(st, "PLAY", new Vector2(0, -305), new Vector2(420, 110), BeginMatch, Accent);
             var saved = MatchSettingsStore.Load(selectedMinutes, FormationData.PresetNames.Length, (int)AiTuning.CurrentDifficulty, System.Enum.GetValues(typeof(Difficulty)).Length);
             selectedFormation = saved.formation;
             AiTuning.CurrentDifficulty = (Difficulty)saved.difficulty;
             SetMinutes(saved.minutes, false);
             CycleFormation(0, false);
             CycleDifficulty(0, false);
+            SetHomeKit(KitPalette.Load(), false);
 
             // Full-time panel
             fullTimePanel = Rect("FullTimePanel", root, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(900, 700), Panel).gameObject;

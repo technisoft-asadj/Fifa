@@ -26,6 +26,23 @@ namespace FootballSim.Players
         float phase, amp, kickT = -1f, tackleT = -1f;
         bool kickRight = true;
 
+        Material shirtMaterial, shortsMaterial, sockMaterial;
+
+        /// <summary>Change the team kit (shirt, shorts and socks) after the player has been built.</summary>
+        public void SetKit(Color shirt)
+        {
+            Tint(shirtMaterial, shirt);
+            Tint(shortsMaterial, Color.Lerp(shirt, Color.white, 0.75f));
+            Tint(sockMaterial, Color.Lerp(shirt, Color.black, 0.15f));
+        }
+
+        static void Tint(Material m, Color c)
+        {
+            if (m == null) return;
+            m.color = c;
+            if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", c);
+        }
+
         public Transform Body => body;
         public bool IsBuilt => body != null;
 
@@ -68,6 +85,7 @@ namespace FootballSim.Players
             }
             var mShirt = M(shirt); var mShorts = M(shorts); var mSkin = M(skin); var mHair = M(hair); var mBoot = M(boot);
             var mSock = M(Color.Lerp(shirt, Color.black, 0.15f));
+            shirtMaterial = mShirt; shortsMaterial = mShorts; sockMaterial = mSock;
 
             var visual = new GameObject("Visual").transform;
             visual.SetParent(transform, false);

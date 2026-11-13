@@ -386,6 +386,28 @@ namespace FootballSim.Tests
         }
 
         [UnityTest]
+        public IEnumerator ChoosingAKitRecoloursBothTeams()
+        {
+            yield return LoadScene();
+            var hud = Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>();
+            yield return null;
+            try
+            {
+                hud.SetHomeKit(2); // yellow
+                yield return null;
+                var home = FirstOutfielder(0); var away = FirstOutfielder(1);
+                Color homeShirt = home.GetComponent<PlayerVisual>().Body.Find("Torso").GetComponent<Renderer>().sharedMaterial.color;
+                Color awayShirt = away.GetComponent<PlayerVisual>().Body.Find("Torso").GetComponent<Renderer>().sharedMaterial.color;
+                Assert.AreEqual(FootballSim.Core.KitPalette.Colors[2].r, homeShirt.r, 0.01f);
+                Assert.AreEqual(FootballSim.Core.KitPalette.Colors[2].g, homeShirt.g, 0.01f);
+                Assert.AreEqual(FootballSim.Core.KitPalette.Colors[FootballSim.Core.KitPalette.AwayFor(2)].b, awayShirt.b, 0.01f);
+                Assert.AreNotEqual(homeShirt, awayShirt);
+                Assert.AreEqual(2, FootballSim.Core.KitPalette.Load(), "the choice is remembered");
+            }
+            finally { FootballSim.Core.KitPalette.Save(0); }
+        }
+
+        [UnityTest]
         public IEnumerator GoalCreditsTheTeammateWhoTouchedItBeforeTheScorer()
         {
             yield return LoadScene();

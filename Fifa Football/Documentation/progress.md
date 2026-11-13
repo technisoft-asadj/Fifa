@@ -414,3 +414,8 @@ NOT verified:
 ### Penalties against the new keepers
 - Reviewing KB-016: a keeper never tackles (his tackle button is the dive), so he can never be sent off and a replacement keeper is not needed; a human already aims a penalty with the stick like any shot, so no separate aiming mechanic was added either. The AI keeper dives on penalties through the normal dive logic.
 - New PlayMode test `PenaltiesAreMostlyScoredAndTheKeeperStillGetsSomeHands` (10 shots at 22 m/s from the spot, five targets) passes when run alone: at least 3 goals and at least 6 of 10 ending as a goal or a save. The goal/save split was not read out, and the whole suite was not re-run after adding it.
+
+### Kit choice on the start screen
+- New row "Your kit" (6 colours: red, blue, yellow, green, white, black) on the start panel; the choice is saved (`KitPalette`, PlayerPrefs `set_kit`). The away team gets blue unless the home kit is blue (red) or black (yellow), so the kits never clash. The subtitle names both colours; players recolour at once through `PlayerVisual.SetKit` (shirt, shorts and socks).
+- Tests: 4 EditMode (`KitPaletteTests`) and PlayMode `ChoosingAKitRecoloursBothTeams`. EditMode 39/39, PlayMode 49/49 (one skipped balance test counted).
+- Not seen on screen: the start panel got a new row and the PLAY button moved down to y=-305 in a 900x800 panel; nobody has looked at the layout or tried it on a phone. Goalkeepers wear the same kit as their team (no separate keeper kit), and the away colour cannot be chosen.
