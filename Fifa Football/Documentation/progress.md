@@ -379,3 +379,8 @@ NOT verified:
 ### Shorter build-up hold (0.7 s -> 0.4 s): tried and reverted
 - 3 x 5-min AI-vs-AI (`balance_report_tuning9_hold04_reverted.txt`): counted passes 48 / 69 / 68 per match (receiver run: 55 / 64 / 57), queued 54 / 77 / 73, offsides 0-0 in all three, goals 2 / 0 / 2. No change beyond noise, and "no pass target" rose (9 / 10 / 1), so the value was put back to 0.7 s.
 - Conclusion for KB-018: pass volume is not capped by the hold timer, the cooldown or who chases the ball. Four AI passes in a row (hold time, strike range, support runs, receiver chaser) have each moved the numbers by less than the match-to-match spread. Further blind tuning is not worth it; the next useful input is a human playtest of how matches actually feel, and a larger sample (10+ matches) if tuning continues.
+
+### Full-time panel layout
+- The old single stats label (28 pt, 220 px box, vertical overflow) held up to 5 goal lines plus five stat lines (about 12 lines), so with several goals it ran over the result line and the REMATCH button. Now: result at y=190, a separate goals label (22 pt, 130 px, max 4 goals then "+N more") and a stats label (26 pt, 190 px), both truncating instead of overflowing.
+- New PlayMode test `FullTimePanelTextFitsItsBoxesWithManyGoals` adds 7 goals, opens the full-time panel and checks both labels' preferred height fits their boxes. Full PlayMode suite 42/42 passes (EditMode untouched, 28).
+- Not seen on a screen or a phone: the test checks text height only, not that the panel looks right, and it was not run against the old layout to confirm it would have failed.

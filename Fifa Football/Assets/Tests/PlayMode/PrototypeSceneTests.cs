@@ -323,6 +323,36 @@ namespace FootballSim.Tests
         }
 
         [UnityTest]
+        public IEnumerator FullTimePanelTextFitsItsBoxesWithManyGoals()
+        {
+            yield return LoadScene();
+            var hud = Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>();
+            var match = Object.FindFirstObjectByType<MatchManager>();
+            for (int i = 0; i < 7; i++)
+                match.Goals.Add(new GoalRecord { team = i % 2, minute = 10 + i * 10, scorer = "Home_11", ownGoal = i == 3 });
+            typeof(FootballSim.UI.MatchHUD).GetMethod("OnFullTime", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).Invoke(hud, null);
+            Time.timeScale = 1f;
+            yield return null;
+            Canvas.ForceUpdateCanvases();
+            var panel = hud.transform.Find("Canvas/FullTimePanel");
+            if (panel == null) panel = FindDeep(hud.transform.root, "FullTimePanel");
+            Assert.IsNotNull(panel);
+            foreach (var name in new[] { "Goals", "Stats" })
+            {
+                var t = panel.Find(name).GetComponent<UnityEngine.UI.Text>();
+                float rectH = ((RectTransform)t.transform).rect.height;
+                Assert.LessOrEqual(t.preferredHeight, rectH + 0.5f, name + " text is taller than its box (" + t.preferredHeight + " > " + rectH + ")");
+            }
+            StringAssert.Contains("+3 more", panel.Find("Goals").GetComponent<UnityEngine.UI.Text>().text);
+        }
+
+        static Transform FindDeep(Transform root, string name)
+        {
+            foreach (var t in root.GetComponentsInChildren<Transform>(true)) if (t.name == name) return t;
+            return null;
+        }
+
+        [UnityTest]
         public IEnumerator DefenderTouchingLastMakesItAnOwnGoal()
         {
             yield return LoadScene();

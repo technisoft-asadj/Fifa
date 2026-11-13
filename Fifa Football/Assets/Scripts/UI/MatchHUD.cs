@@ -20,7 +20,7 @@ namespace FootballSim.UI
         [SerializeField] TeamController awayTeam;
 
         Font font;
-        Text scoreText, clockText, bannerText, resultText, durationLabel, formationLabel, difficultyLabel, statsText, hintText;
+        Text scoreText, clockText, bannerText, resultText, durationLabel, formationLabel, difficultyLabel, statsText, goalsText, hintText;
         RectTransform staminaFill;
         Image staminaImage;
         int selectedFormation;
@@ -122,7 +122,8 @@ namespace FootballSim.UI
             resultText.text = match.HomeScore > match.AwayScore ? $"HOME WINS  {match.HomeScore} - {match.AwayScore}"
                 : match.AwayScore > match.HomeScore ? $"AWAY WINS  {match.AwayScore} - {match.HomeScore}"
                 : $"DRAW  {match.HomeScore} - {match.AwayScore}";
-            statsText.text = StatsSummary(match);
+            goalsText.text = GoalsSummary(match);
+            statsText.text = StatLines(match);
             fullTimePanel.SetActive(true);
             Time.timeScale = 0f;
         }
@@ -130,13 +131,24 @@ namespace FootballSim.UI
         /// <summary>Full-time statistics, home value first on every line.</summary>
         public static string StatsSummary(MatchManager m)
         {
-            var s = m.Stats;
+            string goals = GoalsSummary(m);
+            return (goals.Length > 0 ? goals + "\n\n" : "") + StatLines(m);
+        }
+
+        /// <summary>Up to 4 goal lines (then "+N more"), one per line, no trailing newline.</summary>
+        public static string GoalsSummary(MatchManager m)
+        {
+            const int shown = 4;
             string goals = "";
-            for (int i = 0; i < m.Goals.Count && i < 5; i++) goals += m.Goals[i] + "\n";
-            if (m.Goals.Count > 5) goals += $"+{m.Goals.Count - 5} more\n";
-            if (goals.Length > 0) goals += "\n";
-            return goals
-                 + $"Possession   {s.PossessionPercent(0)}%  -  {s.PossessionPercent(1)}%\n"
+            for (int i = 0; i < m.Goals.Count && i < shown; i++) goals += (i > 0 ? "\n" : "") + m.Goals[i];
+            if (m.Goals.Count > shown) goals += $"\n+{m.Goals.Count - shown} more";
+            return goals;
+        }
+
+        static string StatLines(MatchManager m)
+        {
+            var s = m.Stats;
+            return $"Possession   {s.PossessionPercent(0)}%  -  {s.PossessionPercent(1)}%\n"
                  + $"Shots (on target)   {s.shots[0]} ({s.shotsOnTarget[0]})  -  {s.shots[1]} ({s.shotsOnTarget[1]})\n"
                  + $"Passes   {s.passes[0]}  -  {s.passes[1]}\n"
                  + $"Corners   {s.corners[0]}  -  {s.corners[1]}      Offsides   {s.offsides[0]}  -  {s.offsides[1]}\n"
@@ -278,9 +290,12 @@ namespace FootballSim.UI
             fullTimePanel = Rect("FullTimePanel", root, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(900, 700), Panel).gameObject;
             var ft = fullTimePanel.transform;
             var ftTitle = Label("FT", ft, 72, TextAnchor.MiddleCenter, new Vector2(0, 270), new Vector2(860, 100)); ftTitle.text = "FULL TIME"; ftTitle.fontStyle = FontStyle.Bold;
-            resultText = Label("Result", ft, 48, TextAnchor.MiddleCenter, new Vector2(0, 180), new Vector2(860, 80));
-            statsText = Label("Stats", ft, 28, TextAnchor.MiddleCenter, new Vector2(0, 20), new Vector2(860, 220));
-            statsText.verticalOverflow = VerticalWrapMode.Overflow; statsText.lineSpacing = 1.25f;
+            // Vertical budget (panel is 700 high): title, result, goal lines (<=5 lines), five stat lines, button. Nothing overlaps.
+            resultText = Label("Result", ft, 48, TextAnchor.MiddleCenter, new Vector2(0, 190), new Vector2(860, 70));
+            goalsText = Label("Goals", ft, 22, TextAnchor.MiddleCenter, new Vector2(0, 105), new Vector2(860, 130));
+            goalsText.verticalOverflow = VerticalWrapMode.Truncate; goalsText.lineSpacing = 1.05f;
+            statsText = Label("Stats", ft, 26, TextAnchor.MiddleCenter, new Vector2(0, -60), new Vector2(860, 190));
+            statsText.verticalOverflow = VerticalWrapMode.Truncate; statsText.lineSpacing = 1.1f;
             Button(ft, "REMATCH", new Vector2(0, -250), new Vector2(420, 110), Rematch, Accent);
             fullTimePanel.SetActive(false);
 
