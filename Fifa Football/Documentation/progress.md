@@ -370,3 +370,8 @@ NOT verified:
 - No red card or penalty has been seen in live play (they depend on random fouls); penalty balance
   (how often the AI scores) is unknown; not yet in the APK on the phone.
 - Lesson: the earlier in-editor checks passed because the editor resolved the script by type; only the build's validation exposed it. Run scene-level tests after every scene rebuild.
+
+### Pass receiver becomes chaser (measured)
+- 3 x 5-min AI-vs-AI, Professional (`balance_report_tuning8_receiver.txt`): counted passes 55 / 64 / 57 per match (support runs: 69 / 56 / 50), queued 60 / 72 / 64, offsides 0-0 in all three, fouls 6 / 6 / 2, one yellow in two matches, no reds, goals 1 / 1 / 0.
+- No measurable gain over support runs: pass volume looks capped by the hold timer (0.7 s) and pass cooldown, and offsides never occur because the AI never passes to an offside team-mate and support runs stay level with the offside line. KB-018 stays open.
+- `BallController.FixedUpdate` now returns early while the ball is kinematic (restart hold); it was spamming "Setting linear velocity of a kinematic body" warnings. Covered by the full test run below.

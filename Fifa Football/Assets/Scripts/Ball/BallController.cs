@@ -44,6 +44,8 @@ namespace FootballSim.Ball
 
         void FixedUpdate()
         {
+            // Frozen for a restart: physics is off, and writing velocities to a kinematic body only spams warnings
+            if (rb.isKinematic) return;
             Vector3 v = rb.linearVelocity;
             float speed = v.magnitude;
 
