@@ -443,3 +443,6 @@ Traced the first differing frame between two seeded runs. The ball (PhysX) was r
 
 ## Shipped physics step is now 1/60 (2026-11-13)
 `ProjectSettings/TimeManager.asset` Fixed Timestep changed from 0.02 to 0.016666668 so the game runs the step the determinism tests proved reproducible. The ball's drag and spin code scale with `fixedDeltaTime`. EditMode 52/52 and PlayMode 50/50 pass. Not measured: the extra physics CPU cost on a phone (60 Hz instead of 50 Hz), and whether ball feel changed by hand (the balance report was not re-run).
+
+## Balance check at the 1/60 step (2026-11-13)
+Two Professional-vs-Professional runs of three matches each (`balance_report_step60.txt`, `balance_report_step60_run2.txt`), compared with `balance_report_tuning10_keepers.txt` (0.02 step). Run 1: 6 goals, 33 shots, 10 saves, 0 offsides, no assists credited. Run 2: 4 goals, 33 shots, 8 saves; assists were credited on 2 of 4 goals, so the assist rule works after the `SimClock` change and run 1 was chance. Offsides stay at 0 (KB-018). No sign that ball feel changed; 6 matches is a small sample, and nothing was tried by hand or on a phone.

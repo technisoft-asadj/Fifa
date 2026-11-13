@@ -1,0 +1,13 @@
+AI vs AI, 5-minute matches (= 90 simulated minutes), 4x speed, difficulty Professional
+Match 1: finished=True  score 2-1  shots 8(5)-6(3)  passes 39-36  poss 40-60  corners 3-0  offsides 0-0  saves 3-2  fouls 1-1  yellows 0-0  reds 0-0
+   AI diagnostics so far: frames with ball 489, passes queued 84, no pass target 0
+   36'  HOME  Home_8
+   71'  AWAY  Away_11
+   79'  HOME  Home_10
+Match 2: finished=True  score 1-2  shots 3(2)-7(4)  passes 40-28  poss 53-47  corners 4-0  offsides 0-0  saves 0-2  fouls 2-0  yellows 0-0  reds 0-0
+   AI diagnostics so far: frames with ball 957, passes queued 167, no pass target 0
+   21'  AWAY  Away_10
+   26'  HOME  Home_10
+   50'  AWAY  Away_7
+Match 3: finished=True  score 0-0  shots 3(2)-6(4)  passes 34-32  poss 41-59  corners 1-0  offsides 0-0  saves 1-2  fouls 4-2  yellows 1-0  reds 0-0
+   AI diagnostics so far: frames with ball 1640, passes queued 242, no pass target 12
