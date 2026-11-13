@@ -19,6 +19,7 @@ namespace FootballSim.FootballAI
         PlayerController pc;
         float actionCooldown;
         float holdTimer;
+        float diveCooldown;
         /// <summary>Diagnostics for balance measurement: frames an AI player had the ball, passes it queued, times no pass target was found.</summary>
         public static int DiagHasBallFrames, DiagPassesQueued, DiagNoPassTarget;
         // Tuned from the AI-vs-AI balance measurement (see progress.md, KB-018)
@@ -259,6 +260,20 @@ namespace FootballSim.FootballAI
 
             MoveToward(new Vector3(x, 0f, z), shotIncoming ? 0.1f : 4f);
             if (shotIncoming) Input.SprintFlag = true;
+
+            // Too far to reach by running: dive towards the predicted crossing point, just before the ball arrives
+            diveCooldown -= Time.deltaTime;
+            if (shotIncoming && diveCooldown <= 0f)
+            {
+                float timeToLine = (lineZ - ballPos.z) / ballVel.z;
+                float offset = x - transform.position.x;
+                if (timeToLine < 0.6f && timeToLine > 0f && Mathf.Abs(offset) > 0.9f && Mathf.Abs(offset) < 4.5f)
+                {
+                    Input.MoveVector = new Vector2(Mathf.Sign(offset), 0f);
+                    Input.QueueTackle();
+                    diveCooldown = 1.6f;
+                }
+            }
         }
     }
 }

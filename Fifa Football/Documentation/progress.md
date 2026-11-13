@@ -399,3 +399,10 @@ NOT verified:
 - Simplifications: an assist is simply the previous touch (a dribble that merely carried the ball is not a touch here, only kicks count), no assist table or player stats, not seen in a live match.
 - New PlayMode tests `GoalCreditsTheTeammateWhoTouchedItBeforeTheScorer` and `NoAssistWhenScorerIsAloneOrPreviousTouchWasAnOpponent`.
 - `LiveMatchAccumulatesStatsAndSummaryText` failed once (expected 2 passes, got 3): the AI chaser can legitimately pass in the same two frames as the forced pass. The assertion now requires at least one counted pass. This is a flaky-test fix, not a game change.
+
+### Goalkeeper dives and saves
+- New `GoalkeeperModel` (pure rules, 7 EditMode tests): reach 1.3 m standing / 2.3 m diving, balls above 2.4 m go over, save chance 0.15-0.92 falling with shot speed and distance from the body, shots up to 13 m/s are held and faster ones parried.
+- `PlayerController`: for a goalkeeper the tackle button dives (0.45 s lunge, 1.5 s cooldown); `TrySave` rolls once per shot when an opponent's ball arrives within reach and moves towards him; a keeper kicking away an opponent's moving ball also counts as a save (`Saved` event). `MatchStats.saves[2]` is shown next to passes on the full-time screen and in balance reports.
+- AI keeper (`PlayerAI.Goalkeeper`) dives when a shot will cross the line 0.9-4.5 m from where he stands within 0.6 s.
+- Found by testing: the first version measured reach from 0.9 m above the capsule pivot (already about 1 m up), so ground shots never counted as reachable: 12 shots, 0 saves. After the fix and counting keeper kicks, `GoalkeeperSavesSomeShotsAndCountsThem` (12 shots at 18 m/s from 8.5 m, three targets) passes with at least 3 saves.
+- Not verified: how it feels, whether dives look right (no dive animation; only the tackle animation plays), balance of save chances over a full match (not measured with the 3-match report), and the human cannot control the keeper's dive direction on touch controls beyond the stick. Penalty taker aiming and a replacement keeper after a red card are still not done.

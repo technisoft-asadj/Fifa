@@ -61,8 +61,13 @@ namespace FootballSim.Match
 
         readonly Dictionary<object, int> foulsByPlayer = new Dictionary<object, int>();
 
-        void OnEnable() { PlayerController.Fouled += OnPlayerFoul; PlayerController.Struck += OnPlayerStruck; }
-        void OnDisable() { PlayerController.Fouled -= OnPlayerFoul; PlayerController.Struck -= OnPlayerStruck; }
+        void OnEnable() { PlayerController.Fouled += OnPlayerFoul; PlayerController.Struck += OnPlayerStruck; PlayerController.Saved += OnKeeperSave; }
+        void OnDisable() { PlayerController.Fouled -= OnPlayerFoul; PlayerController.Struck -= OnPlayerStruck; PlayerController.Saved -= OnKeeperSave; }
+
+        void OnKeeperSave(PlayerController keeper, bool held)
+        {
+            if (keeper.TeamId == 0 || keeper.TeamId == 1) Stats.saves[keeper.TeamId]++;
+        }
 
         /// <summary>Possession, shots, passes and corners for both teams.</summary>
         public MatchStats Stats { get; } = new MatchStats();

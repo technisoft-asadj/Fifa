@@ -150,7 +150,7 @@ namespace FootballSim.UI
             var s = m.Stats;
             return $"Possession   {s.PossessionPercent(0)}%  -  {s.PossessionPercent(1)}%\n"
                  + $"Shots (on target)   {s.shots[0]} ({s.shotsOnTarget[0]})  -  {s.shots[1]} ({s.shotsOnTarget[1]})\n"
-                 + $"Passes   {s.passes[0]}  -  {s.passes[1]}\n"
+                 + $"Passes   {s.passes[0]}  -  {s.passes[1]}      Saves   {s.saves[0]}  -  {s.saves[1]}\n"
                  + $"Corners   {s.corners[0]}  -  {s.corners[1]}      Offsides   {s.offsides[0]}  -  {s.offsides[1]}\n"
                  + $"Fouls   {m.HomeFouls}  -  {m.AwayFouls}      Yellow   {m.HomeYellows}  -  {m.AwayYellows}      Red   {m.HomeReds}  -  {m.AwayReds}";
         }

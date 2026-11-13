@@ -21,9 +21,12 @@ namespace FootballSim.Players
         void KickBall(Vector3 dir, float speed, Vector3 spin)
         {
             if (ball.Body.isKinematic) return; // ball is held for a restart: nobody can touch it yet (setting velocity on it only spams warnings)
+            // A keeper kicking away an opponent's moving ball (a shot he got to with his feet) is a save as well
+            bool stoppedShot = isGoalkeeper && ball.LastTouchTeam != TeamId && ball.LastTouchTeam != -1 && ball.Velocity.magnitude > GoalkeeperModel.MinShotSpeed;
             ball.LastTouchTeam = TeamId;
             ball.LastToucher = this;
             ball.Kick(dir, speed, spin);
+            if (stoppedShot) Saved?.Invoke(this, false);
         }
 
         CharacterController cc;
@@ -73,6 +76,65 @@ namespace FootballSim.Players
             Locomotion();
             BallInteraction();
             if (input.TacklePressed) TryTackle();
+            if (isGoalkeeper) TrySave();
+        }
+
+        // ---- goalkeeper: dive and save ----
+        float saveCooldown;
+        /// <summary>Raised when a keeper stops a shot: keeper, true if he held it, false if he pushed it away.</summary>
+        public static event System.Action<PlayerController, bool> Saved;
+        public bool IsDiving => isGoalkeeper && lungeTimer > 0f;
+
+        void StartDive()
+        {
+            if (tackleCooldown > 0f) return;
+            tackleCooldown = 1.5f;
+            Vector2 m = input.Move;
+            Vector3 dir = input.MoveIsWorldSpace ? new Vector3(m.x, 0f, m.y) : transform.right * m.x;
+            if (dir.sqrMagnitude < 0.04f) dir = transform.right; // no direction given: dive to the keeper's right
+            lungeDir = dir.normalized;
+            lungeTimer = 0.45f;
+            if (visual != null) visual.PlayTackle();
+        }
+
+        /// <summary>A fast ball arriving within the keeper's reach is held or parried (see GoalkeeperModel); one attempt per shot.</summary>
+        void TrySave()
+        {
+            saveCooldown -= Time.deltaTime;
+            if (ball == null || saveCooldown > 0f || ball.Body.isKinematic) return;
+            if (ball.LastTouchTeam == TeamId) return; // only opponents' shots
+            // The player's pivot is the middle of the capsule (about 1 m up), so measure from it; height counts half, as a
+            // keeper reaches down to the ground and up above his head more easily than he moves sideways
+            Vector3 toBall = ball.transform.position - transform.position;
+            float dist = new Vector2(toBall.x, toBall.z).magnitude;
+            dist = Mathf.Sqrt(dist * dist + (toBall.y - 0.2f) * (toBall.y - 0.2f) * 0.25f);
+            float reach = IsDiving ? GoalkeeperModel.DiveReach : GoalkeeperModel.StandReach;
+            if (dist > reach || ball.transform.position.y > GoalkeeperModel.MaxHeight) return;
+            Vector3 vel = ball.Velocity;
+            if (Vector3.Dot(vel, -toBall) <= 0f) return; // not coming towards him
+            float speed = vel.magnitude;
+            if (speed < GoalkeeperModel.MinShotSpeed) return;
+
+            saveCooldown = 0.6f;
+            var outcome = GoalkeeperModel.Decide(speed, dist, reach, Random.value);
+            if (outcome == SaveOutcome.None) return;
+            ball.LastTouchTeam = TeamId;
+            ball.LastToucher = this;
+            if (outcome == SaveOutcome.Catch)
+            {
+                ball.ResetTo(transform.position + transform.forward * 0.5f + Vector3.up * 0.12f);
+                Saved?.Invoke(this, true);
+            }
+            else
+            {
+                // Push it back out and to the side the ball came from
+                Vector3 flat = new Vector3(toBall.x, 0f, toBall.z).normalized;
+                Vector3 side = Vector3.Cross(Vector3.up, flat) * (toBall.x >= 0f ? 1f : -1f);
+                Vector3 dir = (flat * 0.6f + side * 0.6f + Vector3.up * 0.3f).normalized;
+                ball.Kick(dir, Mathf.Clamp(speed * 0.35f, 4f, 9f), Vector3.zero);
+                Saved?.Invoke(this, false);
+            }
+            if (visual != null) visual.PlayKick(true);
         }
 
         void Locomotion()
@@ -173,7 +235,8 @@ namespace FootballSim.Players
 
         void TryTackle()
         {
-            if (tackleCooldown > 0f || isGoalkeeper) return;
+            if (isGoalkeeper) { StartDive(); return; } // keepers do not tackle: the same button dives
+            if (tackleCooldown > 0f) return;
             tackleCooldown = 0.9f;
             lungeDir = transform.forward;
             lungeTimer = 0.22f;

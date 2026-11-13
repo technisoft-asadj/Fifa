@@ -43,7 +43,7 @@ namespace FootballSim.Tests
                 var s = match.Stats;
                 sb.AppendLine($"Match {m + 1}: finished={done}  score {match.HomeScore}-{match.AwayScore}  " +
                               $"shots {s.shots[0]}({s.shotsOnTarget[0]})-{s.shots[1]}({s.shotsOnTarget[1]})  passes {s.passes[0]}-{s.passes[1]}  " +
-                              $"poss {s.PossessionPercent(0)}-{s.PossessionPercent(1)}  corners {s.corners[0]}-{s.corners[1]}  offsides {s.offsides[0]}-{s.offsides[1]}  " +
+                              $"poss {s.PossessionPercent(0)}-{s.PossessionPercent(1)}  corners {s.corners[0]}-{s.corners[1]}  offsides {s.offsides[0]}-{s.offsides[1]}  saves {s.saves[0]}-{s.saves[1]}  " +
                               $"fouls {match.HomeFouls}-{match.AwayFouls}  yellows {match.HomeYellows}-{match.AwayYellows}  reds {match.HomeReds}-{match.AwayReds}");
                 sb.AppendLine($"   AI diagnostics so far: frames with ball {PlayerAI.DiagHasBallFrames}, passes queued {PlayerAI.DiagPassesQueued}, no pass target {PlayerAI.DiagNoPassTarget}");
                 foreach (var g in match.Goals) sb.AppendLine("   " + g);

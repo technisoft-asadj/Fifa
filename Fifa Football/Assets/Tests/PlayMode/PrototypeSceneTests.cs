@@ -332,6 +332,33 @@ namespace FootballSim.Tests
         }
 
         [UnityTest]
+        public IEnumerator GoalkeeperSavesSomeShotsAndCountsThem()
+        {
+            yield return LoadScene();
+            Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>().BeginMatch();
+            var match = Object.FindFirstObjectByType<MatchManager>();
+            var ball = Object.FindFirstObjectByType<BallController>();
+            var shooter = FirstOutfielder(0);
+            yield return null;
+            float[] targets = { 0f, 2.5f, -2.5f, 0f, 2.5f, -2.5f, 0f, 2.5f, -2.5f, 0f, 2.5f, -2.5f };
+            int goals0 = match.HomeScore;
+            foreach (float tx in targets)
+            {
+                float wait = 0f;
+                while ((match.InRestartHold || match.InGoalPause) && wait < 8f) { wait += Time.deltaTime; yield return null; }
+                ball.ResetTo(new Vector3(0f, 0.4f, 44f)); // close enough that a rolling ball does not lose its pace on the way
+                ball.LastTouchTeam = 0; ball.LastToucher = shooter;
+                Vector3 target = new Vector3(tx, 0.6f, Pitch.HalfLength + 0.5f);
+                ball.Kick((target - ball.transform.position).normalized, 18f, Vector3.zero);
+                yield return new WaitForSeconds(1.4f);
+            }
+            int conceded = match.HomeScore - goals0;
+            Debug.Log($"Keeper test: 12 shots, {conceded} goals, {match.Stats.saves[1]} saves");
+            Assert.GreaterOrEqual(match.Stats.saves[1], 3, $"the away keeper should save some of 12 shots (goals {conceded}, saves {match.Stats.saves[1]})");
+            Assert.Less(conceded, 12, "not every shot may score");
+        }
+
+        [UnityTest]
         public IEnumerator GoalCreditsTheTeammateWhoTouchedItBeforeTheScorer()
         {
             yield return LoadScene();
