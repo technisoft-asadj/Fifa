@@ -125,6 +125,9 @@ namespace FootballSim.UI
                 : $"DRAW  {match.HomeScore} - {match.AwayScore}";
             goalsText.text = GoalsSummary(match);
             statsText.text = StatLines(match);
+            if (MiniLeague.Active && !MiniLeague.Finished) MiniLeague.RecordResult(match.HomeScore, match.AwayScore); // the human is home
+            leagueText.text = MiniLeague.Summary();
+            rematchLabel.text = !MiniLeague.Active ? "REMATCH" : MiniLeague.Finished ? "NEW LEAGUE" : "NEXT MATCH";
             fullTimePanel.SetActive(true);
             Time.timeScale = 0f;
         }
@@ -177,6 +180,7 @@ namespace FootballSim.UI
 
         void Rematch()
         {
+            if (MiniLeague.Finished) MiniLeague.Start(); // "NEW LEAGUE"
             Time.timeScale = 1f;
             SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
         }
@@ -224,10 +228,38 @@ namespace FootballSim.UI
 
         void CycleDifficulty(int step, bool save = true)
         {
+            if (MiniLeague.Active && !MiniLeague.Finished)
+            {
+                // The league picks the opponent: the difficulty is fixed and the saved single-match choice stays untouched
+                AiTuning.CurrentDifficulty = MiniLeague.CurrentOpponent;
+                difficultyLabel.text = $"Opponent: {AiTuning.CurrentDifficulty}";
+                return;
+            }
             int n = System.Enum.GetValues(typeof(Difficulty)).Length;
             AiTuning.CurrentDifficulty = (Difficulty)(((int)AiTuning.CurrentDifficulty + step + n) % n);
             difficultyLabel.text = $"Difficulty: {AiTuning.CurrentDifficulty}";
             if (save) SaveSettings();
+        }
+
+        Text modeLabel, leagueText;
+        Text rematchLabel;
+
+        /// <summary>Switch between a single match and the three-match mini-league (see MiniLeague).</summary>
+        public void ToggleLeagueMode()
+        {
+            if (MiniLeague.Active) { MiniLeague.Abandon(); AiTuning.CurrentDifficulty = savedDifficulty; }
+            else { savedDifficulty = AiTuning.CurrentDifficulty; MiniLeague.Start(); }
+            RefreshMode();
+        }
+
+        Difficulty savedDifficulty = Difficulty.Professional;
+
+        void RefreshMode()
+        {
+            if (modeLabel != null)
+                modeLabel.text = !MiniLeague.Active ? "Mode: Single match"
+                    : MiniLeague.Finished ? "Mode: League finished" : $"Mode: League {MiniLeague.Round + 1}/{MiniLeague.Matches}";
+            CycleDifficulty(0, false);
         }
 
         void SetMinutes(float m, bool save = true)
@@ -289,7 +321,7 @@ namespace FootballSim.UI
             hint.color = new Color(1, 1, 1, 0.75f);
 
             // Start panel
-            startPanel = Rect("StartPanel", root, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(900, 800), Panel).gameObject;
+            startPanel = Rect("StartPanel", root, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(900, 900), Panel).gameObject;
             var st = startPanel.transform;
             var title = Label("Title", st, 72, TextAnchor.MiddleCenter, new Vector2(0, 320), new Vector2(860, 100)); title.text = "FOOTBALL SIMULATOR"; title.fontStyle = FontStyle.Bold;
             var sub = Label("Sub", st, 30, TextAnchor.MiddleCenter, new Vector2(0, 245), new Vector2(860, 50)); sub.text = "Kick-Off  -  Home vs Away";
@@ -308,13 +340,17 @@ namespace FootballSim.UI
             kitLabel = Label("Kit", st, 34, TextAnchor.MiddleCenter, new Vector2(0, -190), new Vector2(560, 50));
             Button(st, "<", new Vector2(-370, -190), new Vector2(90, 70), () => SetHomeKit(selectedKit - 1), btnCol);
             Button(st, ">", new Vector2(370, -190), new Vector2(90, 70), () => SetHomeKit(selectedKit + 1), btnCol);
-            Button(st, "PLAY", new Vector2(0, -305), new Vector2(420, 110), BeginMatch, Accent);
+            modeLabel = Label("Mode", st, 34, TextAnchor.MiddleCenter, new Vector2(0, -290), new Vector2(560, 50));
+            Button(st, "<", new Vector2(-370, -290), new Vector2(90, 70), ToggleLeagueMode, btnCol);
+            Button(st, ">", new Vector2(370, -290), new Vector2(90, 70), ToggleLeagueMode, btnCol);
+            Button(st, "PLAY", new Vector2(0, -385), new Vector2(420, 110), BeginMatch, Accent);
             var saved = MatchSettingsStore.Load(selectedMinutes, FormationData.PresetNames.Length, (int)AiTuning.CurrentDifficulty, System.Enum.GetValues(typeof(Difficulty)).Length);
             selectedFormation = saved.formation;
             AiTuning.CurrentDifficulty = (Difficulty)saved.difficulty;
+            savedDifficulty = AiTuning.CurrentDifficulty;
             SetMinutes(saved.minutes, false);
             CycleFormation(0, false);
-            CycleDifficulty(0, false);
+            RefreshMode(); // also sets the difficulty label (the league's opponent while a league is running)
             SetHomeKit(KitPalette.Load(), false);
 
             // Full-time panel
@@ -327,7 +363,10 @@ namespace FootballSim.UI
             goalsText.verticalOverflow = VerticalWrapMode.Truncate; goalsText.lineSpacing = 1.05f;
             statsText = Label("Stats", ft, 26, TextAnchor.MiddleCenter, new Vector2(0, -60), new Vector2(860, 190));
             statsText.verticalOverflow = VerticalWrapMode.Truncate; statsText.lineSpacing = 1.1f;
-            Button(ft, "REMATCH", new Vector2(0, -250), new Vector2(420, 110), Rematch, Accent);
+            leagueText = Label("League", ft, 24, TextAnchor.MiddleCenter, new Vector2(0, -175), new Vector2(860, 40));
+            leagueText.color = new Color(1f, 0.9f, 0.4f);
+            var rematchButton = Button(ft, "REMATCH", new Vector2(0, -250), new Vector2(420, 110), Rematch, Accent);
+            rematchLabel = rematchButton.GetComponentInChildren<Text>();
             fullTimePanel.SetActive(false);
 
             // Pause button (top-right) and pause panel with touch-control settings

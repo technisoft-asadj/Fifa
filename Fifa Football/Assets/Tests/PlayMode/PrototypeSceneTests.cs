@@ -386,6 +386,42 @@ namespace FootballSim.Tests
         }
 
         [UnityTest]
+        public IEnumerator MiniLeagueFixesTheOpponentAndScoresTheMatchAtFullTime()
+        {
+            yield return LoadScene();
+            var hud = Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>();
+            var match = Object.FindFirstObjectByType<MatchManager>();
+            yield return null;
+            var before = FootballSim.Core.AiTuning.CurrentDifficulty;
+            try
+            {
+                hud.ToggleLeagueMode();
+                Assert.IsTrue(FootballSim.Core.MiniLeague.Active);
+                Assert.AreEqual(FootballSim.Core.Difficulty.Amateur, FootballSim.Core.AiTuning.CurrentDifficulty, "round 1 is against the weakest opponent");
+                hud.BeginMatch(); // un-pauses the game so the goal below can happen
+                // Drive the score through the real goal path so the full-time handler sees a 1-0 win
+                var ball = Object.FindFirstObjectByType<BallController>();
+                ball.LastTouchTeam = 0; ball.LastToucher = FirstOutfielder(0);
+                ball.ResetTo(new Vector3(0f, 1.2f, Pitch.HalfLength + 1.2f));
+                yield return new WaitForSeconds(0.5f);
+                Assert.AreEqual(1, match.HomeScore);
+                typeof(FootballSim.UI.MatchHUD).GetMethod("OnFullTime", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).Invoke(hud, null);
+                Time.timeScale = 1f;
+                Assert.AreEqual(3, FootballSim.Core.MiniLeague.Points, "a win is worth 3 points");
+                Assert.AreEqual(1, FootballSim.Core.MiniLeague.Round);
+                Assert.AreEqual(FootballSim.Core.Difficulty.Professional, FootballSim.Core.MiniLeague.CurrentOpponent);
+                var panel = FindDeep(hud.transform.root, "FullTimePanel");
+                StringAssert.Contains("3 points", panel.Find("League").GetComponent<UnityEngine.UI.Text>().text);
+                StringAssert.Contains("NEXT MATCH", panel.GetComponentInChildren<UnityEngine.UI.Button>(true).GetComponentInChildren<UnityEngine.UI.Text>(true).text);
+            }
+            finally
+            {
+                FootballSim.Core.MiniLeague.Abandon();
+                FootballSim.Core.AiTuning.CurrentDifficulty = before;
+            }
+        }
+
+        [UnityTest]
         public IEnumerator ChoosingAKitRecoloursBothTeams()
         {
             yield return LoadScene();
