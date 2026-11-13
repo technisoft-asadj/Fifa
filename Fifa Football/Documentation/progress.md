@@ -461,3 +461,12 @@ Added `InputFrame`, `RecordingInput` and `ReplayInput` (Scripts/Input/InputRecor
 
 ## In-process UDP server and client (2026-11-13)
 `NetServer` and `NetClient` stream a live match's snapshots over a real loopback UDP socket into the interpolation buffer. One PlayMode test (client receives at least 90% of snapshots sent; newest view near the server's player). Loopback only, nothing drawn, no client input, no loss simulation. A phone or second-process test is the next real step and needs hands-on work. See `networking.md`.
+
+## Bad-network simulation (2026-11-13)
+`NetworkConditioner` (loss, latency, jitter, reordering, seeded) plus 7 EditMode tests; EditMode 76/76. With the synthetic scenario, a 100 ms render delay is accurate on a clean link, about 200 ms is needed with 5% loss and 40 ms jitter, and a very short delay starves the buffer. These are asserted thresholds, not measured figures. Adaptive render delay and local prediction are not built. See `networking.md`.
+
+## Client input over the socket (2026-11-13)
+`RemoteInput`, `NetClient.SendInput` and server-side `RegisterRemote`: a client's input packets drive one handed-over player; others are rejected and counted. 1 PlayMode test. No authentication, no input tick numbers, no prediction; loopback only. See `networking.md`.
+
+## Input packet hardening (2026-11-13)
+Input packets now carry a per-player random session token and a 16-bit sequence number (13 bytes). Wrong token or unregistered player: dropped and counted; repeated or older sequence: ignored and counted. EditMode 80/80 (4 new). Token is clear text and brute-forceable, with no handshake to hand it to a client: this is a first layer, not security. See `networking.md`.

@@ -67,5 +67,49 @@ namespace FootballSim.Tests
             NetCodec.Write(new InputFrame { move = new Vector2(1f, 0f) }, buf);
             Assert.AreEqual(Vector3.zero, NetCodec.ReadInput(buf).aim);
         }
+
+        [Test]
+        public void InputPacketRoundTripsWithIndexTokenAndSequence()
+        {
+            var buf = new byte[NetCodec.InputPacketBytes];
+            var f = new InputFrame { move = new Vector2(0f, 1f), sprint = true };
+            Assert.AreEqual(NetCodec.InputPacketBytes, NetCodec.WriteInputPacket(buf, 9, 0xDEADBEEF, 65535, f));
+            Assert.IsTrue(NetCodec.TryReadInputPacket(buf, buf.Length, out int idx, out uint token, out ushort seq, out var g));
+            Assert.AreEqual(9, idx); Assert.AreEqual(0xDEADBEEF, token); Assert.AreEqual((ushort)65535, seq);
+            Assert.IsTrue(g.sprint); Assert.AreEqual(1f, g.move.y, 0.01f);
+        }
+
+        [Test]
+        public void MalformedInputPacketsAreRefused()
+        {
+            var buf = new byte[NetCodec.InputPacketBytes];
+            NetCodec.WriteInputPacket(buf, 1, 1, 1, default);
+            Assert.IsFalse(NetCodec.TryReadInputPacket(buf, buf.Length - 1, out _, out _, out _, out _), "wrong length");
+            buf[0] = 99;
+            Assert.IsFalse(NetCodec.TryReadInputPacket(buf, buf.Length, out _, out _, out _, out _), "wrong type");
+        }
+
+        [Test]
+        public void SequenceComparisonSurvivesTheCounterWrappingAround()
+        {
+            Assert.IsTrue(NetCodec.IsNewer(5, 4));
+            Assert.IsFalse(NetCodec.IsNewer(4, 5));
+            Assert.IsFalse(NetCodec.IsNewer(5, 5));
+            Assert.IsTrue(NetCodec.IsNewer(2, 65534), "2 comes after 65534 once the counter wraps");
+            Assert.IsFalse(NetCodec.IsNewer(65534, 2));
+        }
+
+        [Test]
+        public void RemoteInputIgnoresOldAndRepeatedSequenceNumbers()
+        {
+            var r = new FootballSim.Net.RemoteInput(1234);
+            Assert.IsTrue(r.ApplySequenced(new InputFrame { pass = true }, 10));
+            Assert.IsFalse(r.ApplySequenced(new InputFrame { tackle = true }, 10), "repeat");
+            Assert.IsFalse(r.ApplySequenced(new InputFrame { tackle = true }, 9), "older");
+            Assert.IsTrue(r.PassPressed);
+            Assert.IsFalse(r.PassPressed, "a one-shot is read once");
+            Assert.IsFalse(r.TacklePressed, "the rejected frame's tackle must not leak in");
+            Assert.AreEqual(1, r.Applied);
+        }
     }
 }

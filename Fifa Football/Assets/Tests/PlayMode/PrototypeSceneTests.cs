@@ -87,6 +87,75 @@ namespace FootballSim.Tests
         }
 
         [UnityTest]
+        public IEnumerator ClientInputOverTheSocketMovesOnlyThePlayerTheServerHandedOver()
+        {
+            yield return LoadScene();
+            var match = Object.FindFirstObjectByType<MatchManager>();
+            var ball = Object.FindFirstObjectByType<BallController>();
+            var teams = new System.Collections.Generic.List<TeamController>(Object.FindObjectsByType<TeamController>(FindObjectsSortMode.None));
+            teams.Sort((x, y) => x.teamId.CompareTo(y.teamId));
+            var players = new System.Collections.Generic.List<PlayerController>();
+            foreach (var t in teams) { t.ReleaseHumanControl(); players.AddRange(t.players); }
+
+            var server = new GameObject("NetServer").AddComponent<NetServer>();
+            server.Init(match, ball, players, 3);
+            const int remoteIndex = 5, otherIndex = 7;
+            var remote = server.RegisterRemote(remoteIndex);
+            var client = new GameObject("NetClient").AddComponent<NetClient>();
+            client.Connect(server.LocalEndPoint);
+            Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>().BeginMatch();
+
+            float zBefore = players[remoteIndex].transform.position.z;
+            float dirZ = zBefore > 0f ? -1f : 1f; // run away from the centre line so nothing blocks the run
+            var run = new FootballSim.Inputs.InputFrame { move = new Vector2(0f, dirZ), moveIsWorldSpace = true, sprint = true };
+
+            Time.captureFramerate = 60;
+            for (int i = 0; i < 90; i++)
+            {
+                client.SendInput(remoteIndex, remote.Token, run);
+                client.SendInput(otherIndex, remote.Token, run); // a player the server never handed over: must be ignored
+                yield return null;
+            }
+            Time.captureFramerate = 0;
+
+            Assert.Greater(server.InputReceived, 60, "input packets did not arrive");
+            Assert.Greater(server.InputRejected, 60, "packets for an unregistered player should be counted and dropped");
+            Assert.AreEqual(server.InputReceived, remote.Applied);
+            float moved = (players[remoteIndex].transform.position.z - zBefore) * dirZ;
+            Assert.Greater(moved, 3f, $"the remote-controlled player only moved {moved} m along the commanded direction");
+        }
+
+        [UnityTest]
+        public IEnumerator InputWithTheWrongTokenOrAReplayedSequenceChangesNothing()
+        {
+            yield return LoadScene();
+            var match = Object.FindFirstObjectByType<MatchManager>();
+            var ball = Object.FindFirstObjectByType<BallController>();
+            var teams = new System.Collections.Generic.List<TeamController>(Object.FindObjectsByType<TeamController>(FindObjectsSortMode.None));
+            teams.Sort((x, y) => x.teamId.CompareTo(y.teamId));
+            var players = new System.Collections.Generic.List<PlayerController>();
+            foreach (var t in teams) { t.ReleaseHumanControl(); players.AddRange(t.players); }
+            var server = new GameObject("NetServer").AddComponent<NetServer>();
+            server.Init(match, ball, players, 3);
+            var remote = server.RegisterRemote(5);
+            var client = new GameObject("NetClient").AddComponent<NetClient>();
+            client.Connect(server.LocalEndPoint);
+
+            var go = new FootballSim.Inputs.InputFrame { move = new Vector2(1f, 0f), moveIsWorldSpace = true };
+            client.SendInputWithSequence(5, remote.Token + 1, 1, go);           // wrong token
+            client.SendInputWithSequence(5, remote.Token, 10, go);              // good
+            client.SendInputWithSequence(5, remote.Token, 10, go);              // same sequence again
+            client.SendInputWithSequence(5, remote.Token, 9, go);               // older
+            client.SendInputWithSequence(5, remote.Token, 11, go);              // newer: good
+            for (int i = 0; i < 20; i++) yield return null;
+
+            Assert.AreEqual(1, server.InputRejected, "wrong token");
+            Assert.AreEqual(2, server.InputReceived, "the two fresh packets");
+            Assert.AreEqual(2, server.InputStale, "the repeated and the older sequence");
+            Assert.AreEqual(2, remote.Applied);
+        }
+
+        [UnityTest]
         public IEnumerator SceneHasNoMissingScripts()
         {
             yield return LoadScene();

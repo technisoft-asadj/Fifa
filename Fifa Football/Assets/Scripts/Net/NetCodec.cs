@@ -32,6 +32,36 @@ namespace FootballSim.Net
     {
         public const int SnapshotBytes = 4 + 6 + 6 + WorldSnapshot.PlayerCount * 7 + 2 + 2;
         public const int InputBytes = 5;
+        /// <summary>First byte of a datagram client to server: 1 = hello, 2 = input (then player index, then an input frame).</summary>
+        public const byte HelloPacket = 1, InputPacket = 2;
+        /// <summary>Input datagram: type, player index, 4-byte session token, 2-byte sequence number, input frame.</summary>
+        public const int InputPacketBytes = 1 + 1 + 4 + 2 + InputBytes;
+
+        public static int WriteInputPacket(byte[] b, int playerIndex, uint token, ushort sequence, InputFrame frame)
+        {
+            int o = 0;
+            b[o++] = InputPacket; b[o++] = (byte)playerIndex;
+            PutUInt(b, ref o, token);
+            b[o++] = (byte)(sequence & 0xFF); b[o++] = (byte)(sequence >> 8);
+            Write(frame, b, o);
+            return InputPacketBytes;
+        }
+
+        /// <summary>Parses an input datagram of exactly <see cref="InputPacketBytes"/> bytes; false if the type or length is wrong.</summary>
+        public static bool TryReadInputPacket(byte[] b, int length, out int playerIndex, out uint token, out ushort sequence, out InputFrame frame)
+        {
+            playerIndex = 0; token = 0; sequence = 0; frame = default;
+            if (length != InputPacketBytes || b[0] != InputPacket) return false;
+            int o = 1;
+            playerIndex = b[o++];
+            token = GetUInt(b, ref o);
+            sequence = (ushort)(b[o] | (b[o + 1] << 8)); o += 2;
+            frame = ReadInput(b, o);
+            return true;
+        }
+
+        /// <summary>True when <paramref name="sequence"/> is newer than <paramref name="last"/>, allowing for the 16-bit counter wrapping around.</summary>
+        public static bool IsNewer(ushort sequence, ushort last) { return (short)(ushort)(sequence - last) > 0; }
 
         static void PutShort(byte[] b, ref int o, float value, float step)
         {
