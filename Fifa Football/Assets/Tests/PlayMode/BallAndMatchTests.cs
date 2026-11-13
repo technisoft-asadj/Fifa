@@ -290,7 +290,10 @@ namespace FootballSim.Tests
             var hip = pc.transform.Find("Visual/Body/HipR");
             visual.PlayKick(true);
             float maxAngle = 0f;
-            for (int i = 0; i < 20; i++)
+            // Sample for half a second of real time, not a fixed number of frames: with a slow or busy editor 20 frames can
+            // miss the peak of the swing (this failed once in a full run and passed alone)
+            float end = Time.realtimeSinceStartup + 0.5f;
+            while (Time.realtimeSinceStartup < end)
             {
                 yield return null;
                 maxAngle = Mathf.Max(maxAngle, Mathf.Abs(Mathf.DeltaAngle(0f, hip.localEulerAngles.x)));

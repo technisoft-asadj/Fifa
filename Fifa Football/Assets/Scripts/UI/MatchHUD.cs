@@ -188,7 +188,7 @@ namespace FootballSim.UI
         void ApplyFormations()
         {
             if (homeTeam != null) { homeTeam.formation = FormationData.Create(selectedFormation); homeTeam.ResetToKickoff(); }
-            if (awayTeam != null) { awayTeam.formation = FormationData.Create(Random.Range(0, FormationData.PresetNames.Length)); awayTeam.ResetToKickoff(); }
+            if (awayTeam != null) { awayTeam.formation = FormationData.Create(SimRandom.Range(0, FormationData.PresetNames.Length)); awayTeam.ResetToKickoff(); }
         }
 
         void SaveSettings() { MatchSettingsStore.Save(selectedMinutes, selectedFormation, (int)AiTuning.CurrentDifficulty); }

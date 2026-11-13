@@ -1,5 +1,6 @@
 using UnityEngine;
 using FootballSim.Ball;
+using FootballSim.Core;
 using FootballSim.Inputs;
 
 namespace FootballSim.Players
@@ -116,7 +117,7 @@ namespace FootballSim.Players
             if (speed < GoalkeeperModel.MinShotSpeed) return;
 
             saveCooldown = 0.6f;
-            var outcome = GoalkeeperModel.Decide(speed, dist, reach, Random.value);
+            var outcome = GoalkeeperModel.Decide(speed, dist, reach, SimRandom.Value);
             if (outcome == SaveOutcome.None) return;
             ball.LastTouchTeam = TeamId;
             ball.LastToucher = this;
@@ -224,9 +225,9 @@ namespace FootballSim.Players
             aim.y = 0f;
             if (aim.sqrMagnitude < 0.01f) aim = planarVelocity.sqrMagnitude > 0.5f ? planarVelocity : transform.forward;
             aim.Normalize();
-            aim = Quaternion.Euler(0f, Random.Range(-inaccuracyDeg, inaccuracyDeg) * power, 0f) * aim;
+            aim = Quaternion.Euler(0f, SimRandom.Range(-inaccuracyDeg, inaccuracyDeg) * power, 0f) * aim;
             Vector3 dir = (aim + Vector3.up * loft * power).normalized;
-            Vector3 spin = Vector3.Cross(Vector3.up, aim) * Random.Range(-4f, 4f) * power;
+            Vector3 spin = Vector3.Cross(Vector3.up, aim) * SimRandom.Range(-4f, 4f) * power;
             lastStrikeDir = dir;
             KickBall(dir, maxSpeed * Mathf.Clamp01(power), spin);
             if (visual != null) visual.PlayKick(Random.value > 0.25f);
@@ -246,11 +247,11 @@ namespace FootballSim.Players
             toBall.y = 0f;
             bool inReach = toBall.magnitude < 1.7f && Vector3.Dot(transform.forward, toBall.normalized) > 0.3f;
             float winChance = 0.55f + data.strength / 400f;
-            bool won = inReach && Random.value < winChance;
+            bool won = inReach && SimRandom.Value < winChance;
             if (won)
             {
                 // Poke the ball loose to the side/forward of the tackler
-                Vector3 loose = (transform.forward + Quaternion.Euler(0, Random.Range(-50f, 50f), 0) * transform.forward).normalized;
+                Vector3 loose = (transform.forward + Quaternion.Euler(0, SimRandom.Range(-50f, 50f), 0) * transform.forward).normalized;
                 KickBall(loose, 6.5f, Vector3.zero);
                 touchCooldown = 0.5f;
             }
@@ -270,7 +271,7 @@ namespace FootballSim.Players
                 if (other == null || other == this || other.TeamId == TeamId || other.isGoalkeeper) continue;
                 bool fromBehind = Vector3.Dot(other.transform.forward, transform.forward) > 0.5f;
                 float chance = fromBehind ? 0.85f : 0.45f;
-                if (Random.value < chance) Fouled?.Invoke(this, other);
+                if (SimRandom.Value < chance) Fouled?.Invoke(this, other);
                 return;
             }
         }
