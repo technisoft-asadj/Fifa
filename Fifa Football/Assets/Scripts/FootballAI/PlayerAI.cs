@@ -24,7 +24,8 @@ namespace FootballSim.FootballAI
         // Tuned from the AI-vs-AI balance measurement (see progress.md, KB-018)
         const float BuildUpPassAfterSeconds = 0.7f;
         const float ShootRangeScale = 1.25f;
-        const float StrikeRange = 1.08f; // just inside PlayerController.controlRadius (1.1 m); 0.95 starved passes (see progress.md)
+        const float SupportRunDistance = 12f; // how far ahead of the ball supporting attackers position themselves
+        const float StrikeRange =1.08f; // just inside PlayerController.controlRadius (1.1 m); 0.95 starved passes (see progress.md)
         float nextThink;
         Vector3 chaseTarget;
         AiTuning Tune => AiTuning.Current;
@@ -73,7 +74,7 @@ namespace FootballSim.FootballAI
 
             if (!isChaser)
             {
-                MoveToward(team.HomePosition(slot), 10f);
+                MoveToward(SupportOrHomePosition(), 10f);
                 return;
             }
 
@@ -145,6 +146,33 @@ namespace FootballSim.FootballAI
             }
             Input.MoveVector = new Vector2(dribble.x, dribble.z);
             Input.SprintFlag = true;
+        }
+
+        readonly System.Collections.Generic.List<float> defenderZs = new System.Collections.Generic.List<float>(11);
+
+        /// <summary>
+        /// Formation position, except that midfielders and forwards of the team in possession push up to offer a pass:
+        /// further up the pitch than the formation spot, but never beyond the offside line.
+        /// </summary>
+        Vector3 SupportOrHomePosition()
+        {
+            Vector3 home = team.HomePosition(slot);
+            bool inPossession = team.ball.LastTouchTeam == team.teamId && !(team.match != null && team.match.KickoffPending);
+            if (!inPossession || team.formation == null || slot >= team.formation.slots.Length || team.formation.slots[slot].y < 0.25f) return home;
+
+            float dir = team.attackDir;
+            defenderZs.Clear();
+            foreach (var o in opponents.players) if (o.gameObject.activeSelf) defenderZs.Add(o.transform.position.z);
+            float line = FootballSim.Match.OffsideRule.SecondLastDefenderZ(dir, defenderZs);
+
+            // Run ahead of the ball by a fixed amount, in the player's own lane
+            float aheadOfBall = team.ball.transform.position.z + dir * SupportRunDistance;
+            float z = dir > 0f ? Mathf.Max(home.z, aheadOfBall) : Mathf.Min(home.z, aheadOfBall);
+            float maxZ = line - dir * 1.5f; // stay level with or behind the second-last defender
+            z = dir > 0f ? Mathf.Min(z, maxZ) : Mathf.Max(z, maxZ);
+            float limit = FootballSim.Core.Pitch.HalfLength - 3f;
+            home.z = Mathf.Clamp(z, -limit, limit);
+            return home;
         }
 
         void TryTackleNearBall(float ballDist)

@@ -347,6 +347,24 @@ NOT verified:
   1.2 s each, plus goal pauses and half-time) account for the missing half of queued passes. Effect NOT yet known
   (measurement running when this was committed); the full test suite has not been re-run since the AI changes started.
 
+### Pass 6 result and where tuning stops (`balance_report_tuning6_wait_on_hold.txt`)
+- With the AI waiting while the ball is held for a restart: queued passes per match 48 / 64 / 48 and counted passes 40 / 57 / 47,
+  so the "wasted request" loss is gone (hypothesis confirmed). Fouls 0-8, one red in 3 matches, shots 4-8 per team, goals 1-1-1.
+- But the absolute number of real passes did not rise (~40-57 per match, both teams): the AI simply decides to pass that
+  rarely, because only one player per team (the chaser) ever acts and the ball carrier is usually alone with the ball.
+  Parameter tweaks will not fix that. It needs structural AI work: supporting players making runs and offering passing
+  lanes, receivers moving to the ball and controlling it, one-two passes. That is a bigger piece of work, not tuning.
+- Tests after all AI changes: 28/28 EditMode (unchanged) and 41/41 PlayMode pass.
+- Lessons from this series: I committed three AI changes on the user's say-so before their effect was measured, and
+  one (strike range 0.95 m) made things worse; measuring first (the counters) found the real cause in one run.
+
+### Support runs (first structural AI change; UNMEASURED at commit time)
+- `PlayerAI.SupportOrHomePosition`: when the team has the ball (last touch) and it is not a kick-off, midfielders and
+  forwards (formation depth >= 0.25) move up to 12 m ahead of the ball in their own lane, never beyond the second-last
+  defender (offside line minus 1.5 m), instead of sitting on their formation spot. Goal: give the ball carrier forward
+  passing options so passes (and offsides) become more frequent.
+- The balance measurement was still running and the full test suite had not been run on this change when it was committed.
+
 ## Still unverified from red cards / penalties
 - No red card or penalty has been seen in live play (they depend on random fouls); penalty balance
   (how often the AI scores) is unknown; not yet in the APK on the phone.
