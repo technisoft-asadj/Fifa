@@ -84,6 +84,9 @@ Loopback probe (`InterpolatedClientViewStaysCloseToTheServer`, gated by `run_bal
 Payload was 3480 B/s (300 snapshots), matching the 174-byte estimate before headers.
 Caveats: no packet loss, jitter or reordering was simulated, and the 100 ms delay is added on top of any real network latency, so it counts against the plan's 100 ms input-to-action target; the match was only 15 s of play with few tackles and shots, so the maxima above are the worst case seen in that one run, not a guarantee. Nothing here predicts the local player's own movement, which the client will need so that its own input does not feel 100 ms late.
 
+## Real sockets (loopback only)
+`UdpEndpoint` (Scripts/Net) wraps a non-blocking .NET UDP socket (no package needed), bound to 127.0.0.1. 4 EditMode tests send a real snapshot and an input frame between two sockets in one process and decode them intact, and show a server replying to whoever sent to it. This proves the encoder output survives a real datagram, nothing more: loopback never loses, delays or reorders packets, nothing was tried on a phone or across a network, and Android socket permissions and mobile NAT are untested. Transport decision (own UDP vs Unity Transport/NGO vs relay) is still open; this path costs no dependency but leaves connection handling, reliability for events (goals, cards) and NAT traversal to be written.
+
 ## Open questions
 - Is 20-30 Hz enough for tackles and shots to feel right on a phone connection? Unknown until measured.
 - Hosting: dedicated server builds, relay, or player-hosted? Cost and ops not assessed.

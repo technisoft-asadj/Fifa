@@ -455,3 +455,6 @@ Added `InputFrame`, `RecordingInput` and `ReplayInput` (Scripts/Input/InputRecor
 
 ## Client interpolation (2026-11-13)
 `SnapshotInterpolator` plus a loopback probe: with 20 Hz snapshots and a 100 ms render delay the client picture stayed within 0.11 m (players) and 0.22 m (ball) of the server's truth in a 15 s AI match, mean errors a few millimetres. No loss or jitter simulated; local-player prediction not built. 7 EditMode tests. See `networking.md`.
+
+## UDP loopback (2026-11-13)
+`UdpEndpoint` plus 4 EditMode tests: snapshot and input frame cross a real local socket intact. EditMode 69/69 (PlayMode not re-run: no gameplay code touched). Loopback only; not tried on a device or a network. See `networking.md`.
