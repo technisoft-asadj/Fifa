@@ -1,25 +1,34 @@
-# Architecture (current implementation)
+# Architecture (current implementation, refreshed 2026-11-13)
 
-All gameplay code is in the `FootballSim.Runtime` assembly (`Assets/Scripts`). Tests reference it; editor tooling lives in `Assets/Editor`.
+All gameplay code is in the `FootballSim.Runtime` assembly (`Assets/Scripts`). Tests reference it (`Assets/Tests/EditMode`, `Assets/Tests/PlayMode`); editor tooling lives in `Assets/Editor`. One MonoBehaviour per file, file name = class name.
 
 ## Modules
-| Folder / namespace | Responsibility |
-|---|---|
-| `Core` | Shared constants (`Pitch` dimensions; home team attacks +Z). |
-| `Ball` | `BallController` (Rigidbody + custom drag, Magnus spin, rolling resistance, last-touch team, freeze) and `BallSettings` (ScriptableObject). |
-| `Players` | `PlayerController` (locomotion, dribble touch, pass, shoot, tackle) and `PlayerData` (attributes to derived speeds/accuracy). |
-| `Input` | `IPlayerInput` abstraction; `PlayerInputSource` (keyboard/gamepad via code-defined InputActions); `AIInputSource` (AI output, one-shot actions consumed on read). |
-| `FootballAI` | `FormationData` (data-driven slots), `TeamController` (formation positions, chaser selection, human control and switching, set-piece taker), `PlayerAI` (outfield and goalkeeper decisions). |
-| `Match` | `MatchManager` (clock, score, goal handling, kick-off reset, out-of-bounds restarts) and `GoalTrigger`. |
-| `Camera` | `BroadcastCamera` (smooth follow of ball/player blend). |
+| Folder / namespace | Files | Responsibility |
+|---|---|---|
+| `Core` | `Pitch`, `Difficulty` (+`AiTuning`), `MatchSettingsStore`, `KitPalette`, `MiniLeague`, `AppBootstrap` | Pitch dimensions (home attacks +Z in the first half), AI difficulty tuning table, saved start-screen choices (PlayerPrefs), kit colours, the 3-match mini-league state (static, not saved), 60 fps / quality bootstrap. |
+| `Ball` | `BallController`, `BallSettings` | Rigidbody ball with custom drag, Magnus spin, rolling resistance; last toucher and previous toucher (for assists); `Freeze` for restarts (kinematic; velocity writes are skipped while frozen). |
+| `Players` | `PlayerController`, `PlayerData`, `PlayerVisual`, `StaminaModel`, `GoalkeeperModel` | Locomotion, dribble touch, pass, shoot, tackle (a keeper's tackle button dives and he saves shots), stamina; procedural player model and animation (`PlayerVisual.SetKit` recolours); pure rule classes for stamina and keeper saves (unit tested). |
+| `Input` | `PlayerInputSource`, `TouchControls` (+`AIInputSource`) | `IPlayerInput` implementations: keyboard/gamepad, on-screen touch controls, AI output (one-shot actions consumed on read). |
+| `FootballAI` | `FormationData`, `TeamController`, `PlayerAI` | Data-driven formations, team positioning, chaser selection, human control and switching, set-piece taker, pass receiver; per-player decisions (only the chaser acts, the others hold formation or make support runs; keepers position, dive and clear). |
+| `Match` | `MatchManager`, `MatchStats`, `OffsideRule`, `GoalTrigger` | Clock, halves and half-time, side swap, goals (scorer, assist, own goal), restarts (throw-in, goal kick, corner, free kick, penalty, offside, kick-off), fouls and cards, stats incl. saves; offside rule as a pure function. |
+| `Camera` | `BroadcastCamera` | Smooth follow, flips with the sides at half-time. |
+| `Audio` | `ProceduralAudio`, `MatchAudio` | Synthesised kick, thud, whistle and cheer clips; sound toggle. |
+| `UI` | `MatchHUD` | Everything on screen is built in code (uGUI): score, clock, banners, stamina bar, start/pause/full-time panels, kit/mode/formation/difficulty choices. |
 
 ## Key decisions
-- Human and AI players run the same `PlayerController`; only the `IPlayerInput` differs. This is the seam for touch controls and network input later.
-- Ball physics is a Rigidbody with custom forces, not attached to feet. The plan's longer-term goal (deterministic custom integrator for netcode) is not done yet; see plan.md.
-- Formations and player stats are ScriptableObjects, separate from visuals.
-- Gameplay logic is kept free of UI; `MatchManager.OnGUI` is a temporary debug score label.
+- Human and AI players run the same `PlayerController`; only the `IPlayerInput` differs. This is the seam for touch and network input.
+- Match rules live in plain C# classes where possible (`OffsideRule`, `StaminaModel`, `GoalkeeperModel`, `MiniLeague`, `KitPalette`, `MatchSettingsStore`) so they have fast EditMode tests.
+- Ball physics is a Rigidbody with custom forces, not attached to feet.
+- Formations and player stats are ScriptableObjects/data, separate from visuals.
+- Gameplay code reaches the HUD only through events (`MatchManager` events, `PlayerController` static events `Struck`, `Fouled`, `Saved`).
+
+## Test layout
+- EditMode: 45 tests (rules, data, stores). PlayMode: 50 tests including scene wiring, restarts, offside, half-time, kick-offs, keeper saves, assists, kit and league, and a full-match soak test. A slow AI-vs-AI balance measurement (`BalanceReportTests`) only runs when a file `run_balance.flag` exists in the project root.
+- Running tests through the MCP bridge: re-pin the Unity instance after every compile or test run; "no instance found" in between is transient.
 
 ## Known architectural debt
-- Simulation runs in `Update`/Rigidbody physics, not a deterministic fixed-step command loop, so it is not yet netcode-ready.
-- `MatchManager` references `TeamController` (Match and FootballAI depend on each other, same assembly). Split via an interface/event before adding more rules.
-- Scene is generated by `FoundationSceneBuilder`; it will be replaced by hand-authored scenes and prefabs.
+- **Not netcode-ready.** Simulation runs in `Update` with Rigidbody physics and `Random`/`Time.time` inside gameplay code. Online play needs a fixed-step, command-driven core and a seeded random source (see plan.md, phase 7).
+- `MatchManager` references `TeamController` and the other way round (same assembly); split via an interface or events before adding more rules.
+- `MatchHUD` is one large file building all panels; splitting it into per-panel classes is due before more screens (main menu, team select) are added.
+- Only one AI player per team acts at a time, so passing and offside play are limited (known_bugs KB-018).
+- The scene is generated by `FoundationSceneBuilder`; it should be replaced by hand-authored scenes and prefabs.

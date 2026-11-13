@@ -24,20 +24,20 @@ Source: `My Plan/FOOTBALL SIMULATOR.docx` (v1.0). This file refines it; the docx
 | Crash-free sessions | > 99.5% |
 | Reference devices | to be named (low 3 GB, mid, flagship) |
 
-## Phases
-0. Audit & foundation -> **in progress** (see progress.md)
-1. Football prototype (pitch, player, ball, pass, shoot) -> **in progress**
-2. Core gameplay (dribble, tackle, switching, timer, score, offside/fouls)
-3. **Vertical slice:** 1 stadium, 2 teams, full match vs AI
-4. Characters & animation
-5. Football AI, formations, difficulty
-6. Offline modes & save system
-7. Networking evaluation + dedicated server (decide NGO vs custom; record in networking.md)
-8. 1v1 online
-9. Stadium/graphics/audio, replays, commentary
-10. UI, accounts, backend
-11. Ads, optimisation, device QA
-12. Platform QA & publishing
+## Phases (status as of 2026-11-13; "tested" means automated tests in the editor, not a human or phone playtest)
+0. Audit & foundation -> done
+1. Football prototype (pitch, player, ball, pass, shoot) -> done
+2. Core gameplay (dribble, tackle, switching, timer, score, offside/fouls) -> done and tested: fouls, cards, penalties, offside, stamina, half-time and side swap, kick-offs, stats, goalkeepers
+3. **Vertical slice:** 1 stadium, 2 teams, full match vs AI -> playable end to end in the editor (soak-tested); on a phone only an older build was ever tried
+4. Characters & animation -> procedural placeholder models and animation only
+5. Football AI, formations, difficulty -> basic; AI-vs-AI is quiet (KB-018), tuning has plateaued
+6. Offline modes & save system -> single match and a 3-match mini-league (not saved); remembered start-screen choices only. No training mode, tournament table or career
+7. Networking evaluation + dedicated server (decide NGO vs custom; record in networking.md) -> not started
+8. 1v1 online -> not started
+9. Stadium/graphics/audio, replays, commentary -> procedural sound only
+10. UI, accounts, backend -> not started (single start/pause/full-time panels)
+11. Ads, optimisation, device QA -> not started
+12. Platform QA & publishing -> not started
 (11v11 = post-launch stretch.)
 
 ## Risks

@@ -425,3 +425,7 @@ NOT verified:
 - `MiniLeague` is static so it survives the scene reload between matches; it is not saved to disk, so quitting the game abandons the league, and leaving the league restores the saved single-match difficulty.
 - Tests: EditMode `MiniLeagueTests` (6) and PlayMode `MiniLeagueFixesTheOpponentAndScoresTheMatchAtFullTime`. EditMode 45/45, PlayMode 50/50.
 - Not seen on screen: the new Mode row and the league line on the full-time panel were never viewed; a league across three real matches was not played through (only one result is driven in the test). Draws score a point because there is no extra time or penalty shoot-out.
+
+### Documentation refresh (2026-11-13)
+- `architecture.md` rewritten to match the code as it is now (module table, test layout, honest list of architectural debt incl. "not netcode-ready" and the oversized `MatchHUD`); `plan.md` phase list now states where each phase actually stands. No code changed.
+- A new Android APK ("Fifa Football.apk", about 34 MB, in the git-ignored `Builds/Android/`) was built at 19:47 with everything since the pause-menu build; it was not installed (no phone connected) and never run.
