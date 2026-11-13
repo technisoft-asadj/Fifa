@@ -437,3 +437,6 @@ NOT verified:
 
 ## Determinism probe, second round (2026-11-13)
 `DeterminismProbeTests` now compares the default physics step against `fixedDeltaTime = 1/60`. With one physics step per frame the two runs were identical at 60 frames and 0.02 m apart at 300 (default step: 6 m apart); they still differ by 900 frames. Conclusion: step timing is a major cause, not the only one. Details in `networking.md`; raw output in `determinism_report.txt` and `determinism_report_default_timestep.txt`. Single samples, indicative only.
+
+## Determinism: causes found and fixed (2026-11-13)
+Traced the first differing frame between two seeded runs. The ball (PhysX) was reproducible; two bugs of ours were not: gameplay timers read the absolute float `Time.time`, and gameplay read the interpolated `ball.transform.position`. Added `SimClock` (match clock in double precision, reset per scene) and `BallController.Position` (`rb.position`). With a 1/60 physics step, runs were identical for 400 frames (three runs at very different start times) and 1200 frames (two runs). Not tested: the default 0.02 step (the game still ships with it), different devices, or matches longer than 20 s. Raw output: `determinism_after_fix_*.txt`. See `networking.md`.

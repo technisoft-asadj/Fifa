@@ -75,7 +75,7 @@ namespace FootballSim.Match
         void OnPlayerStruck(PlayerController p, bool isShot, Vector3 dir)
         {
             if (Finished || ball == null) return;
-            Stats.AddStrike(p.TeamId, isShot, ball.transform.position, dir, AttackSign(p.TeamId));
+            Stats.AddStrike(p.TeamId, isShot, ball.Position, dir, AttackSign(p.TeamId));
             SnapshotOffside(p);
         }
 
@@ -149,7 +149,7 @@ namespace FootballSim.Match
         readonly HashSet<PlayerController> offsideRunners = new HashSet<PlayerController>();
         int offsideTeam = -1;
         PlayerController offsidePasser;
-        float offsideSnapshotTime;
+        double offsideSnapshotTime;
         bool exemptNextStrike; // throw-ins, goal kicks and corners cannot be offside
 
         /// <summary>Players of the passing team who were in an offside position when 'passer' played the ball.</summary>
@@ -161,7 +161,7 @@ namespace FootballSim.Match
             offsideRunners.Clear();
             offsideTeam = -1;
             offsidePasser = passer;
-            offsideSnapshotTime = Time.time;
+            offsideSnapshotTime = SimClock.Now;
             if (exemptNextStrike) { exemptNextStrike = false; return; }
             if (teams == null) return;
             TeamController own = null, opp = null;
@@ -175,7 +175,7 @@ namespace FootballSim.Match
             foreach (var d in opp.players) if (TeamController.IsOn(d)) defZ.Add(d.transform.position.z);
             float dirSign = AttackSign(passer.TeamId);
             float line = OffsideRule.SecondLastDefenderZ(dirSign, defZ);
-            float ballZ = ball.transform.position.z;
+            float ballZ = ball.Position.z;
             foreach (var m in own.players)
                 if (m != passer && TeamController.IsOn(m) && OffsideRule.IsOffside(dirSign, m.transform.position.z, ballZ, line))
                     offsideRunners.Add(m);
@@ -191,7 +191,7 @@ namespace FootballSim.Match
             // The ball was played by an onside team-mate (not the passer): the earlier offside positions no longer count
             if (toucher != offsidePasser && !offsideRunners.Contains(toucher)) { offsideRunners.Clear(); return; }
             // Nobody touched it for a long time (rolling out, loose ball): the offside position no longer matters
-            if (Time.time - offsideSnapshotTime > 6f) { offsideRunners.Clear(); return; }
+            if (SimClock.Now - offsideSnapshotTime > 6f) { offsideRunners.Clear(); return; }
             if (offsideRunners.Contains(toucher))
             {
                 int team = offsideTeam;
@@ -329,7 +329,7 @@ namespace FootballSim.Match
                 // The team not kicking off may not enter the centre circle (a human could walk in; AI already waits outside)
                 if (teams != null) foreach (var t in teams) if (t != null && t.teamId != KickoffTeam) KeepOutOfCentreCircle(t);
                 // ends when the ball is played, or after a failsafe so nobody waits forever for a taker who never kicks
-                if (kickoffWait > 8f || (ball != null && (ball.LastTouchTeam != -1 || (ball.transform.position - kickoffSpot).sqrMagnitude > 1f))) KickoffPending = false;
+                if (kickoffWait > 8f || (ball != null && (ball.LastTouchTeam != -1 || (ball.Position - kickoffSpot).sqrMagnitude > 1f))) KickoffPending = false;
             }
             if (ball != null) Stats.AddPossession(ball.LastTouchTeam, Time.deltaTime); // live play only
             CheckOffside();
@@ -346,7 +346,7 @@ namespace FootballSim.Match
             // Assist: a different team-mate touched the ball just before the scorer (within 6 s); never on own goals
             string assist = null;
             var prev = ball != null ? ball.PreviousToucher as PlayerController : null;
-            if (!own && toucher != null && prev != null && prev != toucher && prev.TeamId == scoringTeam && Time.time - ball.PreviousTouchTime <= 6f)
+            if (!own && toucher != null && prev != null && prev != toucher && prev.TeamId == scoringTeam && SimClock.Now - ball.PreviousTouchTime <= 6f)
                 assist = prev.name;
             Goals.Add(new GoalRecord
             {
@@ -365,7 +365,7 @@ namespace FootballSim.Match
         void CheckOutOfBounds()
         {
             if (ball == null) return;
-            Vector3 p = ball.transform.position;
+            Vector3 p = ball.Position;
             float hw = Pitch.HalfWidth, hl = Pitch.HalfLength;
             if (Mathf.Abs(p.x) <= hw && Mathf.Abs(p.z) <= hl) return;
 

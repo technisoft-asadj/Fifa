@@ -106,11 +106,11 @@ namespace FootballSim.Players
             if (ball.LastTouchTeam == TeamId) return; // only opponents' shots
             // The player's pivot is the middle of the capsule (about 1 m up), so measure from it; height counts half, as a
             // keeper reaches down to the ground and up above his head more easily than he moves sideways
-            Vector3 toBall = ball.transform.position - transform.position;
+            Vector3 toBall = ball.Position - transform.position;
             float dist = new Vector2(toBall.x, toBall.z).magnitude;
             dist = Mathf.Sqrt(dist * dist + (toBall.y - 0.2f) * (toBall.y - 0.2f) * 0.25f);
             float reach = IsDiving ? GoalkeeperModel.DiveReach : GoalkeeperModel.StandReach;
-            if (dist > reach || ball.transform.position.y > GoalkeeperModel.MaxHeight) return;
+            if (dist > reach || ball.Position.y > GoalkeeperModel.MaxHeight) return;
             Vector3 vel = ball.Velocity;
             if (Vector3.Dot(vel, -toBall) <= 0f) return; // not coming towards him
             float speed = vel.magnitude;
@@ -178,7 +178,7 @@ namespace FootballSim.Players
 
         bool BallInRange(out Vector3 toBall)
         {
-            toBall = ball.transform.position - transform.position;
+            toBall = ball.Position - transform.position;
             toBall.y = 0f;
             return toBall.magnitude < controlRadius;
         }
@@ -243,7 +243,7 @@ namespace FootballSim.Players
             lungeTimer = 0.22f;
             if (visual != null) visual.PlayTackle();
 
-            Vector3 toBall = ball.transform.position - transform.position;
+            Vector3 toBall = ball.Position - transform.position;
             toBall.y = 0f;
             bool inReach = toBall.magnitude < 1.7f && Vector3.Dot(transform.forward, toBall.normalized) > 0.3f;
             float winChance = 0.55f + data.strength / 400f;

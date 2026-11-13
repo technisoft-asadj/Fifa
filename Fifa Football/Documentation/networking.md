@@ -31,10 +31,16 @@ Second probe: same seed, run twice, with the default `fixedDeltaTime` (0.02) aga
 
 Reading: aligning physics to frames removes most of the early divergence, so step timing is a major cause. It is not the only one: something still diverges between 60 and 300 frames (candidates: PhysX contact solving order, non-seeded `Random` or time-dependent code left in a script, `Update` ordering). Not isolated yet. One sample per case; treat as indicative, not proven.
 
+### Follow-up 2: the remaining causes found and fixed (`determinism_after_fix_400_frames.txt`, `determinism_after_fix_1200_frames.txt`)
+A per-frame trace (physics step count, ball position and velocity, player positions) located the first differing frame. In the 1/60 setup the ball and step count were identical in both runs and the **players** drifted first (about 0.0005 units at frame 171, sooner when the two runs started at very different `Time.time`). Two causes, both in our code and not in PhysX:
+1. **Gameplay timers used `Time.time`.** It is an absolute float, so `nextThink`, the pass-receiver window, the offside snapshot and the assist window rounded differently depending on how long the editor had been running, shifting AI decisions by a frame. Fix: `SimClock` (double, starts at 0 on every scene load, advanced by `Time.deltaTime` first in the frame).
+2. **Gameplay read `ball.transform.position`**, which the Rigidbody interpolates for display using the render-time fraction. Fix: `BallController.Position` returns `rb.position`, and the AI, rules and player code use it.
+Result (fixedDeltaTime 1/60, captureFramerate 60, seed 42): three runs started at very different absolute times were identical frame by frame for 400 frames; for 1200 frames (20 s of play) two runs were identical in ball, ball velocity, players and step counts. The extra warm-up run in the 1200 test differed from frame 0 at a level below the 9 decimals printed (not isolated; it did not happen in the 400-frame test). So PhysX itself was reproducible on one machine; the earlier "PhysX is not deterministic" reading was wrong for same-machine runs. It says nothing about two different devices, which is still untested and still a risk.
+
 What this does and does not show: it shows that two runs of the same build on the same machine diverge. It does not isolate which part of PhysX or of frame timing causes it, and it does not test two different devices (which would be worse: PhysX is not deterministic across platforms).
 
 ## Consequences for the design
-- **Lockstep or rollback netcode on the current simulation is not feasible.** It would need bit-identical results on both phones.
+- **Lockstep or rollback is no longer ruled out on one machine**, but it needs bit-identical results on two different phones, which is untested and unlikely with PhysX across CPUs. Server-authoritative stays the plan.
 - The practical model is **server-authoritative with client interpolation (and later prediction)**: one machine runs the real simulation, clients send inputs and render snapshots. For 1v1 a snapshot is 22 players + ball, which fits the bandwidth target in principle (not measured).
 - Determinism is still worth pursuing, because it makes replays, tests and prediction easier. The plan's decision 2 (a custom ball integrator, PhysX only for queries) is now supported by evidence.
 

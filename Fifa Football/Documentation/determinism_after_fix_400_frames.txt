@@ -1,0 +1,5 @@
+First-divergence probe: seed 42, fixedDeltaTime 1/60, 400 frames, three runs (first is a warm-up).
+== run 2 vs run 3 (both after warm-up)
+identical for all frames
+== run 2 vs run 1 (warm-up)
+identical for all frames

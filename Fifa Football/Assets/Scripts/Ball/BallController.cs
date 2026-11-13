@@ -14,16 +14,18 @@ namespace FootballSim.Ball
         bool grounded;
 
         public Rigidbody Body => rb;
+        /// <summary>Simulation position of the ball. transform.position is interpolated for display and depends on the render-time fraction, so gameplay code must not read it.</summary>
+        public Vector3 Position => rb.position;
         public Vector3 Velocity => rb.linearVelocity;
         public bool IsGrounded => grounded;
         /// <summary>Team that last touched the ball (-1 = nobody yet). Used for restarts.</summary>
         public int LastTouchTeam { get; set; } = -1;
         /// <summary>Player who last kicked the ball (null after a restart). Used for offside.</summary>
         Component lastToucher;
-        float lastTouchTime;
+        double lastTouchTime;
         /// <summary>The toucher before the current one, and when that touch happened (used for assists).</summary>
         public Component PreviousToucher { get; private set; }
-        public float PreviousTouchTime { get; private set; } = float.NegativeInfinity;
+        public double PreviousTouchTime { get; private set; } = double.NegativeInfinity;
         public Component LastToucher
         {
             get { return lastToucher; }
@@ -31,7 +33,7 @@ namespace FootballSim.Ball
             {
                 if (value != lastToucher) { PreviousToucher = lastToucher; PreviousTouchTime = lastTouchTime; }
                 lastToucher = value;
-                lastTouchTime = Time.time;
+                lastTouchTime = FootballSim.Core.SimClock.Now;
             }
         }
 
@@ -63,7 +65,7 @@ namespace FootballSim.Ball
             Vector3 v = rb.linearVelocity;
             float speed = v.magnitude;
 
-            grounded = Physics.Raycast(transform.position, Vector3.down, settings.radius + 0.03f);
+            grounded = Physics.Raycast(rb.position, Vector3.down, settings.radius + 0.03f);
 
             if (speed > 0.001f)
             {

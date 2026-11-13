@@ -27,7 +27,7 @@ namespace FootballSim.FootballAI
         const float ShootRangeScale = 1.25f;
         const float SupportRunDistance = 12f; // how far ahead of the ball supporting attackers position themselves
         const float StrikeRange =1.08f; // just inside PlayerController.controlRadius (1.1 m); 0.95 starved passes (see progress.md)
-        float nextThink;
+        double nextThink;
         Vector3 chaseTarget;
         AiTuning Tune => AiTuning.Current;
 
@@ -59,7 +59,7 @@ namespace FootballSim.FootballAI
 
         void Outfield()
         {
-            Vector3 ballPos = Flat(team.ball.transform.position);
+            Vector3 ballPos = Flat(team.ball.Position);
             Vector3 pos = transform.position;
             float ballDist = (ballPos - Flat(pos)).magnitude;
             bool isChaser = team.Chaser == pc;
@@ -82,10 +82,10 @@ namespace FootballSim.FootballAI
             if (ballDist > 1.4f)
             {
                 // Run to where the ball will be shortly; slower difficulties re-evaluate less often
-                if (Time.time >= nextThink)
+                if (SimClock.Now >= nextThink)
                 {
                     chaseTarget = ballPos + Flat(team.ball.Velocity) * 0.25f;
-                    nextThink = Time.time + Tune.reactionDelay;
+                    nextThink = SimClock.Now + Tune.reactionDelay;
                 }
                 MoveToward(chaseTarget, 3f);
                 TryTackleNearBall(ballDist);
@@ -168,7 +168,7 @@ namespace FootballSim.FootballAI
             float line = FootballSim.Match.OffsideRule.SecondLastDefenderZ(dir, defenderZs);
 
             // Run ahead of the ball by a fixed amount, in the player's own lane
-            float aheadOfBall = team.ball.transform.position.z + dir * SupportRunDistance;
+            float aheadOfBall = team.ball.Position.z + dir * SupportRunDistance;
             float z = dir > 0f ? Mathf.Max(home.z, aheadOfBall) : Mathf.Min(home.z, aheadOfBall);
             float maxZ = line - dir * 1.5f; // stay level with or behind the second-last defender
             z = dir > 0f ? Mathf.Min(z, maxZ) : Mathf.Max(z, maxZ);
@@ -181,13 +181,13 @@ namespace FootballSim.FootballAI
         {
             if (ballDist > 2.4f || actionCooldown > 0f) return;
             // Only lunge when the ball is actually in reach and in front: a tackle that misses but connects with a man is a foul
-            Vector3 toBall = Flat(team.ball.transform.position - transform.position);
+            Vector3 toBall = Flat(team.ball.Position - transform.position);
             if (ballDist > 1.7f || Vector3.Dot(transform.forward, toBall.normalized) < 0.4f) return;
             // Tackle only if an opponent is controlling the ball (near it)
             foreach (var o in opponents.players)
             {
                 if (!o.gameObject.activeSelf) continue; // sent off
-                if ((Flat(o.transform.position) - Flat(team.ball.transform.position)).magnitude < 1.5f)
+                if ((Flat(o.transform.position) - Flat(team.ball.Position)).magnitude < 1.5f)
                 {
                     Input.QueueTackle();
                     actionCooldown = Tune.tackleCooldown;
@@ -220,7 +220,7 @@ namespace FootballSim.FootballAI
             foreach (var m in team.players)
             {
                 if (m == pc || m.isGoalkeeper || !m.gameObject.activeSelf) continue;
-                if (FootballSim.Match.OffsideRule.IsOffside(team.attackDir, m.transform.position.z, team.ball.transform.position.z, line)) continue;
+                if (FootballSim.Match.OffsideRule.IsOffside(team.attackDir, m.transform.position.z, team.ball.Position.z, line)) continue;
                 Vector3 d = Flat(m.transform.position - pos);
                 float dist = d.magnitude;
                 if (dist < 6f || dist > 35f) continue;
@@ -234,7 +234,7 @@ namespace FootballSim.FootballAI
 
         void Goalkeeper()
         {
-            Vector3 ballPos = Flat(team.ball.transform.position);
+            Vector3 ballPos = Flat(team.ball.Position);
             Vector3 ballVel = Flat(team.ball.Velocity);
             float lineZ = team.OwnGoalZ + team.attackDir * 1.5f;
             float dir = team.attackDir;

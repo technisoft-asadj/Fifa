@@ -125,7 +125,7 @@ namespace FootballSim.FootballAI
 
         float Dist(PlayerController p)
         {
-            Vector3 d = p.transform.position - ball.transform.position; d.y = 0f; return d.magnitude;
+            Vector3 d = p.transform.position - ball.Position; d.y = 0f; return d.magnitude;
         }
 
         PlayerController ClosestOutfielderToBall()
@@ -141,17 +141,17 @@ namespace FootballSim.FootballAI
         }
 
         PlayerController passReceiver;
-        float passReceiverUntil;
+        double passReceiverUntil;
         /// <summary>The team-mate an AI pass was aimed at; he becomes the chaser immediately so he runs onto the ball.</summary>
         public void SetPassReceiver(PlayerController receiver, float seconds)
         {
             passReceiver = receiver;
-            passReceiverUntil = Time.time + seconds;
+            passReceiverUntil = SimClock.Now + seconds;
         }
 
         void UpdateChaser()
         {
-            if (passReceiver != null && Time.time < passReceiverUntil && IsOn(passReceiver) && passReceiver != Controlled
+            if (passReceiver != null && SimClock.Now < passReceiverUntil && IsOn(passReceiver) && passReceiver != Controlled
                 && ball.LastTouchTeam == teamId && !ball.Body.isKinematic)
             {
                 Chaser = passReceiver;
@@ -210,8 +210,8 @@ namespace FootballSim.FootballAI
             else
             {
                 z = OwnGoalZ + attackDir * s.y * Pitch.HalfLength * 1.6f;
-                if (slot != 0) z += ball.transform.position.z * 0.35f;
-                x += ball.transform.position.x * 0.15f * (slot == 0 ? 0f : 1f);
+                if (slot != 0) z += ball.Position.z * 0.35f;
+                x += ball.Position.x * 0.15f * (slot == 0 ? 0f : 1f);
             }
             float limit = Pitch.HalfLength - 3f;
             z = Mathf.Clamp(z, -limit, limit);
