@@ -375,3 +375,7 @@ NOT verified:
 - 3 x 5-min AI-vs-AI, Professional (`balance_report_tuning8_receiver.txt`): counted passes 55 / 64 / 57 per match (support runs: 69 / 56 / 50), queued 60 / 72 / 64, offsides 0-0 in all three, fouls 6 / 6 / 2, one yellow in two matches, no reds, goals 1 / 1 / 0.
 - No measurable gain over support runs: pass volume looks capped by the hold timer (0.7 s) and pass cooldown, and offsides never occur because the AI never passes to an offside team-mate and support runs stay level with the offside line. KB-018 stays open.
 - `BallController.FixedUpdate` now returns early while the ball is kinematic (restart hold); it was spamming "Setting linear velocity of a kinematic body" warnings. Covered by the full test run below.
+
+### Shorter build-up hold (0.7 s -> 0.4 s): tried and reverted
+- 3 x 5-min AI-vs-AI (`balance_report_tuning9_hold04_reverted.txt`): counted passes 48 / 69 / 68 per match (receiver run: 55 / 64 / 57), queued 54 / 77 / 73, offsides 0-0 in all three, goals 2 / 0 / 2. No change beyond noise, and "no pass target" rose (9 / 10 / 1), so the value was put back to 0.7 s.
+- Conclusion for KB-018: pass volume is not capped by the hold timer, the cooldown or who chases the ball. Four AI passes in a row (hold time, strike range, support runs, receiver chaser) have each moved the numbers by less than the match-to-match spread. Further blind tuning is not worth it; the next useful input is a human playtest of how matches actually feel, and a larger sample (10+ matches) if tuning continues.
