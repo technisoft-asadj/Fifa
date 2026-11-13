@@ -389,3 +389,7 @@ NOT verified:
 - Before: the team not kicking off was moved out of the centre circle once, at the whistle, so a human player could walk back in before the ball was played. Now `MatchManager` keeps every player of the non-kicking team out of the circle every frame while the kick-off is pending (`KeepOutOfCentreCircle`, shared with `PrepareKickoff`); the player is placed on the circle edge in his own half.
 - New PlayMode test `NonKickingTeamCannotEnterCentreCircleBeforeKickoff` teleports a player into the circle and checks he ends outside. Full PlayMode suite 43/43 passes.
 - Not played by hand: how it feels when a human runs at the circle (he is pushed back instantly, no animation or warning) is untested. Players of the kicking team are not restricted to their own half.
+
+### Offside: stale positions no longer count
+- A pending offside (runners flagged when the pass is played) is now cancelled when an onside team-mate other than the passer plays the ball, or when 6 s pass without a touch. Before, a runner flagged for one pass could be penalised for a touch much later or after another team-mate had played it. The passer's own touch does not cancel it.
+- New PlayMode test `OnsideTeammateTouchingFirstCancelsPendingOffside`; full PlayMode suite 44/44 passes. Not watched in a live match, and the 6 s limit is a guess.

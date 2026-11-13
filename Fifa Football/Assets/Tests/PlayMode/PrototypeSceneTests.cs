@@ -495,6 +495,40 @@ namespace FootballSim.Tests
         }
 
         [UnityTest]
+        public IEnumerator OnsideTeammateTouchingFirstCancelsPendingOffside()
+        {
+            yield return LoadScene();
+            Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>().BeginMatch();
+            var match = Object.FindFirstObjectByType<MatchManager>();
+            var ball = Object.FindFirstObjectByType<BallController>();
+            TeamController home = null, away = null;
+            foreach (var t in Object.FindObjectsByType<TeamController>(FindObjectsSortMode.None)) { if (t.teamId == 0) home = t; else away = t; }
+            yield return null;
+            foreach (var p in away.players) p.TeleportTo(new Vector3(p.isGoalkeeper ? 0f : (away.players.IndexOf(p) - 5) * 3f, 1f, p.isGoalkeeper ? 52f : 40f), Quaternion.identity);
+            PlayerController passer = null, runner = null, onside = null;
+            foreach (var p in home.players)
+            {
+                if (p.isGoalkeeper) continue;
+                if (passer == null) passer = p; else if (runner == null) runner = p; else if (onside == null) onside = p;
+            }
+            passer.TeleportTo(new Vector3(0f, 1f, 5f), Quaternion.identity);
+            runner.TeleportTo(new Vector3(10f, 1f, 47f), Quaternion.identity);
+            onside.TeleportTo(new Vector3(-10f, 1f, 30f), Quaternion.identity);
+            ball.ResetTo(new Vector3(0f, 0.12f, 5f));
+            ball.LastTouchTeam = 0; ball.LastToucher = passer;
+            match.SnapshotOffside(passer);
+            Assert.AreEqual(1, match.OffsideRunners.Count);
+            yield return null; yield return null;
+            Assert.AreEqual(1, match.OffsideRunners.Count, "the passer's own touch must not cancel it");
+            ball.LastTouchTeam = 0; ball.LastToucher = onside; // an onside team-mate plays the ball
+            yield return null; yield return null;
+            Assert.AreEqual(0, match.OffsideRunners.Count);
+            ball.LastTouchTeam = 0; ball.LastToucher = runner; // runner touching it later is no longer offside
+            yield return null; yield return null;
+            Assert.AreNotEqual(RestartType.Offside, match.LastRestart);
+        }
+
+        [UnityTest]
         public IEnumerator BallInsideHomeGoalScoresForAway()
         {
             yield return LoadScene();

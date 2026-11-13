@@ -142,6 +142,8 @@ namespace FootballSim.Match
         // ---- offside ----
         readonly HashSet<PlayerController> offsideRunners = new HashSet<PlayerController>();
         int offsideTeam = -1;
+        PlayerController offsidePasser;
+        float offsideSnapshotTime;
         bool exemptNextStrike; // throw-ins, goal kicks and corners cannot be offside
 
         /// <summary>Players of the passing team who were in an offside position when 'passer' played the ball.</summary>
@@ -152,6 +154,8 @@ namespace FootballSim.Match
         {
             offsideRunners.Clear();
             offsideTeam = -1;
+            offsidePasser = passer;
+            offsideSnapshotTime = Time.time;
             if (exemptNextStrike) { exemptNextStrike = false; return; }
             if (teams == null) return;
             TeamController own = null, opp = null;
@@ -178,6 +182,10 @@ namespace FootballSim.Match
             var toucher = ball.LastToucher as PlayerController;
             if (ball.LastTouchTeam != offsideTeam) { offsideRunners.Clear(); return; } // opponent got there first
             if (toucher == null) return;
+            // The ball was played by an onside team-mate (not the passer): the earlier offside positions no longer count
+            if (toucher != offsidePasser && !offsideRunners.Contains(toucher)) { offsideRunners.Clear(); return; }
+            // Nobody touched it for a long time (rolling out, loose ball): the offside position no longer matters
+            if (Time.time - offsideSnapshotTime > 6f) { offsideRunners.Clear(); return; }
             if (offsideRunners.Contains(toucher))
             {
                 int team = offsideTeam;
