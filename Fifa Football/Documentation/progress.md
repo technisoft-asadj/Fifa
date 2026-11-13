@@ -440,3 +440,6 @@ NOT verified:
 
 ## Determinism: causes found and fixed (2026-11-13)
 Traced the first differing frame between two seeded runs. The ball (PhysX) was reproducible; two bugs of ours were not: gameplay timers read the absolute float `Time.time`, and gameplay read the interpolated `ball.transform.position`. Added `SimClock` (match clock in double precision, reset per scene) and `BallController.Position` (`rb.position`). With a 1/60 physics step, runs were identical for 400 frames (three runs at very different start times) and 1200 frames (two runs). Not tested: the default 0.02 step (the game still ships with it), different devices, or matches longer than 20 s. Raw output: `determinism_after_fix_*.txt`. See `networking.md`.
+
+## Shipped physics step is now 1/60 (2026-11-13)
+`ProjectSettings/TimeManager.asset` Fixed Timestep changed from 0.02 to 0.016666668 so the game runs the step the determinism tests proved reproducible. The ball's drag and spin code scale with `fixedDeltaTime`. EditMode 52/52 and PlayMode 50/50 pass. Not measured: the extra physics CPU cost on a phone (60 Hz instead of 50 Hz), and whether ball feel changed by hand (the balance report was not re-run).
