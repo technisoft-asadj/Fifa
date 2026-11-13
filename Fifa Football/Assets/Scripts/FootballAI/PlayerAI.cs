@@ -24,7 +24,7 @@ namespace FootballSim.FootballAI
         // Tuned from the AI-vs-AI balance measurement (see progress.md, KB-018)
         const float BuildUpPassAfterSeconds = 0.7f;
         const float ShootRangeScale = 1.25f;
-        const float StrikeRange = 0.95f; // a little inside PlayerController.controlRadius (1.1 m)
+        const float StrikeRange = 1.08f; // just inside PlayerController.controlRadius (1.1 m); 0.95 starved passes (see progress.md)
         float nextThink;
         Vector3 chaseTarget;
         AiTuning Tune => AiTuning.Current;

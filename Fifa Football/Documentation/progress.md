@@ -336,8 +336,12 @@ NOT verified:
   queued per match but only about 55-60 were counted, and "no pass target" was rare (3-15). So roughly half of the AI's
   passes were wasted: the AI decides while the ball is up to 1.4 m away but `PlayerController` only strikes within 1.1 m,
   and the queued request is consumed either way.
-- Pass 4 change (`StrikeRange` 0.95 m in `PlayerAI`: pass or shoot only when the ball is that close): effect on the
-  numbers NOT yet known (measurement running when this was committed); full suite not re-run.
+- Pass 4 (`StrikeRange` 0.95 m in `PlayerAI`, commit `b6237e3`) made things WORSE: counted passes fell to 15-23 per team
+  (about 35-40 per match, from about 55), queued passes to 50-70 per match, because the ball is rarely within 0.95 m at the
+  moment of decision (raw: `balance_report_tuning4_strike095.txt`). Goals rose (2-3, 0-1, 2-2) with 4 own goals in 3 matches.
+- Pass 5: `StrikeRange` raised to 1.08 m (just inside the 1.1 m control radius), which should keep the "no wasted request"
+  benefit without starving the window. Effect NOT yet known (measurement running when this was committed); the full
+  suite has not been re-run since the AI changes started.
 
 ## Still unverified from red cards / penalties
 - No red card or penalty has been seen in live play (they depend on random fouls); penalty balance
