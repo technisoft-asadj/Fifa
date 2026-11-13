@@ -90,6 +90,15 @@ namespace FootballSim.FootballAI
                 return;
             }
 
+            // The ball is held for a restart (set pieces, goal pause, half-time): nobody can play it yet. Wait instead of
+            // queuing actions that are thrown away (this wasted about half of all queued passes, see progress.md).
+            if (team.ball.Body.isKinematic)
+            {
+                Input.MoveVector = Vector2.zero;
+                Input.SprintFlag = false;
+                return;
+            }
+
             // Has the ball: decide shoot / pass / dribble
             holdTimer += Time.deltaTime;
             Vector3 goal = team.OpponentGoalPos;

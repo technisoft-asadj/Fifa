@@ -340,8 +340,12 @@ NOT verified:
   (about 35-40 per match, from about 55), queued passes to 50-70 per match, because the ball is rarely within 0.95 m at the
   moment of decision (raw: `balance_report_tuning4_strike095.txt`). Goals rose (2-3, 0-1, 2-2) with 4 own goals in 3 matches.
 - Pass 5: `StrikeRange` raised to 1.08 m (just inside the 1.1 m control radius), which should keep the "no wasted request"
-  benefit without starving the window. Effect NOT yet known (measurement running when this was committed); the full
-  suite has not been re-run since the AI changes started.
+  benefit without starving the window. Result (`balance_report_tuning5_strike108.txt`, 3 matches): passes counted 11-34 per
+  team (about 29-55 per match) against about 83-93 queued per match, so range was NOT the main loss. Goals 2, 0, 1.
+- Pass 6 (uncommitted-at-time-of-writing hypothesis fix): while the ball is held for a restart (kinematic) the AI player at
+  the ball now waits instead of queuing passes/shots that `PlayerController` discards. Hypothesis: restart holds (about
+  1.2 s each, plus goal pauses and half-time) account for the missing half of queued passes. Effect NOT yet known
+  (measurement running when this was committed); the full test suite has not been re-run since the AI changes started.
 
 ## Still unverified from red cards / penalties
 - No red card or penalty has been seen in live play (they depend on random fouls); penalty balance
