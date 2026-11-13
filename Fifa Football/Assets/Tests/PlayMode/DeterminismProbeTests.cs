@@ -51,18 +51,26 @@ namespace FootballSim.Tests
             Assume.That(File.Exists(Path.Combine(Application.dataPath, "..", "run_balance.flag")), "create run_balance.flag to run");
 
             var sb = new StringBuilder();
-            sb.AppendLine("Determinism probe: AI vs AI from seed 42, captureFramerate 60, 1800 frames (30 s of play), run twice.");
-            foreach (int frames in new[] { 2, 10, 30, 60, 120, 300 })
+            sb.AppendLine("Determinism probe: AI vs AI from seed 42, captureFramerate 60, each case run twice and compared.");
+            float originalFixed = Time.fixedDeltaTime;
+            foreach (bool alignedPhysics in new[] { false, true })
             {
-                Snapshot a = default, b = default;
-                yield return Run(42, frames, s => a = s);
-                yield return Run(42, frames, s => b = s);
-                bool same = a.ball == b.ball && a.home == b.home && a.away == b.away && a.passes0 == b.passes0 && a.passes1 == b.passes1
-                            && a.playerSum == b.playerSum && Mathf.Approximately(a.clock, b.clock);
-                sb.AppendLine($"After {frames} frames: identical = {same}");
-                sb.AppendLine($"   run A: ball {a.ball:F4} score {a.home}-{a.away} passes {a.passes0}-{a.passes1} playerSum {a.playerSum:F5} minute {a.clock:F3}");
-                sb.AppendLine($"   run B: ball {b.ball:F4} score {b.home}-{b.away} passes {b.passes0}-{b.passes1} playerSum {b.playerSum:F5} minute {b.clock:F3}");
+                // aligned = one physics step per rendered frame (fixedDeltaTime = 1/60), so step timing cannot differ between runs
+                Time.fixedDeltaTime = alignedPhysics ? 1f / 60f : originalFixed;
+                sb.AppendLine(alignedPhysics ? "-- fixedDeltaTime = 1/60 (one physics step per frame)" : $"-- default fixedDeltaTime = {originalFixed}");
+                foreach (int frames in new[] { 2, 60, 300, 900 })
+                {
+                    Snapshot a = default, b = default;
+                    yield return Run(42, frames, s => a = s);
+                    yield return Run(42, frames, s => b = s);
+                    bool same = a.ball == b.ball && a.home == b.home && a.away == b.away && a.passes0 == b.passes0 && a.passes1 == b.passes1
+                                && a.playerSum == b.playerSum && Mathf.Approximately(a.clock, b.clock);
+                    sb.AppendLine($"After {frames} frames: identical = {same}");
+                    sb.AppendLine($"   run A: ball {a.ball:F4} score {a.home}-{a.away} passes {a.passes0}-{a.passes1} playerSum {a.playerSum:F5} minute {a.clock:F3}");
+                    sb.AppendLine($"   run B: ball {b.ball:F4} score {b.home}-{b.away} passes {b.passes0}-{b.passes1} playerSum {b.playerSum:F5} minute {b.clock:F3}");
+                }
             }
+            Time.fixedDeltaTime = originalFixed;
             string path = Path.Combine(Application.dataPath, "..", "Documentation", "determinism_report.txt");
             File.WriteAllText(path, sb.ToString());
             Assert.Pass(sb.ToString());

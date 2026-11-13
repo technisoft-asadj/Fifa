@@ -1,0 +1,19 @@
+Determinism probe: AI vs AI from seed 42, captureFramerate 60, 1800 frames (30 s of play), run twice.
+After 2 frames: identical = False
+   run A: ball (0.0000, 0.1129, 0.0000) score 0-0 passes 0-0 playerSum 49.74933 minute 0.015
+   run B: ball (0.0000, 0.1112, 0.0000) score 0-0 passes 0-0 playerSum 49.74933 minute 0.015
+After 10 frames: identical = False
+   run A: ball (0.0000, 0.1100, 0.0872) score 0-0 passes 0-0 playerSum 50.90935 minute 0.055
+   run B: ball (0.0000, 0.1100, 0.0872) score 0-0 passes 0-0 playerSum 50.90935 minute 0.055
+After 30 frames: identical = False
+   run A: ball (0.0000, 0.1100, 0.7145) score 0-0 passes 0-0 playerSum 53.96955 minute 0.155
+   run B: ball (0.0000, 0.1100, 0.6992) score 0-0 passes 0-0 playerSum 53.96955 minute 0.155
+After 60 frames: identical = False
+   run A: ball (1.6250, 0.1100, -0.1606) score 0-0 passes 1-0 playerSum 59.16849 minute 0.305
+   run B: ball (1.5882, 0.1100, -0.1013) score 0-0 passes 1-0 playerSum 59.06557 minute 0.305
+After 120 frames: identical = False
+   run A: ball (3.0739, 0.1100, -0.6787) score 0-0 passes 2-0 playerSum 85.77181 minute 0.605
+   run B: ball (3.1702, 0.1100, -1.0728) score 0-0 passes 2-0 playerSum 85.67577 minute 0.605
+After 300 frames: identical = False
+   run A: ball (0.6262, 0.1100, -18.2355) score 0-0 passes 2-0 playerSum -239.93534 minute 1.505
+   run B: ball (0.6675, 0.1100, -18.1975) score 0-0 passes 2-0 playerSum -244.38000 minute 1.505

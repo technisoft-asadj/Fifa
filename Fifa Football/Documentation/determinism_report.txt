@@ -1,19 +1,27 @@
-Determinism probe: AI vs AI from seed 42, captureFramerate 60, 1800 frames (30 s of play), run twice.
+Determinism probe: AI vs AI from seed 42, captureFramerate 60, each case run twice and compared.
+-- default fixedDeltaTime = 0.01999999
 After 2 frames: identical = False
-   run A: ball (0.0000, 0.1129, 0.0000) score 0-0 passes 0-0 playerSum 49.74933 minute 0.015
-   run B: ball (0.0000, 0.1112, 0.0000) score 0-0 passes 0-0 playerSum 49.74933 minute 0.015
-After 10 frames: identical = False
-   run A: ball (0.0000, 0.1100, 0.0872) score 0-0 passes 0-0 playerSum 50.90935 minute 0.055
-   run B: ball (0.0000, 0.1100, 0.0872) score 0-0 passes 0-0 playerSum 50.90935 minute 0.055
-After 30 frames: identical = False
-   run A: ball (0.0000, 0.1100, 0.7145) score 0-0 passes 0-0 playerSum 53.96955 minute 0.155
-   run B: ball (0.0000, 0.1100, 0.6992) score 0-0 passes 0-0 playerSum 53.96955 minute 0.155
+   run A: ball (0.0000, 0.1124, 0.0000) score 0-0 passes 0-0 playerSum 49.74933 minute 0.015
+   run B: ball (0.0000, 0.1111, 0.0000) score 0-0 passes 0-0 playerSum 49.74933 minute 0.015
 After 60 frames: identical = False
-   run A: ball (1.6250, 0.1100, -0.1606) score 0-0 passes 1-0 playerSum 59.16849 minute 0.305
-   run B: ball (1.5882, 0.1100, -0.1013) score 0-0 passes 1-0 playerSum 59.06557 minute 0.305
-After 120 frames: identical = False
-   run A: ball (3.0739, 0.1100, -0.6787) score 0-0 passes 2-0 playerSum 85.77181 minute 0.605
-   run B: ball (3.1702, 0.1100, -1.0728) score 0-0 passes 2-0 playerSum 85.67577 minute 0.605
+   run A: ball (1.5993, 0.1100, -0.1140) score 0-0 passes 1-0 playerSum 59.09635 minute 0.305
+   run B: ball (1.5626, 0.1100, -0.0357) score 0-0 passes 1-0 playerSum 58.97458 minute 0.305
 After 300 frames: identical = False
-   run A: ball (0.6262, 0.1100, -18.2355) score 0-0 passes 2-0 playerSum -239.93534 minute 1.505
-   run B: ball (0.6675, 0.1100, -18.1975) score 0-0 passes 2-0 playerSum -244.38000 minute 1.505
+   run A: ball (6.7073, 0.1100, -17.8025) score 0-0 passes 2-1 playerSum -186.89376 minute 1.505
+   run B: ball (0.5463, 0.1100, -18.2464) score 0-0 passes 2-0 playerSum -241.05898 minute 1.505
+After 900 frames: identical = False
+   run A: ball (-5.0679, 0.1100, -13.2128) score 0-0 passes 2-0 playerSum -478.11433 minute 4.505
+   run B: ball (2.2013, 0.4296, -49.0570) score 0-0 passes 2-1 playerSum -529.63112 minute 4.505
+-- fixedDeltaTime = 1/60 (one physics step per frame)
+After 2 frames: identical = False
+   run A: ball (0.0000, 0.1117, 0.0000) score 0-0 passes 0-0 playerSum 41.53833 minute 0.015
+   run B: ball (0.0000, 0.1117, 0.0000) score 0-0 passes 0-0 playerSum 49.74933 minute 0.015
+After 60 frames: identical = True
+   run A: ball (1.5839, 0.1100, -0.0988) score 0-0 passes 1-0 playerSum 59.00692 minute 0.305
+   run B: ball (1.5839, 0.1100, -0.0988) score 0-0 passes 1-0 playerSum 59.00692 minute 0.305
+After 300 frames: identical = False
+   run A: ball (0.5821, 0.1100, -18.1734) score 0-0 passes 2-0 playerSum -240.39885 minute 1.505
+   run B: ball (0.5578, 0.1100, -18.1774) score 0-0 passes 2-0 playerSum -240.84025 minute 1.505
+After 900 frames: identical = False
+   run A: ball (14.1885, 0.1100, -34.5367) score 0-0 passes 3-0 playerSum -488.99904 minute 4.505
+   run B: ball (-9.3117, 0.1100, -51.7351) score 0-0 passes 2-0 playerSum -783.50495 minute 4.505

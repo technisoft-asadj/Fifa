@@ -19,6 +19,18 @@ Status: **nothing online exists yet.** This document records what was measured, 
 
 Reading: the first divergence is the **ball**, within two frames of kick-off. The ball is a PhysX Rigidbody, and its settling and first steps are not reproducible from run to run in this setup. The AI reacts to the ball position, so the small difference grows until the matches are unrelated. Gameplay randomness is not the cause: all gameplay dice now come from the seeded `SimRandom`, and the runs still differ.
 
+### Follow-up: does physics step timing explain it? (`determinism_report.txt`, default step in `determinism_report_default_timestep.txt`)
+Second probe: same seed, run twice, with the default `fixedDeltaTime` (0.02) against `fixedDeltaTime = 1/60` (exactly one physics step per rendered frame).
+
+| Frames | Default step | 1/60 step |
+|---|---|---|
+| 2 | differs (ball height) | differs (run A's players differed too: first run after changing the step, probably a start-up artefact; not isolated) |
+| 60 | differs (ball 0.04 m apart) | **identical** |
+| 300 | differs (ball 6 m apart) | differs, but only 0.02 m (vs 6 m) |
+| 900 | differs | differs (ball 24 m apart) |
+
+Reading: aligning physics to frames removes most of the early divergence, so step timing is a major cause. It is not the only one: something still diverges between 60 and 300 frames (candidates: PhysX contact solving order, non-seeded `Random` or time-dependent code left in a script, `Update` ordering). Not isolated yet. One sample per case; treat as indicative, not proven.
+
 What this does and does not show: it shows that two runs of the same build on the same machine diverge. It does not isolate which part of PhysX or of frame timing causes it, and it does not test two different devices (which would be worse: PhysX is not deterministic across platforms).
 
 ## Consequences for the design
@@ -36,7 +48,7 @@ Decision pending: build a two-client spike (one editor as server, one build as c
 
 ## Ordered groundwork (what to do before any network code)
 1. Seeded gameplay random source: **done** (`SimRandom`, 7 EditMode tests; tackles, shots, keeper saves, fouls, AI aim).
-2. Fixed-step simulation loop: player movement, AI and match rules still run in `Update` with a variable `Time.deltaTime`.
+2. Fixed-step simulation loop: player movement, AI and match rules still run in `Update` with a variable `Time.deltaTime`. The probe shows aligning to a fixed step helps a lot (see follow-up above).
 3. Replace the Rigidbody ball with a custom fixed-step integrator (drag, Magnus spin, bounce, ground friction), then re-run the probe; success = identical runs.
 4. Command-based input per tick (the `IPlayerInput` seam exists; it needs a tick number and serialisation).
 5. Separate simulation state from presentation (the HUD already listens through events; `PlayerVisual` and audio must stay out of the simulation).
