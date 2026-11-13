@@ -449,3 +449,6 @@ Two Professional-vs-Professional runs of three matches each (`balance_report_ste
 
 ## Input recording and replay (2026-11-13)
 Added `InputFrame`, `RecordingInput` and `ReplayInput` (Scripts/Input/InputRecording.cs) and a gated probe that records an AI-vs-AI match and replays it from the recorded inputs alone with the AI off: identical in all 900 frames. The AI's random choices now use their own stream (`SimRandom.Ai`, `RandomStream` class) so the simulation's numbers do not depend on whether the AI runs. EditMode 54 (2 new). Not covered: human/touch input, player switching, two devices, real network. Report: `determinism_replay.txt`.
+
+## Wire format sketch (2026-11-13)
+`NetCodec` encodes a match snapshot in 174 bytes (22 players, ball, score, clock) and an input frame in 5 bytes; `SnapshotCapture` fills a snapshot from the live match. Estimate: 4.0 KB/s at 20 Hz, 6.1 KB/s at 30 Hz including UDP/IP headers, against the 20 KB/s target. 4 new EditMode tests (round trip within quantisation, size under the target, input round trip) and 1 PlayMode test (live match positions survive encoding). Nothing is sent over a network yet. Details in `networking.md`.

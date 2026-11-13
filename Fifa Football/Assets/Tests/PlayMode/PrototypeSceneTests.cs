@@ -7,6 +7,7 @@ using FootballSim.Ball;
 using FootballSim.Core;
 using FootballSim.FootballAI;
 using FootballSim.Match;
+using FootballSim.Net;
 using FootballSim.Players;
 
 namespace FootballSim.Tests
@@ -23,6 +24,34 @@ namespace FootballSim.Tests
 
         [TearDown]
         public void TearDown() { Time.timeScale = 1f; }
+
+        [UnityTest]
+        public IEnumerator LiveMatchSnapshotSurvivesEncodingAndStaysSmall()
+        {
+            yield return LoadScene();
+            var match = Object.FindFirstObjectByType<MatchManager>();
+            var ball = Object.FindFirstObjectByType<BallController>();
+            var teams = new System.Collections.Generic.List<TeamController>(Object.FindObjectsByType<TeamController>(FindObjectsSortMode.None));
+            teams.Sort((x, y) => x.teamId.CompareTo(y.teamId));
+            var players = new System.Collections.Generic.List<PlayerController>();
+            foreach (var t in teams) players.AddRange(t.players);
+            Assert.AreEqual(WorldSnapshot.PlayerCount, players.Count);
+
+            var live = new WorldSnapshot();
+            SnapshotCapture.Fill(live, 7, match, ball, players);
+            var buf = new byte[NetCodec.SnapshotBytes];
+            int n = NetCodec.Write(live, buf);
+            var back = new WorldSnapshot();
+            NetCodec.Read(buf, 0, back);
+
+            Assert.AreEqual(NetCodec.SnapshotBytes, n);
+            for (int i = 0; i < players.Count; i++)
+            {
+                Assert.AreEqual(players[i].transform.position.x, back.players[i].x, 0.011f);
+                Assert.AreEqual(players[i].transform.position.z, back.players[i].z, 0.011f);
+            }
+            Assert.Less((ball.Position - back.ballPos).magnitude, 0.02f);
+        }
 
         [UnityTest]
         public IEnumerator SceneHasNoMissingScripts()

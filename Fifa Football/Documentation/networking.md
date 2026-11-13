@@ -65,6 +65,15 @@ Decision pending: build a two-client spike (one editor as server, one build as c
 What this establishes: everything the players do reaches the simulation through `IPlayerInput`; the AI has no hidden side channel into movement or kicks. To make it hold, the AI's own random choices (aim error, clearances) moved to a separate stream, `SimRandom.Ai`, so switching the AI off does not shift the numbers the simulation draws (2 EditMode tests).
 What it does not establish: a human player (touch input, camera-relative movement, player switching, which are not in AI-vs-AI), two machines, or a server and client agreeing over a real connection.
 
+## Wire format and bandwidth estimate (step 4/6 groundwork)
+`Scripts/Net/NetCodec.cs`: `WorldSnapshot` (tick, ball position and velocity, 22 players, score, clock) and an `InputFrame` encoder. Quantised: positions and ball velocity to 1 cm, yaw to 1.4 degrees, player speed to 0.1 m/s. Sizes are constants checked by EditMode tests:
+| Message | Bytes | At 20 Hz (+28 B IPv4/UDP header per packet) | At 30 Hz (same) |
+|---|---|---|---|
+| Snapshot (server to client) | 174 | 4.0 KB/s | 6.1 KB/s |
+| Input frame (client to server) | 5 (+ tick and player id, not written yet) | 0.7 KB/s | 1.0 KB/s |
+Against the plan.md target of under 20 KB/s per client, the snapshot leaves a large margin before any delta compression. This is arithmetic on an encoder that round-trips in tests; it has not been sent over a real connection, so real overhead (retransmits, relay, mobile networks) is not included. `SnapshotCapture` reads the live match into a snapshot (PlayMode test: positions survive encode and decode within 1 cm).
+Not done: header and versioning, delta compression, a tick-numbered input stream, client interpolation, any socket.
+
 ## Open questions
 - Is 20-30 Hz enough for tackles and shots to feel right on a phone connection? Unknown until measured.
 - Hosting: dedicated server builds, relay, or player-hosted? Cost and ops not assessed.
