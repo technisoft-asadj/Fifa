@@ -111,18 +111,21 @@ namespace FootballSim.Match
                         if (t.humanControlled) t.SetControlled(taker);
                     }
                 }
-                else
-                {
-                    float side = -t.attackDir; // this team's own half
-                    foreach (var p in t.players)
-                    {
-                        if (!TeamController.IsOn(p)) continue;
-                        Vector3 pos = p.transform.position;
-                        if (new Vector2(pos.x, pos.z).magnitude >= CentreCircleRadius) continue;
-                        pos.z = side * Mathf.Sqrt(Mathf.Max(0f, CentreCircleRadius * CentreCircleRadius - pos.x * pos.x)) + side * 0.3f;
-                        p.TeleportTo(pos, p.transform.rotation);
-                    }
-                }
+                else KeepOutOfCentreCircle(t);
+            }
+        }
+
+        /// <summary>Moves any player of this team who is inside the centre circle to its edge on the team's own half.</summary>
+        void KeepOutOfCentreCircle(TeamController t)
+        {
+            float side = -t.attackDir; // this team's own half
+            foreach (var p in t.players)
+            {
+                if (!TeamController.IsOn(p)) continue;
+                Vector3 pos = p.transform.position;
+                if (new Vector2(pos.x, pos.z).magnitude >= CentreCircleRadius) continue;
+                pos.z = side * Mathf.Sqrt(Mathf.Max(0f, CentreCircleRadius * CentreCircleRadius - pos.x * pos.x)) + side * 0.3f;
+                p.TeleportTo(pos, p.transform.rotation);
             }
         }
 
@@ -309,6 +312,8 @@ namespace FootballSim.Match
             if (KickoffPending)
             {
                 kickoffWait += Time.deltaTime;
+                // The team not kicking off may not enter the centre circle (a human could walk in; AI already waits outside)
+                if (teams != null) foreach (var t in teams) if (t != null && t.teamId != KickoffTeam) KeepOutOfCentreCircle(t);
                 // ends when the ball is played, or after a failsafe so nobody waits forever for a taker who never kicks
                 if (kickoffWait > 8f || (ball != null && (ball.LastTouchTeam != -1 || (ball.transform.position - kickoffSpot).sqrMagnitude > 1f))) KickoffPending = false;
             }

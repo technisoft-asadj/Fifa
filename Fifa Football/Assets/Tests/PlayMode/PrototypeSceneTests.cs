@@ -323,6 +323,22 @@ namespace FootballSim.Tests
         }
 
         [UnityTest]
+        public IEnumerator NonKickingTeamCannotEnterCentreCircleBeforeKickoff()
+        {
+            yield return LoadScene();
+            Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>().BeginMatch();
+            var match = Object.FindFirstObjectByType<MatchManager>();
+            yield return null;
+            Assert.IsTrue(match.KickoffPending);
+            var intruder = FirstOutfielder(1 - match.KickoffTeam);
+            intruder.TeleportTo(new Vector3(1f, 1f, 1f), Quaternion.identity);
+            yield return null;
+            yield return null;
+            Vector3 p = intruder.transform.position;
+            Assert.GreaterOrEqual(new Vector2(p.x, p.z).magnitude, MatchManager.CentreCircleRadius - 0.05f, "intruder was left inside the circle at " + p);
+        }
+
+        [UnityTest]
         public IEnumerator FullTimePanelTextFitsItsBoxesWithManyGoals()
         {
             yield return LoadScene();

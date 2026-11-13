@@ -384,3 +384,8 @@ NOT verified:
 - The old single stats label (28 pt, 220 px box, vertical overflow) held up to 5 goal lines plus five stat lines (about 12 lines), so with several goals it ran over the result line and the REMATCH button. Now: result at y=190, a separate goals label (22 pt, 130 px, max 4 goals then "+N more") and a stats label (26 pt, 190 px), both truncating instead of overflowing.
 - New PlayMode test `FullTimePanelTextFitsItsBoxesWithManyGoals` adds 7 goals, opens the full-time panel and checks both labels' preferred height fits their boxes. Full PlayMode suite 42/42 passes (EditMode untouched, 28).
 - Not seen on a screen or a phone: the test checks text height only, not that the panel looks right, and it was not run against the old layout to confirm it would have failed.
+
+### Kick-off: centre circle enforced for the human too
+- Before: the team not kicking off was moved out of the centre circle once, at the whistle, so a human player could walk back in before the ball was played. Now `MatchManager` keeps every player of the non-kicking team out of the circle every frame while the kick-off is pending (`KeepOutOfCentreCircle`, shared with `PrepareKickoff`); the player is placed on the circle edge in his own half.
+- New PlayMode test `NonKickingTeamCannotEnterCentreCircleBeforeKickoff` teleports a player into the circle and checks he ends outside. Full PlayMode suite 43/43 passes.
+- Not played by hand: how it feels when a human runs at the circle (he is pushed back instantly, no animation or warning) is untested. Players of the kicking team are not restricted to their own half.
