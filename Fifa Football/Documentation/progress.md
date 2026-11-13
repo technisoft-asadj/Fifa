@@ -406,3 +406,11 @@ NOT verified:
 - AI keeper (`PlayerAI.Goalkeeper`) dives when a shot will cross the line 0.9-4.5 m from where he stands within 0.6 s.
 - Found by testing: the first version measured reach from 0.9 m above the capsule pivot (already about 1 m up), so ground shots never counted as reachable: 12 shots, 0 saves. After the fix and counting keeper kicks, `GoalkeeperSavesSomeShotsAndCountsThem` (12 shots at 18 m/s from 8.5 m, three targets) passes with at least 3 saves.
 - Not verified: how it feels, whether dives look right (no dive animation; only the tackle animation plays), balance of save chances over a full match (not measured with the 3-match report), and the human cannot control the keeper's dive direction on touch controls beyond the stick. Penalty taker aiming and a replacement keeper after a red card are still not done.
+
+### Balance with goalkeeper saves and assists (measured)
+- 3 x 5-min AI-vs-AI, Professional (`balance_report_tuning10_keepers.txt`): score 3-0, 1-0, 0-1 (5 goals, 1.7 per match), shots on target 6 / 2 / 4 versus saves 3 / 1 / 3 and goals 3 / 1 / 1: every shot on target is a goal or a save, so the counts are consistent. Counted passes 79 / 64 / 49, offsides 0, fouls 4-5 per match, one yellow, no reds. Three of the five goals had an assist.
+- Reading: keepers are not unbeatable (saved about 50% of shots on target) and goals per match are in a believable range. Three matches is a small sample; offsides and pass volume are still the open KB-018 items.
+
+### Penalties against the new keepers
+- Reviewing KB-016: a keeper never tackles (his tackle button is the dive), so he can never be sent off and a replacement keeper is not needed; a human already aims a penalty with the stick like any shot, so no separate aiming mechanic was added either. The AI keeper dives on penalties through the normal dive logic.
+- New PlayMode test `PenaltiesAreMostlyScoredAndTheKeeperStillGetsSomeHands` (10 shots at 22 m/s from the spot, five targets) passes when run alone: at least 3 goals and at least 6 of 10 ending as a goal or a save. The goal/save split was not read out, and the whole suite was not re-run after adding it.

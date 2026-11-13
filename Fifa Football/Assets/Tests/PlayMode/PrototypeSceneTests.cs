@@ -359,6 +359,33 @@ namespace FootballSim.Tests
         }
 
         [UnityTest]
+        public IEnumerator PenaltiesAreMostlyScoredAndTheKeeperStillGetsSomeHands()
+        {
+            yield return LoadScene();
+            Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>().BeginMatch();
+            var match = Object.FindFirstObjectByType<MatchManager>();
+            var ball = Object.FindFirstObjectByType<BallController>();
+            var taker = FirstOutfielder(0);
+            yield return null;
+            float[] targets = { -3f, 3f, 0f, -2.5f, 2.5f, -3f, 3f, 0f, -2.5f, 2.5f };
+            int goals0 = match.HomeScore, saves0 = match.Stats.saves[1];
+            foreach (float tx in targets)
+            {
+                float wait = 0f;
+                while ((match.InRestartHold || match.InGoalPause) && wait < 8f) { wait += Time.deltaTime; yield return null; }
+                ball.ResetTo(new Vector3(0f, 0.12f, Pitch.HalfLength - Pitch.PenaltySpotDistance));
+                ball.LastTouchTeam = 0; ball.LastToucher = taker;
+                Vector3 target = new Vector3(tx, 0.7f, Pitch.HalfLength + 0.5f);
+                ball.Kick((target - ball.transform.position).normalized, 22f, Vector3.zero);
+                yield return new WaitForSeconds(1.5f);
+            }
+            int goals = match.HomeScore - goals0, saves = match.Stats.saves[1] - saves0;
+            Debug.Log($"Penalty test: 10 penalties, {goals} goals, {saves} saves");
+            Assert.GreaterOrEqual(goals, 3, $"most penalties should score (goals {goals}, saves {saves})");
+            Assert.GreaterOrEqual(goals + saves, 6, $"each penalty should end as a goal or a save (goals {goals}, saves {saves})");
+        }
+
+        [UnityTest]
         public IEnumerator GoalCreditsTheTeammateWhoTouchedItBeforeTheScorer()
         {
             yield return LoadScene();
