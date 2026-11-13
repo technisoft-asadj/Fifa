@@ -8,7 +8,9 @@ using UnityEngine.TestTools;
 using FootballSim.Ball;
 using FootballSim.Core;
 using FootballSim.FootballAI;
+using FootballSim.Inputs;
 using FootballSim.Match;
+using FootballSim.Players;
 
 namespace FootballSim.Tests
 {
@@ -130,6 +132,76 @@ namespace FootballSim.Tests
             Time.fixedDeltaTime = originalFixed;
             File.WriteAllText(Path.Combine(Application.dataPath, "..", "Documentation", "determinism_first_divergence.txt"), sb.ToString());
             Assert.Pass(sb.ToString());
+        }
+
+        static System.Collections.Generic.List<PlayerController> AllPlayers()
+        {
+            var teams = new System.Collections.Generic.List<TeamController>(Object.FindObjectsByType<TeamController>(FindObjectsSortMode.None));
+            teams.Sort((x, y) => x.teamId.CompareTo(y.teamId));
+            var all = new System.Collections.Generic.List<PlayerController>();
+            foreach (var t in teams) all.AddRange(t.players);
+            return all;
+        }
+
+        /// <summary>mode 0: the AI plays and every player's input is recorded. mode 1: the AI is switched off and the recorded inputs are played back.</summary>
+        static IEnumerator Play(int seed, int frames, int mode, System.Collections.Generic.List<RecordingInput> recordings, System.Collections.Generic.List<Frame> into)
+        {
+            SimRandom.Seed(seed);
+            Time.captureFramerate = 60;
+            yield return SceneManager.LoadSceneAsync("FootballPrototype", LoadSceneMode.Single);
+            yield return null;
+            foreach (var t in Object.FindObjectsByType<TeamController>(FindObjectsSortMode.None)) t.ReleaseHumanControl();
+            var players = AllPlayers();
+            int start = Time.frameCount;
+            for (int i = 0; i < players.Count; i++)
+            {
+                if (mode == 0) { var rec = new RecordingInput(players[i].Input, start); recordings.Add(rec); players[i].SetInput(rec, false); }
+                else players[i].SetInput(new ReplayInput(recordings[i].Frames, start), false);
+            }
+            if (mode == 1) foreach (var brain in Object.FindObjectsByType<PlayerAI>(FindObjectsSortMode.None)) brain.enabled = false;
+            var ball = Object.FindFirstObjectByType<BallController>();
+            var counter = ball.gameObject.AddComponent<StepCounter>();
+            Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>().BeginMatch();
+            for (int i = 0; i < frames; i++)
+            {
+                yield return null;
+                double sum = 0;
+                foreach (var p in players) sum += p.transform.position.x * 3.1 + p.transform.position.z * 1.7;
+                into.Add(new Frame { steps = counter.steps, ball = ball.Position, ballVel = ball.Body.linearVelocity, playerSum = sum, time = Time.time, fixedTime = Time.fixedTime });
+            }
+            Time.captureFramerate = 0;
+        }
+
+        [UnityTest, Timeout(900000)]
+        public IEnumerator ReplayingRecordedInputsReproducesTheMatch()
+        {
+            Assume.That(File.Exists(Path.Combine(Application.dataPath, "..", "run_balance.flag")), "create run_balance.flag to run");
+            float originalFixed = Time.fixedDeltaTime;
+            Time.fixedDeltaTime = 1f / 60f;
+            const int frames = 900;
+            var recordings = new System.Collections.Generic.List<RecordingInput>();
+            var original = new System.Collections.Generic.List<Frame>();
+            var replay = new System.Collections.Generic.List<Frame>();
+            yield return Play(42, frames, 0, recordings, original);
+            int recordedActions = 0;
+            foreach (var r in recordings) foreach (var f in r.Frames) if (f.pass || f.shootReleased || f.tackle) recordedActions++;
+            yield return Play(42, frames, 1, recordings, replay);
+            Time.fixedDeltaTime = originalFixed;
+
+            var sb = new StringBuilder();
+            sb.AppendLine($"Replay probe: seed 42, 1/60 step, {frames} frames. Recorded {recordings.Count} players, {recordedActions} one-shot actions (pass/shot/tackle).");
+            int first = -1;
+            for (int i = 0; i < original.Count && i < replay.Count; i++) if (!original[i].Same(replay[i])) { first = i; break; }
+            if (first < 0) sb.AppendLine("Replay matched the original in every frame (ball, ball velocity, players, physics steps).");
+            else
+            {
+                sb.AppendLine($"first differing frame: {first}");
+                for (int i = Mathf.Max(0, first - 1); i <= Mathf.Min(original.Count - 1, first + 1); i++)
+                { sb.AppendLine($" f{i} original: {original[i]}"); sb.AppendLine($" f{i} replay:   {replay[i]}"); }
+            }
+            File.WriteAllText(Path.Combine(Application.dataPath, "..", "Documentation", "determinism_replay.txt"), sb.ToString());
+            Assert.Greater(recordedActions, 0, "nothing was recorded; the probe is broken");
+            Assert.AreEqual(-1, first, sb.ToString());
         }
     }
 }

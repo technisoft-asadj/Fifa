@@ -1,0 +1,2 @@
+Replay probe: seed 42, 1/60 step, 900 frames. Recorded 22 players, 9 one-shot actions (pass/shot/tackle).
+Replay matched the original in every frame (ball, ball velocity, players, physics steps).

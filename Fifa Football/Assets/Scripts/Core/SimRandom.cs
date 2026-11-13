@@ -1,13 +1,13 @@
 namespace FootballSim.Core
 {
     /// <summary>
-    /// The random source for gameplay decisions (tackle success, shot error, keeper saves, fouls, AI aim). It is a small
-    /// seedable generator so a match can be replayed or run on two machines from the same seed, which UnityEngine.Random
-    /// does not guarantee once other systems also draw from it. Cosmetic randomness (animation variety) may keep using UnityEngine.Random.
+    /// A small seedable random generator (xorshift64*). Instances are independent streams: drawing from one never changes another.
     /// </summary>
-    public static class SimRandom
+    public sealed class RandomStream
     {
-        static ulong state = Initial((int)System.Environment.TickCount);
+        ulong state;
+
+        public RandomStream(int seed) { Seed(seed); }
 
         static ulong Initial(int seed)
         {
@@ -20,11 +20,10 @@ namespace FootballSim.Core
         }
 
         /// <summary>Restart the sequence: the same seed always produces the same numbers.</summary>
-        public static void Seed(int seed) { state = Initial(seed); }
+        public void Seed(int seed) { state = Initial(seed); }
 
-        static ulong Next()
+        ulong Next()
         {
-            // xorshift64*
             state ^= state >> 12;
             state ^= state << 25;
             state ^= state >> 27;
@@ -32,16 +31,35 @@ namespace FootballSim.Core
         }
 
         /// <summary>A float in [0, 1).</summary>
-        public static float Value => (Next() >> 40) * (1f / (1 << 24));
+        public float Value => (Next() >> 40) * (1f / (1 << 24));
 
         /// <summary>A float in [min, max).</summary>
-        public static float Range(float min, float max) { return min + (max - min) * Value; }
+        public float Range(float min, float max) { return min + (max - min) * Value; }
 
         /// <summary>An int in [min, max) like UnityEngine.Random.Range(int, int).</summary>
-        public static int Range(int min, int max)
+        public int Range(int min, int max)
         {
             if (max <= min) return min;
             return min + (int)(Next() % (ulong)(max - min));
         }
+    }
+
+    /// <summary>
+    /// The random sources for gameplay decisions. The main stream drives the simulation (tackle success, shot error, keeper saves,
+    /// fouls). The <see cref="Ai"/> stream drives only the AI's own choices (aim error, clearances), so that replaying recorded
+    /// player inputs without the AI draws exactly the same simulation numbers as the original run. UnityEngine.Random is not
+    /// used for gameplay; cosmetic randomness (animation variety) may keep using it.
+    /// </summary>
+    public static class SimRandom
+    {
+        static readonly RandomStream sim = new RandomStream(System.Environment.TickCount);
+        public static readonly RandomStream Ai = new RandomStream(System.Environment.TickCount ^ 0x5BD1E995);
+
+        /// <summary>Restart both streams: the same seed always produces the same numbers.</summary>
+        public static void Seed(int seed) { sim.Seed(seed); Ai.Seed(seed ^ 0x5BD1E995); }
+
+        public static float Value => sim.Value;
+        public static float Range(float min, float max) { return sim.Range(min, max); }
+        public static int Range(int min, int max) { return sim.Range(min, max); }
     }
 }

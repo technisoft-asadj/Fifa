@@ -76,5 +76,28 @@ namespace FootballSim.Tests
             Assert.AreEqual(4, SimRandom.Range(4, 4));
             Assert.AreEqual(4, SimRandom.Range(4, 2));
         }
+
+        [Test]
+        public void DrawingFromTheAiStreamDoesNotChangeTheSimulationStream()
+        {
+            SimRandom.Seed(77);
+            var plain = new float[10];
+            for (int i = 0; i < plain.Length; i++) plain[i] = SimRandom.Value;
+
+            SimRandom.Seed(77);
+            var mixed = new float[10];
+            for (int i = 0; i < mixed.Length; i++) { SimRandom.Ai.Range(-1f, 1f); mixed[i] = SimRandom.Value; SimRandom.Ai.Value.ToString(); }
+
+            CollectionAssert.AreEqual(plain, mixed);
+        }
+
+        [Test]
+        public void TheAiStreamIsSeededAndDiffersFromTheSimulationStream()
+        {
+            SimRandom.Seed(5); float a1 = SimRandom.Ai.Value, s1 = SimRandom.Value;
+            SimRandom.Seed(5); float a2 = SimRandom.Ai.Value;
+            Assert.AreEqual(a1, a2);
+            Assert.AreNotEqual(a1, s1);
+        }
     }
 }

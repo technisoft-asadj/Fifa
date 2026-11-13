@@ -34,7 +34,7 @@ namespace FootballSim.FootballAI
         Vector3 Jitter(Vector3 dir)
         {
             float e = Tune.aimErrorDeg;
-            return Quaternion.Euler(0f, SimRandom.Range(-e, e), 0f) * dir;
+            return Quaternion.Euler(0f, SimRandom.Ai.Range(-e, e), 0f) * dir;
         }
 
         void Awake() { pc = GetComponent<PlayerController>(); }
@@ -112,7 +112,7 @@ namespace FootballSim.FootballAI
             bool canStrike = ballDist <= StrikeRange;
             if (canStrike && actionCooldown <= 0f && goalDist < Tune.shootRange * ShootRangeScale && Vector3.Dot(transform.forward, toGoal) > 0.35f)
             {
-                Vector3 target = goal + new Vector3(SimRandom.Range(-2.8f, 2.8f), 0f, 0f);
+                Vector3 target = goal + new Vector3(SimRandom.Ai.Range(-2.8f, 2.8f), 0f, 0f);
                 Input.QueueShoot(Jitter((target - Flat(pos)).normalized), Mathf.Clamp(0.55f + goalDist / 50f, 0.5f, 1f));
                 actionCooldown = 1.2f;
                 return;
@@ -253,7 +253,7 @@ namespace FootballSim.FootballAI
             if (ballDist < 1.7f && actionCooldown <= 0f)
             {
                 // Save / collect and clear to the side-front
-                Vector3 clear = new Vector3(SimRandom.Range(-0.8f, 0.8f), 0f, dir).normalized;
+                Vector3 clear = new Vector3(SimRandom.Ai.Range(-0.8f, 0.8f), 0f, dir).normalized;
                 Input.QueueShoot(clear, 0.6f);
                 actionCooldown = 0.8f;
             }

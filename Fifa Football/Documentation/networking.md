@@ -56,9 +56,14 @@ Decision pending: build a two-client spike (one editor as server, one build as c
 1. Seeded gameplay random source: **done** (`SimRandom`, 7 EditMode tests; tackles, shots, keeper saves, fouls, AI aim).
 2. Fixed-step simulation loop: player movement, AI and match rules still run in `Update` with a variable `Time.deltaTime`. The probe shows aligning to a fixed step helps a lot (see follow-up above).
 3. Replace the Rigidbody ball with a custom fixed-step integrator (drag, Magnus spin, bounce, ground friction), then re-run the probe; success = identical runs.
-4. Command-based input per tick (the `IPlayerInput` seam exists; it needs a tick number and serialisation).
+4. Command-based input per tick: **recording and replay done** (`InputFrame`, `RecordingInput`, `ReplayInput`; see below). Still missing: a tick number instead of a frame number, and serialisation to bytes.
 5. Separate simulation state from presentation (the HUD already listens through events; `PlayerVisual` and audio must stay out of the simulation).
 6. Only then: the two-client spike, a snapshot format, interpolation, and a measured bandwidth figure.
+
+## Input replay (step 4, first half)
+`DeterminismProbeTests.ReplayingRecordedInputsReproducesTheMatch` (gated by `run_balance.flag`) plays 900 frames of AI vs AI at the 1/60 step while `RecordingInput` writes down every read each player's controller makes (move, sprint, pass, shot, tackle, aim, power), then plays the same seed again with the AI switched off and `ReplayInput` feeding the recorded frames. Result (`determinism_replay.txt`): **identical in every frame** (ball, ball velocity, all 22 players, physics step count). The recording held 9 one-shot actions (pass, shot, tackle), so it is a small sample of the action code paths.
+What this establishes: everything the players do reaches the simulation through `IPlayerInput`; the AI has no hidden side channel into movement or kicks. To make it hold, the AI's own random choices (aim error, clearances) moved to a separate stream, `SimRandom.Ai`, so switching the AI off does not shift the numbers the simulation draws (2 EditMode tests).
+What it does not establish: a human player (touch input, camera-relative movement, player switching, which are not in AI-vs-AI), two machines, or a server and client agreeing over a real connection.
 
 ## Open questions
 - Is 20-30 Hz enough for tackles and shots to feel right on a phone connection? Unknown until measured.

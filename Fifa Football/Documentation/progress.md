@@ -446,3 +446,6 @@ Traced the first differing frame between two seeded runs. The ball (PhysX) was r
 
 ## Balance check at the 1/60 step (2026-11-13)
 Two Professional-vs-Professional runs of three matches each (`balance_report_step60.txt`, `balance_report_step60_run2.txt`), compared with `balance_report_tuning10_keepers.txt` (0.02 step). Run 1: 6 goals, 33 shots, 10 saves, 0 offsides, no assists credited. Run 2: 4 goals, 33 shots, 8 saves; assists were credited on 2 of 4 goals, so the assist rule works after the `SimClock` change and run 1 was chance. Offsides stay at 0 (KB-018). No sign that ball feel changed; 6 matches is a small sample, and nothing was tried by hand or on a phone.
+
+## Input recording and replay (2026-11-13)
+Added `InputFrame`, `RecordingInput` and `ReplayInput` (Scripts/Input/InputRecording.cs) and a gated probe that records an AI-vs-AI match and replays it from the recorded inputs alone with the AI off: identical in all 900 frames. The AI's random choices now use their own stream (`SimRandom.Ai`, `RandomStream` class) so the simulation's numbers do not depend on whether the AI runs. EditMode 54 (2 new). Not covered: human/touch input, player switching, two devices, real network. Report: `determinism_replay.txt`.
