@@ -452,3 +452,6 @@ Added `InputFrame`, `RecordingInput` and `ReplayInput` (Scripts/Input/InputRecor
 
 ## Wire format sketch (2026-11-13)
 `NetCodec` encodes a match snapshot in 174 bytes (22 players, ball, score, clock) and an input frame in 5 bytes; `SnapshotCapture` fills a snapshot from the live match. Estimate: 4.0 KB/s at 20 Hz, 6.1 KB/s at 30 Hz including UDP/IP headers, against the 20 KB/s target. 4 new EditMode tests (round trip within quantisation, size under the target, input round trip) and 1 PlayMode test (live match positions survive encoding). Nothing is sent over a network yet. Details in `networking.md`.
+
+## Client interpolation (2026-11-13)
+`SnapshotInterpolator` plus a loopback probe: with 20 Hz snapshots and a 100 ms render delay the client picture stayed within 0.11 m (players) and 0.22 m (ball) of the server's truth in a 15 s AI match, mean errors a few millimetres. No loss or jitter simulated; local-player prediction not built. 7 EditMode tests. See `networking.md`.

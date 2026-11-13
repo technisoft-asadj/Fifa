@@ -10,6 +10,7 @@ using FootballSim.Core;
 using FootballSim.FootballAI;
 using FootballSim.Inputs;
 using FootballSim.Match;
+using FootballSim.Net;
 using FootballSim.Players;
 
 namespace FootballSim.Tests
@@ -202,6 +203,67 @@ namespace FootballSim.Tests
             File.WriteAllText(Path.Combine(Application.dataPath, "..", "Documentation", "determinism_replay.txt"), sb.ToString());
             Assert.Greater(recordedActions, 0, "nothing was recorded; the probe is broken");
             Assert.AreEqual(-1, first, sb.ToString());
+        }
+
+        /// <summary>Server snapshots every 3rd frame (20 Hz) go through encode, decode and the interpolator; the client draws 6 frames (100 ms) in the past. Measures how far that picture is from the truth at the same moment.</summary>
+        [UnityTest, Timeout(600000)]
+        public IEnumerator InterpolatedClientViewStaysCloseToTheServer()
+        {
+            Assume.That(File.Exists(Path.Combine(Application.dataPath, "..", "run_balance.flag")), "create run_balance.flag to run");
+            float originalFixed = Time.fixedDeltaTime;
+            Time.fixedDeltaTime = 1f / 60f;
+            SimRandom.Seed(42);
+            Time.captureFramerate = 60;
+            yield return SceneManager.LoadSceneAsync("FootballPrototype", LoadSceneMode.Single);
+            yield return null;
+            foreach (var t in Object.FindObjectsByType<TeamController>(FindObjectsSortMode.None)) t.ReleaseHumanControl();
+            var players = AllPlayers();
+            var match = Object.FindFirstObjectByType<MatchManager>();
+            var ball = Object.FindFirstObjectByType<BallController>();
+            Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>().BeginMatch();
+
+            const int frames = 900, snapshotEvery = 3, delayFrames = 6;
+            var truth = new System.Collections.Generic.List<WorldSnapshot>();
+            var client = new SnapshotInterpolator();
+            var wire = new byte[NetCodec.SnapshotBytes];
+            var live = new WorldSnapshot(); var received = new WorldSnapshot(); var view = new WorldSnapshot();
+            double sumPlayer = 0, sumBall = 0; float maxPlayer = 0f, maxBall = 0f; int samples = 0; long bytes = 0; int packets = 0;
+            for (int f = 0; f < frames; f++)
+            {
+                yield return null;
+                var now = new WorldSnapshot();
+                SnapshotCapture.Fill(now, (uint)f, match, ball, players);
+                truth.Add(now);
+                if (f % snapshotEvery == 0)
+                {
+                    SnapshotCapture.Fill(live, (uint)f, match, ball, players);
+                    bytes += NetCodec.Write(live, wire); packets++;
+                    NetCodec.Read(wire, 0, received);
+                    client.Add(received);
+                }
+                int shown = f - delayFrames;
+                if (shown < snapshotEvery * 2) continue;
+                client.Sample(shown, view);
+                var real = truth[shown];
+                for (int i = 0; i < WorldSnapshot.PlayerCount; i++)
+                {
+                    float e = new Vector2(view.players[i].x - real.players[i].x, view.players[i].z - real.players[i].z).magnitude;
+                    sumPlayer += e; if (e > maxPlayer) maxPlayer = e;
+                }
+                float be = (view.ballPos - real.ballPos).magnitude;
+                sumBall += be; if (be > maxBall) maxBall = be;
+                samples++;
+            }
+            Time.captureFramerate = 0;
+            Time.fixedDeltaTime = originalFixed;
+
+            var sb = new StringBuilder();
+            sb.AppendLine($"Interpolation probe: AI vs AI, seed 42, {frames} frames at 60 fps, snapshot every {snapshotEvery} frames (20 Hz), client draws {delayFrames} frames (100 ms) behind.");
+            sb.AppendLine($"Sent {packets} snapshots, {bytes} bytes payload ({bytes / (frames / 60.0):F0} B/s before UDP/IP headers).");
+            sb.AppendLine($"Player position error vs the server at the same moment: mean {sumPlayer / (samples * WorldSnapshot.PlayerCount):F4} m, max {maxPlayer:F3} m.");
+            sb.AppendLine($"Ball position error: mean {sumBall / samples:F4} m, max {maxBall:F3} m.");
+            File.WriteAllText(Path.Combine(Application.dataPath, "..", "Documentation", "interpolation_error.txt"), sb.ToString());
+            Assert.Less(maxPlayer, 3f, sb.ToString());
         }
     }
 }

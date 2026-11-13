@@ -74,6 +74,16 @@ What it does not establish: a human player (touch input, camera-relative movemen
 Against the plan.md target of under 20 KB/s per client, the snapshot leaves a large margin before any delta compression. This is arithmetic on an encoder that round-trips in tests; it has not been sent over a real connection, so real overhead (retransmits, relay, mobile networks) is not included. `SnapshotCapture` reads the live match into a snapshot (PlayMode test: positions survive encode and decode within 1 cm).
 Not done: header and versioning, delta compression, a tick-numbered input stream, client interpolation, any socket.
 
+## Client interpolation, loopback measurement
+`SnapshotInterpolator` (Scripts/Net) keeps the last 32 snapshots by tick, returns the world at any fractional tick (positions and velocities blended, yaw by the short way round, score and flags switching at the later snapshot), ignores late and duplicate snapshots, and holds the newest one instead of extrapolating. 7 EditMode tests.
+Loopback probe (`InterpolatedClientViewStaysCloseToTheServer`, gated by `run_balance.flag`, output `interpolation_error.txt`): an AI-vs-AI match for 900 frames at 60 fps; every 3rd frame (20 Hz) a snapshot goes through encode and decode into the interpolator; the client view is sampled 6 frames (100 ms) in the past and compared with what the server actually had at that moment.
+| | mean | max |
+|---|---|---|
+| Player position error | 0.003 m | 0.11 m |
+| Ball position error | 0.006 m | 0.22 m |
+Payload was 3480 B/s (300 snapshots), matching the 174-byte estimate before headers.
+Caveats: no packet loss, jitter or reordering was simulated, and the 100 ms delay is added on top of any real network latency, so it counts against the plan's 100 ms input-to-action target; the match was only 15 s of play with few tackles and shots, so the maxima above are the worst case seen in that one run, not a guarantee. Nothing here predicts the local player's own movement, which the client will need so that its own input does not feel 100 ms late.
+
 ## Open questions
 - Is 20-30 Hz enough for tackles and shots to feel right on a phone connection? Unknown until measured.
 - Hosting: dedicated server builds, relay, or player-hosted? Cost and ops not assessed.

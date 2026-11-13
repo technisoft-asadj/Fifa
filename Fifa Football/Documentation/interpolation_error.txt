@@ -1,0 +1,4 @@
+Interpolation probe: AI vs AI, seed 42, 900 frames at 60 fps, snapshot every 3 frames (20 Hz), client draws 6 frames (100 ms) behind.
+Sent 300 snapshots, 52200 bytes payload (3480 B/s before UDP/IP headers).
+Player position error vs the server at the same moment: mean 0.0033 m, max 0.111 m.
+Ball position error: mean 0.0061 m, max 0.218 m.
