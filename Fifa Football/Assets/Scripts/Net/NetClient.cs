@@ -16,6 +16,19 @@ namespace FootballSim.Net
         public int Received { get; private set; }
         public int Dropped { get; private set; }
 
+        /// <summary>Set once the server's Welcome arrives: which player this client controls and the token that proves it.</summary>
+        public bool Joined { get; private set; }
+        public bool ServerFull { get; private set; }
+        public int PlayerIndex { get; private set; }
+        public uint Token { get; private set; }
+        bool wantsJoin; float nextJoin;
+
+        /// <summary>Asks the server for a player slot; repeats once a second until it answers.</summary>
+        public void Join() { wantsJoin = true; nextJoin = 0f; }
+
+        /// <summary>Sends input for the player the server assigned. Does nothing before the Welcome arrives.</summary>
+        public void SendInput(FootballSim.Inputs.InputFrame frame) { if (Joined) SendInput(PlayerIndex, Token, frame); }
+
         public void Connect(IPEndPoint serverEndPoint)
         {
             server = serverEndPoint;
@@ -52,8 +65,15 @@ namespace FootballSim.Net
                 endpoint.Send(new byte[] { NetCodec.HelloPacket }, 1, server);
                 nextHello = Time.unscaledTime + 1f;
             }
+            if (wantsJoin && !Joined && !ServerFull && Time.unscaledTime >= nextJoin)
+            {
+                endpoint.Send(new byte[] { NetCodec.JoinPacket }, 1, server);
+                nextJoin = Time.unscaledTime + 1f;
+            }
             while (endpoint.TryReceive(rx, out int n, out System.Net.EndPoint from))
             {
+                if (NetCodec.TryReadWelcome(rx, n, out int idx, out uint token)) { PlayerIndex = idx; Token = token; Joined = true; continue; }
+                if (n == 1 && rx[0] == NetCodec.FullPacket) { ServerFull = true; continue; }
                 if (n != NetCodec.SnapshotBytes) continue; // not a snapshot
                 NetCodec.Read(rx, 0, incoming);
                 if (Buffer.Add(incoming)) Received++; else Dropped++;

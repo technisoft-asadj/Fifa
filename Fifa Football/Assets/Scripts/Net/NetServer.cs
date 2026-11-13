@@ -33,6 +33,13 @@ namespace FootballSim.Net
         public int InputStale { get; private set; }
 
         readonly Dictionary<int, RemoteInput> remotes = new Dictionary<int, RemoteInput>();
+        readonly List<int> freeSlots = new List<int>();
+        readonly Dictionary<IPEndPoint, int> assigned = new Dictionary<IPEndPoint, int>();
+        readonly byte[] welcome = new byte[NetCodec.WelcomeBytes];
+        public int JoinsRefused { get; private set; }
+
+        /// <summary>Player indices that joining clients may be given, in order. A client that sends Join gets the next free one (the same one again if it asks twice).</summary>
+        public void OfferRemoteSlots(params int[] playerIndices) { freeSlots.AddRange(playerIndices); }
 
         /// <summary>Hands one player (index into the players list given to Init) to network control: his input now comes from client input packets.</summary>
         public RemoteInput RegisterRemote(int playerIndex)
@@ -61,6 +68,24 @@ namespace FootballSim.Net
                 if (rx[0] == NetCodec.HelloPacket)
                 {
                     if (!clients.Contains(ip)) clients.Add(ip);
+                }
+                else if (rx[0] == NetCodec.JoinPacket)
+                {
+                    if (!clients.Contains(ip)) clients.Add(ip);
+                    if (!assigned.TryGetValue(ip, out int slot))
+                    {
+                        if (freeSlots.Count == 0)
+                        {
+                            JoinsRefused++;
+                            endpoint.Send(new byte[] { NetCodec.FullPacket }, 1, ip);
+                            continue;
+                        }
+                        slot = freeSlots[0]; freeSlots.RemoveAt(0);
+                        RegisterRemote(slot);
+                        assigned[ip] = slot;
+                    }
+                    int welcomeLen = NetCodec.WriteWelcome(welcome, slot, remotes[slot].Token);
+                    endpoint.Send(welcome, welcomeLen, ip);
                 }
                 else if (NetCodec.TryReadInputPacket(rx, n, out int index, out uint token, out ushort sequence, out var frame))
                 {

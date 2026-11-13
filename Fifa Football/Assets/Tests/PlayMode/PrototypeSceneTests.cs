@@ -156,6 +156,80 @@ namespace FootballSim.Tests
         }
 
         [UnityTest]
+        public IEnumerator JoiningClientsGetDistinctPlayersAndTheirTokensAndTheThirdIsTurnedAway()
+        {
+            yield return LoadScene();
+            var match = Object.FindFirstObjectByType<MatchManager>();
+            var ball = Object.FindFirstObjectByType<BallController>();
+            var teams = new System.Collections.Generic.List<TeamController>(Object.FindObjectsByType<TeamController>(FindObjectsSortMode.None));
+            teams.Sort((x, y) => x.teamId.CompareTo(y.teamId));
+            var players = new System.Collections.Generic.List<PlayerController>();
+            foreach (var t in teams) { t.ReleaseHumanControl(); players.AddRange(t.players); }
+            var server = new GameObject("NetServer").AddComponent<NetServer>();
+            server.Init(match, ball, players, 3);
+            server.OfferRemoteSlots(5, 16);
+            NetClient Make() { var c = new GameObject("NetClient").AddComponent<NetClient>(); c.Connect(server.LocalEndPoint); c.Join(); return c; }
+            var a = Make(); var b = Make(); var c3 = Make();
+            Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>().BeginMatch();
+            Time.captureFramerate = 60;
+            for (int i = 0; i < 20; i++) yield return null;
+
+            Assert.IsTrue(a.Joined && b.Joined, "the first two clients should each get a player");
+            Assert.AreNotEqual(a.PlayerIndex, b.PlayerIndex);
+            Assert.That(new[] { a.PlayerIndex, b.PlayerIndex }, Is.EquivalentTo(new[] { 5, 16 }));
+            Assert.AreNotEqual(a.Token, b.Token);
+            Assert.IsFalse(c3.Joined);
+            Assert.IsTrue(c3.ServerFull);
+            Assert.AreEqual(1, server.JoinsRefused);
+
+            // the assigned identity works: client A drives its own player and not B's
+            int ia = a.PlayerIndex, ib = b.PlayerIndex;
+            float za = players[ia].transform.position.z, zb = players[ib].transform.position.z;
+            float dirA = za > 0f ? -1f : 1f;
+            var run = new FootballSim.Inputs.InputFrame { move = new Vector2(0f, dirA), moveIsWorldSpace = true, sprint = true };
+            for (int i = 0; i < 90; i++) { a.SendInput(run); yield return null; }
+            Time.captureFramerate = 0;
+            Assert.Greater((players[ia].transform.position.z - za) * dirA, 3f, "client A's player should have run");
+            Assert.Less(Mathf.Abs(players[ib].transform.position.z - zb), 3f, "client B's player was not commanded by A");
+        }
+
+        [UnityTest]
+        public IEnumerator ClientViewDrawsTheServersPlayersFromSnapshotsOnly()
+        {
+            yield return LoadScene();
+            var match = Object.FindFirstObjectByType<MatchManager>();
+            var ball = Object.FindFirstObjectByType<BallController>();
+            var teams = new System.Collections.Generic.List<TeamController>(Object.FindObjectsByType<TeamController>(FindObjectsSortMode.None));
+            teams.Sort((x, y) => x.teamId.CompareTo(y.teamId));
+            var players = new System.Collections.Generic.List<PlayerController>();
+            foreach (var t in teams) { t.ReleaseHumanControl(); players.AddRange(t.players); }
+            var server = new GameObject("NetServer").AddComponent<NetServer>();
+            server.Init(match, ball, players, 3);
+            var client = new GameObject("NetClient").AddComponent<NetClient>();
+            client.Connect(server.LocalEndPoint);
+            var viewGo = new GameObject("NetView");
+            viewGo.transform.position = new Vector3(500f, 0f, 0f); // drawn far from the real pitch so the two cannot be confused
+            var view = viewGo.AddComponent<NetClientView>();
+            view.client = client;
+            Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>().BeginMatch();
+
+            Time.captureFramerate = 60;
+            for (int i = 0; i < 240; i++) yield return null;
+            Time.captureFramerate = 0;
+
+            Assert.AreEqual(WorldSnapshot.PlayerCount, view.Bodies.Length);
+            Assert.GreaterOrEqual(client.Received, 40);
+            // every drawn body sits near the real player (the view lags ~100 ms, so allow the distance a sprinter covers in that time)
+            for (int i = 0; i < players.Count; i++)
+            {
+                Vector3 drawn = view.Bodies[i].position - viewGo.transform.position;
+                Vector3 real = players[i].transform.position;
+                Assert.Less(new Vector2(drawn.x - real.x, drawn.z - real.z).magnitude, 4f, $"player {i}");
+            }
+            Assert.IsNull(view.Bodies[0].GetComponent<Collider>(), "display capsules must not have colliders");
+        }
+
+        [UnityTest]
         public IEnumerator SceneHasNoMissingScripts()
         {
             yield return LoadScene();

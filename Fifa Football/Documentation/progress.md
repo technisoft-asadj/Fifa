@@ -470,3 +470,6 @@ Added `InputFrame`, `RecordingInput` and `ReplayInput` (Scripts/Input/InputRecor
 
 ## Input packet hardening (2026-11-13)
 Input packets now carry a per-player random session token and a 16-bit sequence number (13 bytes). Wrong token or unregistered player: dropped and counted; repeated or older sequence: ignored and counted. EditMode 80/80 (4 new). Token is clear text and brute-forceable, with no handshake to hand it to a client: this is a first layer, not security. See `networking.md`.
+
+## Join handshake and client view (2026-11-13)
+Clients now join, get a player index and token from the server (distinct per client; the third is refused as Full), and can draw the match from snapshots alone (`NetClientView`). 2 PlayMode tests; EditMode 80/80. No timeout for vanished clients, no join approval, loopback only. See `networking.md`.

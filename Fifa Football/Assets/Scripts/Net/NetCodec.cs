@@ -34,6 +34,28 @@ namespace FootballSim.Net
         public const int InputBytes = 5;
         /// <summary>First byte of a datagram client to server: 1 = hello, 2 = input (then player index, then an input frame).</summary>
         public const byte HelloPacket = 1, InputPacket = 2;
+        /// <summary>Join (client to server, 1 byte) asks for a player slot. Welcome (server to client) = type, player index, 4-byte token. Full = the server has no free slot.
+        /// Snapshots have no type byte; the client tells them apart by length (<see cref="SnapshotBytes"/>), so no other server-to-client datagram may have that length.</summary>
+        public const byte JoinPacket = 3, WelcomePacket = 4, FullPacket = 5;
+        public const int WelcomeBytes = 6;
+
+        public static int WriteWelcome(byte[] b, int playerIndex, uint token)
+        {
+            int o = 0;
+            b[o++] = WelcomePacket; b[o++] = (byte)playerIndex;
+            PutUInt(b, ref o, token);
+            return o;
+        }
+
+        public static bool TryReadWelcome(byte[] b, int length, out int playerIndex, out uint token)
+        {
+            playerIndex = 0; token = 0;
+            if (length != WelcomeBytes || b[0] != WelcomePacket) return false;
+            int o = 1;
+            playerIndex = b[o++];
+            token = GetUInt(b, ref o);
+            return true;
+        }
         /// <summary>Input datagram: type, player index, 4-byte session token, 2-byte sequence number, input frame.</summary>
         public const int InputPacketBytes = 1 + 1 + 4 + 2 + InputBytes;
 
