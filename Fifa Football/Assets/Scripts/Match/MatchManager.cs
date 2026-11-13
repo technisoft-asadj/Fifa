@@ -14,8 +14,9 @@ namespace FootballSim.Match
         public int minute;
         public string scorer;
         public bool ownGoal;
+        public string assist; // null when unassisted
 
-        public override string ToString() { return $"{minute}'  {(team == 0 ? "HOME" : "AWAY")}  {scorer}{(ownGoal ? " (og)" : "")}"; }
+        public override string ToString() { return $"{minute}'  {(team == 0 ? "HOME" : "AWAY")}  {scorer}{(ownGoal ? " (og)" : "")}{(assist != null ? " (assist " + assist + ")" : "")}"; }
     }
 
     public enum RestartType { None, KickOff, ThrowIn, GoalKick, Corner, FreeKick, Penalty, Offside }
@@ -336,12 +337,19 @@ namespace FootballSim.Match
             if (Finished || resetTimer > 0f) return;
             if (scoringTeam == 0) HomeScore++; else AwayScore++;
             var toucher = ball != null ? ball.LastToucher as PlayerController : null;
+            bool own = toucher != null && toucher.TeamId != scoringTeam;
+            // Assist: a different team-mate touched the ball just before the scorer (within 6 s); never on own goals
+            string assist = null;
+            var prev = ball != null ? ball.PreviousToucher as PlayerController : null;
+            if (!own && toucher != null && prev != null && prev != toucher && prev.TeamId == scoringTeam && Time.time - ball.PreviousTouchTime <= 6f)
+                assist = prev.name;
             Goals.Add(new GoalRecord
             {
                 team = scoringTeam,
                 minute = Mathf.Max(1, Mathf.CeilToInt(GameMinute)),
                 scorer = toucher != null ? toucher.name : "Unknown",
-                ownGoal = toucher != null && toucher.TeamId != scoringTeam
+                ownGoal = own,
+                assist = assist
             });
             Debug.Log($"GOAL! Home {HomeScore} - {AwayScore} Away  ({GameMinute:0}')");
             resetTimer = 3f;
