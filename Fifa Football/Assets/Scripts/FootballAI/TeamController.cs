@@ -140,8 +140,24 @@ namespace FootballSim.FootballAI
             return best;
         }
 
+        PlayerController passReceiver;
+        float passReceiverUntil;
+        /// <summary>The team-mate an AI pass was aimed at; he becomes the chaser immediately so he runs onto the ball.</summary>
+        public void SetPassReceiver(PlayerController receiver, float seconds)
+        {
+            passReceiver = receiver;
+            passReceiverUntil = Time.time + seconds;
+        }
+
         void UpdateChaser()
         {
+            if (passReceiver != null && Time.time < passReceiverUntil && IsOn(passReceiver) && passReceiver != Controlled
+                && ball.LastTouchTeam == teamId && !ball.Body.isKinematic)
+            {
+                Chaser = passReceiver;
+                return;
+            }
+            passReceiver = null;
             PlayerController best = null; float bd = float.MaxValue;
             foreach (var p in players)
             {

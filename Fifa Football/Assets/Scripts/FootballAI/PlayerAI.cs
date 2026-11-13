@@ -127,6 +127,7 @@ namespace FootballSim.FootballAI
                 {
                     holdTimer = 0f;
                     DiagPassesQueued++;
+                    team.SetPassReceiver(mate, 2.5f);
                     Vector3 mp = Flat(mate.transform.position + mate.Velocity * 0.5f);
                     float dist = (mp - Flat(pos)).magnitude;
                     float speed = Mathf.Clamp(6f + dist * 0.45f, 8f, pc.Data.MaxPassSpeed);

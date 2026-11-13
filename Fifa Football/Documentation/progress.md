@@ -364,6 +364,7 @@ NOT verified:
   defender (offside line minus 1.5 m), instead of sitting on their formation spot. Goal: give the ball carrier forward
   passing options so passes (and offsides) become more frequent.
 - The balance measurement was still running and the full test suite had not been run on this change when it was committed.
+- Measured afterwards (3 x 5-min AI-vs-AI, Professional): counted passes 69 / 56 / 50 per match (before: 40 / 57 / 47), shots 7-3, 16-10, 30-... mixed, offsides 0-0 in all three, fouls 2 / 4 / 4, no cards, goals 2 / 0 / 1 (one own goal). Passes are only marginally higher (noise-level on 3 matches), offsides still never occur. Support runs alone did not fix KB-018; receivers still do not move onto passes or control them deliberately. The full test suite has still not been re-run on this change.
 
 ## Still unverified from red cards / penalties
 - No red card or penalty has been seen in live play (they depend on random fouls); penalty balance
