@@ -87,6 +87,10 @@ Caveats: no packet loss, jitter or reordering was simulated, and the 100 ms dela
 ## Real sockets (loopback only)
 `UdpEndpoint` (Scripts/Net) wraps a non-blocking .NET UDP socket (no package needed), bound to 127.0.0.1. 4 EditMode tests send a real snapshot and an input frame between two sockets in one process and decode them intact, and show a server replying to whoever sent to it. This proves the encoder output survives a real datagram, nothing more: loopback never loses, delays or reorders packets, nothing was tried on a phone or across a network, and Android socket permissions and mobile NAT are untested. Transport decision (own UDP vs Unity Transport/NGO vs relay) is still open; this path costs no dependency but leaves connection handling, reliability for events (goals, cards) and NAT traversal to be written.
 
+## In-process server and client over UDP (the spike so far)
+`NetServer` (Scripts/Net) sits beside a live match, learns client addresses from any datagram they send ("hello"), and sends a snapshot every 3rd frame (20 Hz at 60 fps) to each. `NetClient` says hello once a second until a snapshot arrives, decodes what it gets and feeds a `SnapshotInterpolator`. PlayMode test `ClientReceivesTheLiveMatchOverARealSocket`: an AI-vs-AI match for 300 frames, one client; passes with the client receiving at least 90% of the snapshots sent, and its newest snapshot within 3 m of the server's player 0 (a loose bound: it only catches a broken pipeline, the precise error figures are in the interpolation section).
+Still a spike: loopback only, one process, the server and client share the editor, the client draws nothing yet (no ghost players), no input goes from client to server, there is no reliable channel for events, and no loss or latency is simulated. The next real step is a second process (a build) connecting to an editor server, ideally over Wi-Fi with a phone, which needs hands-on testing I cannot do from here.
+
 ## Open questions
 - Is 20-30 Hz enough for tackles and shots to feel right on a phone connection? Unknown until measured.
 - Hosting: dedicated server builds, relay, or player-hosted? Cost and ops not assessed.

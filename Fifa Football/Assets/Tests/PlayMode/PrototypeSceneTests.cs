@@ -54,6 +54,39 @@ namespace FootballSim.Tests
         }
 
         [UnityTest]
+        public IEnumerator ClientReceivesTheLiveMatchOverARealSocket()
+        {
+            yield return LoadScene();
+            var match = Object.FindFirstObjectByType<MatchManager>();
+            var ball = Object.FindFirstObjectByType<BallController>();
+            var teams = new System.Collections.Generic.List<TeamController>(Object.FindObjectsByType<TeamController>(FindObjectsSortMode.None));
+            teams.Sort((x, y) => x.teamId.CompareTo(y.teamId));
+            var players = new System.Collections.Generic.List<PlayerController>();
+            foreach (var t in teams) { t.ReleaseHumanControl(); players.AddRange(t.players); }
+            Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>().BeginMatch();
+
+            var server = new GameObject("NetServer").AddComponent<NetServer>();
+            server.Init(match, ball, players, 3);
+            var client = new GameObject("NetClient").AddComponent<NetClient>();
+            client.Connect(server.LocalEndPoint);
+
+            Time.captureFramerate = 60;
+            for (int i = 0; i < 300; i++) yield return null;
+            Time.captureFramerate = 0;
+
+            Assert.AreEqual(1, server.ClientCount, "the client's hello never reached the server");
+            Assert.Greater(server.Sent, 60);
+            Assert.GreaterOrEqual(client.Received, server.Sent * 0.9f, $"sent {server.Sent}, received {client.Received}");
+
+            // the newest snapshot the client holds matches the server's world of that moment (within the snapshot interval)
+            var view = new WorldSnapshot();
+            Assert.IsTrue(client.Buffer.Sample(client.Buffer.NewestTick, view));
+            Assert.Greater(view.tick, 0u);
+            Assert.Less(Mathf.Abs(view.players[0].z - players[0].transform.position.z), 3f);
+            Assert.Less(Mathf.Abs(view.players[0].x - players[0].transform.position.x), 3f);
+        }
+
+        [UnityTest]
         public IEnumerator SceneHasNoMissingScripts()
         {
             yield return LoadScene();

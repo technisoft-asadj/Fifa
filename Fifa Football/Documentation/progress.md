@@ -458,3 +458,6 @@ Added `InputFrame`, `RecordingInput` and `ReplayInput` (Scripts/Input/InputRecor
 
 ## UDP loopback (2026-11-13)
 `UdpEndpoint` plus 4 EditMode tests: snapshot and input frame cross a real local socket intact. EditMode 69/69 (PlayMode not re-run: no gameplay code touched). Loopback only; not tried on a device or a network. See `networking.md`.
+
+## In-process UDP server and client (2026-11-13)
+`NetServer` and `NetClient` stream a live match's snapshots over a real loopback UDP socket into the interpolation buffer. One PlayMode test (client receives at least 90% of snapshots sent; newest view near the server's player). Loopback only, nothing drawn, no client input, no loss simulation. A phone or second-process test is the next real step and needs hands-on work. See `networking.md`.
