@@ -1,0 +1,7 @@
+AI vs AI, 5-minute matches (= 90 simulated minutes), 4x speed, difficulty Professional
+Match 1: finished=True  score 0-2  shots 4(2)-3(3)  passes 36-33  poss 49-51  corners 0-1  offsides 0-0  fouls 0-2  yellows 0-0  reds 0-0
+   16'  AWAY  Away_11
+   74'  AWAY  Home_4 (og)
+Match 2: finished=True  score 0-0  shots 7(1)-9(8)  passes 24-32  poss 51-49  corners 0-2  offsides 0-0  fouls 4-0  yellows 0-0  reds 0-0
+Match 3: finished=True  score 1-0  shots 14(7)-16(10)  passes 23-27  poss 45-55  corners 0-0  offsides 0-0  fouls 2-2  yellows 0-1  reds 0-0
+   22'  HOME  Home_10

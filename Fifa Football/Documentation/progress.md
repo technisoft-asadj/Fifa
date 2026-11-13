@@ -327,6 +327,12 @@ NOT verified:
 - Next idea (not done): let non-ball-carriers make forward runs and let the nearest teammate offer a pass, so the ball is passed
   more than dribbled; and let defenders tackle somewhat more often to bring fouls to a realistic count.
 
+### Pass 3 (hold-time 0.7 s, pass cooldown 0.6 s) - small effect
+- 3 matches: passes per team 23-36 (pass 2: 21-32), shots 3-16, fouls 0-4, reds 0, offsides 0. So hold time is NOT the bottleneck.
+- Added static diagnostics in `PlayerAI` (frames with ball, passes queued, times no pass target was found), printed by the
+  balance report, to find the real limit instead of guessing. Result of that diagnostic run: not yet read.
+- The full test suite has not been re-run on pass 3.
+
 ## Still unverified from red cards / penalties
 - No red card or penalty has been seen in live play (they depend on random fouls); penalty balance
   (how often the AI scores) is unknown; not yet in the APK on the phone.

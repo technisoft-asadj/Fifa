@@ -19,8 +19,10 @@ namespace FootballSim.FootballAI
         PlayerController pc;
         float actionCooldown;
         float holdTimer;
+        /// <summary>Diagnostics for balance measurement: frames an AI player had the ball, passes it queued, times no pass target was found.</summary>
+        public static int DiagHasBallFrames, DiagPassesQueued, DiagNoPassTarget;
         // Tuned from the AI-vs-AI balance measurement (see progress.md, KB-018)
-        const float BuildUpPassAfterSeconds = 1.6f;
+        const float BuildUpPassAfterSeconds = 0.7f;
         const float ShootRangeScale = 1.25f;
         float nextThink;
         Vector3 chaseTarget;
@@ -102,17 +104,20 @@ namespace FootballSim.FootballAI
             }
 
             // Pass when pressed, or after holding the ball for a while (build-up play) so the team moves the ball around
+            DiagHasBallFrames++;
             if (actionCooldown <= 0f && (OpponentNear(pos, 3f) || holdTimer > BuildUpPassAfterSeconds))
             {
                 var mate = BestPassTarget(pos);
+                if (mate == null) DiagNoPassTarget++;
                 if (mate != null)
                 {
                     holdTimer = 0f;
+                    DiagPassesQueued++;
                     Vector3 mp = Flat(mate.transform.position + mate.Velocity * 0.5f);
                     float dist = (mp - Flat(pos)).magnitude;
                     float speed = Mathf.Clamp(6f + dist * 0.45f, 8f, pc.Data.MaxPassSpeed);
                     Input.QueuePass(Jitter((mp - Flat(pos)).normalized), speed / pc.Data.MaxPassSpeed);
-                    actionCooldown = 1.0f;
+                    actionCooldown = 0.6f;
                     return;
                 }
             }
