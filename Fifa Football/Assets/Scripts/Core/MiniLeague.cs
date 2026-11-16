@@ -64,7 +64,7 @@ namespace FootballSim.Core
                 string verdict = points >= 8 ? "CHAMPIONS" : points >= 5 ? "RUNNERS-UP" : "BETTER LUCK NEXT TIME";
                 return $"League finished: {points}/{Matches * 3} points  -  {verdict}";
             }
-            return $"League: {round}/{Matches} played, {points} points";
+            return $"League: {round}/{Matches} played, {Season.PointsText(points)}";
         }
 
         /// <summary>Forgets the in-memory state so the next read loads from storage again, as after a fresh launch. For tests.</summary>

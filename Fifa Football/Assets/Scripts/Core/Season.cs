@@ -125,14 +125,17 @@ namespace FootballSim.Core
             return t.Count;
         }
 
+        /// <summary>"1 point", "0 points", "3 points".</summary>
+        public static string PointsText(int n) { return n == 1 ? "1 point" : n + " points"; }
+
         public static string Summary()
         {
             if (!Active) return "";
             int pos = Position();
             string place = pos == 1 ? "1st" : pos == 2 ? "2nd" : pos == 3 ? "3rd" : pos + "th";
             var me = Table().Find(r => r.name == Names[0]);
-            if (Over) return pos == 1 ? $"SEASON OVER  -  CHAMPIONS ({me.points} pts)" : $"Season over: {place} with {me.points} points";
-            return $"Season: {results.Count}/{Rounds} played, {place} with {me.points} points. Next: {CurrentOpponentName}";
+            if (Over) return pos == 1 ? $"SEASON OVER  -  CHAMPIONS ({me.points} pts)" : $"Season over: {place} with {PointsText(me.points)}";
+            return $"Season: {results.Count}/{Rounds} played, {place} with {PointsText(me.points)}. Next: {CurrentOpponentName}";
         }
 
         /// <summary>The table as text, one line per team, for a panel or a log.</summary>

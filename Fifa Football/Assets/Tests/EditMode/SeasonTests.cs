@@ -104,6 +104,18 @@ namespace FootballSim.Tests
         }
 
         [Test]
+        public void OnePointIsNotWrittenAsOnePoints()
+        {
+            Assert.AreEqual("1 point", Season.PointsText(1));
+            Assert.AreEqual("0 points", Season.PointsText(0));
+            Assert.AreEqual("4 points", Season.PointsText(4));
+            Season.Start(2);
+            Season.RecordResult(1, 1); // a draw is one point for you
+            StringAssert.Contains("with 1 point.", Season.Summary());
+            StringAssert.DoesNotContain("1 points", Season.Summary());
+        }
+
+        [Test]
         public void ASeasonInProgressSurvivesARestartAndGivesTheSameTable()
         {
             Season.Start(12345);

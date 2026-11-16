@@ -477,8 +477,8 @@ namespace FootballSim.UI
             touchOpacityLabel = Label("TouchOpacity", pp, 32, TextAnchor.MiddleCenter, new Vector2(0, 30), new Vector2(520, 50));
             Button(pp, "-", new Vector2(-330, 30), new Vector2(90, 70), () => AdjustTouch(0f, -0.1f), btnCol);
             Button(pp, "+", new Vector2(330, 30), new Vector2(90, 70), () => AdjustTouch(0f, 0.1f), btnCol);
-            Button(pp, "RESUME", new Vector2(-215, -120), new Vector2(390, 90), TogglePause, Accent);
-            var soundBtn = Button(pp, "", new Vector2(215, -120), new Vector2(390, 90), ToggleSound, btnCol);
+            Button(pp, "RESUME", new Vector2(-205, -120), new Vector2(370, 90), TogglePause, Accent);
+            var soundBtn = Button(pp, "", new Vector2(205, -120), new Vector2(370, 90), ToggleSound, btnCol);
             soundLabel = soundBtn.GetComponentInChildren<Text>();
             RefreshSoundLabel();
             Button(pp, "RESTART", new Vector2(0, -230), new Vector2(420, 80), Rematch, btnCol);

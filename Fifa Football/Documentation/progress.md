@@ -541,3 +541,8 @@ Limits: this is a season ladder, not a career: no transfers, squads, player grow
 - Captured the start screen in play mode (editor, 2:1 game view). Found and fixed: the "Reset progress" label was wider than its button (font 22 now, button and record label moved 25 px inward so they sit inside the panel), and PlayMode tests that play a match to full time were leaking results into the saved career record (the screen showed W1 GF1 with no match played). `PrototypeSceneTests` now clears `CareerRecord` in SetUp and TearDown.
 - Still not seen: a phone-shaped screen (portrait or notch), the other modes' labels, the full-time and pause panels. Remaining known leak: some tests save a match difficulty into the editor's saved settings (harmless to the build, visible only in the editor).
 - Totals: EditMode 153/153, PlayMode 71/71 (5 gated probes Inconclusive).
+
+## Screens checked in the editor, two more fixes
+- Captured in play mode (editor wide view): the Season mode label, the pause panel and the full-time panel. Fixed: "1 points" in the season and league summaries (`Season.PointsText`, test `OnePointIsNotWrittenAsOnePoints`) and the pause panel's RESUME and SOUND buttons touching the panel edges (370 wide, 20 margin).
+- Still not seen: a true landscape phone shape (the editor's Game view pane overrode the size I set), touch controls (none appear without a touchscreen), League, Tournament and Training labels, the shoot-out text on the full-time panel.
+- Totals: EditMode 154/154; PlayMode last full run 71/71, plus the pause and season tests re-run after the last change (3/3).
