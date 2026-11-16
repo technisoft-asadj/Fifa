@@ -17,7 +17,7 @@ namespace FootballSim.Inputs
         [Range(0.5f, 1.6f)] public float controlScale = 1f;
         [Range(0.2f, 1f)] public float controlOpacity = 0.6f;
 
-        const string PrefScale = "touch.scale", PrefOpacity = "touch.opacity";
+        public const string PrefScale = "touch.scale", PrefOpacity = "touch.opacity";
 
         Canvas canvas;
         Joystick joystick;

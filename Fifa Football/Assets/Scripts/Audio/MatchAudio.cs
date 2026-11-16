@@ -7,7 +7,7 @@ namespace FootballSim.Audio
     /// <summary>Plays the synthesised sound effects for match events. One 2D AudioSource, no assets.</summary>
     public class MatchAudio : MonoBehaviour
     {
-        const string PrefKey = "sound_on";
+        public const string PrefKey = "sound_on";
 
         MatchManager match;
         AudioSource source;

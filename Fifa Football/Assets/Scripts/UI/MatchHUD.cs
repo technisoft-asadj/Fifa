@@ -79,6 +79,7 @@ namespace FootballSim.UI
             // Keyboard hint is noise on a phone; show it only when there is no touchscreen.
             bool touchDevice = Application.isMobilePlatform || UnityEngine.InputSystem.Touchscreen.current != null;
             if (hintText.gameObject.activeSelf == touchDevice) hintText.gameObject.SetActive(!touchDevice);
+            ExpireResetLabel();
             // Pause: on-screen button, Esc, or the Android back button (reported as Escape).
             bool inMenu = startPanel.activeSelf || fullTimePanel.activeSelf;
             if (pauseButton.activeSelf == inMenu) pauseButton.SetActive(!inMenu);
@@ -299,6 +300,35 @@ namespace FootballSim.UI
 
         Difficulty savedDifficulty = Difficulty.Professional;
 
+        // ---- reset saved progress: two taps within a few seconds, so a stray touch cannot erase a league ----
+        Text resetLabel;
+        float resetArmedUntil = -1f;
+        const float ResetConfirmSeconds = 4f;
+        public bool ResetArmed => Time.unscaledTime < resetArmedUntil;
+
+        /// <summary>First tap arms the button; a second tap within a few seconds ends any league, tournament, season or training and returns to a single match.</summary>
+        public void TapResetProgress()
+        {
+            if (!ResetArmed)
+            {
+                resetArmedUntil = Time.unscaledTime + ResetConfirmSeconds;
+                if (resetLabel != null) resetLabel.text = "Tap again to erase";
+                return;
+            }
+            bool wasMode = MiniLeague.Active || Tournament.Active || Season.Active || TrainingMode.Active;
+            SaveData.ResetProgress();
+            resetArmedUntil = -1f;
+            if (wasMode)
+            {
+                var s = MatchSettingsStore.Load(selectedMinutes, FormationData.PresetNames.Length, (int)savedDifficulty, System.Enum.GetValues(typeof(Difficulty)).Length);
+                AiTuning.CurrentDifficulty = (Difficulty)s.difficulty;
+            }
+            if (resetLabel != null) resetLabel.text = "Progress erased";
+            RefreshMode();
+        }
+
+        void ExpireResetLabel() { if (resetLabel != null && !ResetArmed && resetLabel.text == "Tap again to erase") resetLabel.text = "Reset progress"; }
+
         void RefreshMode()
         {
             if (modeLabel != null)
@@ -392,6 +422,8 @@ namespace FootballSim.UI
             Button(st, "<", new Vector2(-370, -290), new Vector2(90, 70), ToggleLeagueMode, btnCol);
             Button(st, ">", new Vector2(370, -290), new Vector2(90, 70), ToggleLeagueMode, btnCol);
             Button(st, "PLAY", new Vector2(0, -385), new Vector2(420, 110), BeginMatch, Accent);
+            var resetButton = Button(st, "Reset progress", new Vector2(-370, -385), new Vector2(190, 60), TapResetProgress, btnCol);
+            resetLabel = resetButton.GetComponentInChildren<Text>();
             var saved = MatchSettingsStore.Load(selectedMinutes, FormationData.PresetNames.Length, (int)AiTuning.CurrentDifficulty, System.Enum.GetValues(typeof(Difficulty)).Length);
             selectedFormation = saved.formation;
             AiTuning.CurrentDifficulty = (Difficulty)saved.difficulty;

@@ -416,6 +416,28 @@ namespace FootballSim.Tests
         }
 
         [UnityTest]
+        public IEnumerator ResetProgressNeedsTwoTapsAndThenEndsTheRunningMode()
+        {
+            yield return LoadScene();
+            FootballSim.Core.SaveData.ResetProgress();
+            var hud = Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>();
+            try
+            {
+                hud.ToggleLeagueMode(); // single -> league
+                Assert.IsTrue(FootballSim.Core.MiniLeague.Active);
+                hud.TapResetProgress();
+                Assert.IsTrue(hud.ResetArmed, "one tap only arms");
+                Assert.IsTrue(FootballSim.Core.MiniLeague.Active, "one tap must not erase anything");
+                hud.TapResetProgress();
+                Assert.IsFalse(FootballSim.Core.MiniLeague.Active, "the second tap erases");
+                Assert.IsFalse(hud.ResetArmed);
+                hud.TapResetProgress(); // a new first tap, not a second one
+                Assert.IsTrue(hud.ResetArmed);
+            }
+            finally { FootballSim.Core.SaveData.ResetProgress(); }
+        }
+
+        [UnityTest]
         public IEnumerator SeasonFullTimeRecordsOneResultAndTheTableUpdates()
         {
             yield return LoadScene();
