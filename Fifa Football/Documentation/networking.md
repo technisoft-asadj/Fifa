@@ -128,6 +128,9 @@ Limits: addresses are trusted as sent (UDP source can be spoofed); a client whos
 `AdaptiveDelay` (owned by `NetClient`, fed on every accepted snapshot) compares each arrival gap with the server tick gap at real time, keeps a running mean of the error (weight 1/16), and returns delay = snapshot gap + 4 x mean error, clamped to 6..30 ticks. `NetClientView.adaptive` (default true) uses it; the render clock eases to the new target. EditMode tests (5): minimum with no samples, a clean link stays at 6, +-30 ms alternating jitter pushes it above 12 and never over 30, it comes back down when the link settles, late and repeated ticks are ignored.
 Limits: the margin of 4 and the mean-error estimator are guesses (a spike-heavy link would be better served by a high percentile); tested with synthetic arrival times only, not a real network or phone; mean error also reacts to the host's own frame-time hitches since arrivals are read in `Update`.
 
+### Whole stack over the simulated bad network
+`NetClient.Inbound` (test hook) routes everything the server sends through a `NetworkConditioner` before the client handles it. PlayMode test: 5% loss, 40 ms latency, up to 120 ms jitter (so packets reorder), 600 frames at 60 fps: at least 100 snapshots arrive, the adaptive delay rises above 8 ticks (cap 30), and all 22 drawn bodies end within 8 m of the real players. Only the server-to-client direction is conditioned (client input is not), the thresholds are loose, and it is one seed on one machine.
+
 ## Open questions
 - Is 20-30 Hz enough for tackles and shots to feel right on a phone connection? Unknown until measured.
 - Hosting: dedicated server builds, relay, or player-hosted? Cost and ops not assessed.

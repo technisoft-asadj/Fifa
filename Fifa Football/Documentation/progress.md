@@ -485,3 +485,6 @@ Clients say goodbye (`Leave()`, also on destroy) and the server frees the slot a
 
 ## Adaptive render delay (2026-11-16)
 `AdaptiveDelay` measures arrival jitter and sets the client view's delay between 6 and 30 ticks. EditMode 90/90 (5 new). Constants are guesses; synthetic tests only. See `networking.md`.
+
+## Client over a simulated bad network (2026-11-16)
+`NetClient.Inbound` test hook plus a PlayMode test: with loss, latency and reordering the adaptive delay rises and the view still tracks the match. PlayMode 59 tests (58 passed before the new one, new one passes). Server-to-client direction only. See `networking.md`.

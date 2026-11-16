@@ -230,6 +230,42 @@ namespace FootballSim.Tests
         }
 
         [UnityTest]
+        public IEnumerator ClientOverABadNetworkRaisesItsDelayAndStillDrawsTheMatch()
+        {
+            yield return LoadScene();
+            var match = Object.FindFirstObjectByType<MatchManager>();
+            var ball = Object.FindFirstObjectByType<BallController>();
+            var teams = new System.Collections.Generic.List<TeamController>(Object.FindObjectsByType<TeamController>(FindObjectsSortMode.None));
+            teams.Sort((x, y) => x.teamId.CompareTo(y.teamId));
+            var players = new System.Collections.Generic.List<PlayerController>();
+            foreach (var t in teams) { t.ReleaseHumanControl(); players.AddRange(t.players); }
+            var server = new GameObject("NetServer").AddComponent<NetServer>();
+            server.Init(match, ball, players, 3);
+            var client = new GameObject("NetClient").AddComponent<NetClient>();
+            client.Connect(server.LocalEndPoint);
+            client.Inbound = new NetworkConditioner(7, 0.05f, 40f, 120f); // 5% loss, 40 ms + up to 120 ms jitter (reordering)
+            var viewGo = new GameObject("NetView");
+            viewGo.transform.position = new Vector3(500f, 0f, 0f);
+            var view = viewGo.AddComponent<NetClientView>();
+            view.client = client;
+            Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>().BeginMatch();
+
+            Time.captureFramerate = 60;
+            for (int i = 0; i < 600; i++) yield return null;
+            Time.captureFramerate = 0;
+
+            Assert.GreaterOrEqual(client.Received, 100, "most snapshots still arrive");
+            Assert.Greater(client.Delay.Ticks, 8f, "the measured jitter should have pushed the render delay up from the 6-tick minimum");
+            Assert.LessOrEqual(client.Delay.Ticks, 30f);
+            for (int i = 0; i < players.Count; i++)
+            {
+                Vector3 drawn = view.Bodies[i].position - viewGo.transform.position;
+                Vector3 real = players[i].transform.position;
+                Assert.Less(new Vector2(drawn.x - real.x, drawn.z - real.z).magnitude, 8f, $"player {i}");
+            }
+        }
+
+        [UnityTest]
         public IEnumerator SilentClientIsDroppedItsPlayerGoesBackToTheAiAndTheSlotCanBeReused()
         {
             yield return LoadScene();

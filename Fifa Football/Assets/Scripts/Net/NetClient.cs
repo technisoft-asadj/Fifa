@@ -83,12 +83,23 @@ namespace FootballSim.Net
             }
             while (endpoint.TryReceive(rx, out int n, out System.Net.EndPoint from))
             {
-                if (NetCodec.TryReadWelcome(rx, n, out int idx, out uint token)) { PlayerIndex = idx; Token = token; Joined = true; continue; }
-                if (n == 1 && rx[0] == NetCodec.FullPacket) { ServerFull = true; continue; }
-                if (n != NetCodec.SnapshotBytes) continue; // not a snapshot
-                NetCodec.Read(rx, 0, incoming);
-                if (Buffer.Add(incoming)) { Received++; Delay.OnArrival(Time.unscaledTimeAsDouble, incoming.tick); } else Dropped++;
+                if (Inbound != null) Inbound.Send(rx, n, Time.unscaledTimeAsDouble * 1000.0);
+                else Handle(rx, n);
             }
+            if (Inbound != null)
+                foreach (var d in Inbound.Poll(Time.unscaledTimeAsDouble * 1000.0)) Handle(d, d.Length);
+        }
+
+        /// <summary>Test hook: when set, everything the server sends passes through this simulated bad network before the client sees it.</summary>
+        public NetworkConditioner Inbound;
+
+        void Handle(byte[] data, int n)
+        {
+            if (NetCodec.TryReadWelcome(data, n, out int idx, out uint token)) { PlayerIndex = idx; Token = token; Joined = true; return; }
+            if (n == 1 && data[0] == NetCodec.FullPacket) { ServerFull = true; return; }
+            if (n != NetCodec.SnapshotBytes) return; // not a snapshot
+            NetCodec.Read(data, 0, incoming);
+            if (Buffer.Add(incoming)) { Received++; Delay.OnArrival(Time.unscaledTimeAsDouble, incoming.tick); } else Dropped++;
         }
 
         void OnDestroy()
