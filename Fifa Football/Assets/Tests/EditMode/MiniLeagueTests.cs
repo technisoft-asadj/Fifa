@@ -62,6 +62,47 @@ namespace FootballSim.Tests
         }
 
         [Test]
+        public void ALeagueInProgressSurvivesARestart()
+        {
+            MiniLeague.Start();
+            MiniLeague.RecordResult(2, 0); MiniLeague.RecordResult(1, 1);
+            MiniLeague.ForgetInMemory(); // as if the game was closed and opened again
+            Assert.IsTrue(MiniLeague.Active);
+            Assert.AreEqual(2, MiniLeague.Round);
+            Assert.AreEqual(4, MiniLeague.Points);
+            Assert.AreEqual(2, MiniLeague.Results.Count);
+            Assert.AreEqual(Difficulty.WorldClass, MiniLeague.CurrentOpponent);
+        }
+
+        [Test]
+        public void AFinishedLeagueAndAnAbandonedOneAreRestoredAsTheyWere()
+        {
+            MiniLeague.Start();
+            MiniLeague.RecordResult(1, 0); MiniLeague.RecordResult(1, 0); MiniLeague.RecordResult(1, 0);
+            MiniLeague.ForgetInMemory();
+            Assert.IsTrue(MiniLeague.Finished);
+            Assert.AreEqual(9, MiniLeague.Points);
+            MiniLeague.Abandon();
+            MiniLeague.ForgetInMemory();
+            Assert.IsFalse(MiniLeague.Active);
+            Assert.AreEqual(0, MiniLeague.Round);
+        }
+
+        [Test]
+        public void NonsenseSavedDataIsDiscarded()
+        {
+            UnityEngine.PlayerPrefs.SetInt(MiniLeague.ActiveKey, 1);
+            UnityEngine.PlayerPrefs.SetInt(MiniLeague.RoundKey, 2);
+            UnityEngine.PlayerPrefs.SetInt(MiniLeague.PointsKey, 99); // impossible after two matches
+            UnityEngine.PlayerPrefs.SetString(MiniLeague.ResultsKey, "1-0 vs Amateur|1-0 vs Professional");
+            MiniLeague.ForgetInMemory();
+            UnityEngine.TestTools.LogAssert.Expect(UnityEngine.LogType.Warning, "Saved league data did not make sense and was discarded.");
+            Assert.IsFalse(MiniLeague.Active);
+            MiniLeague.ForgetInMemory();
+            Assert.IsFalse(MiniLeague.Active, "the bad data was cleared, not left to trip again");
+        }
+
+        [Test]
         public void PerfectLeagueIsChampionsAndPoorOneIsNot()
         {
             MiniLeague.Start();

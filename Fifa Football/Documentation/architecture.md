@@ -5,7 +5,7 @@ All gameplay code is in the `FootballSim.Runtime` assembly (`Assets/Scripts`). T
 ## Modules
 | Folder / namespace | Files | Responsibility |
 |---|---|---|
-| `Core` | `Pitch`, `Difficulty` (+`AiTuning`), `MatchSettingsStore`, `KitPalette`, `MiniLeague`, `AppBootstrap` | Pitch dimensions (home attacks +Z in the first half), AI difficulty tuning table, saved start-screen choices (PlayerPrefs), kit colours, the 3-match mini-league state (static, not saved), 60 fps / quality bootstrap. |
+| `Core` | `Pitch`, `Difficulty` (+`AiTuning`), `MatchSettingsStore`, `KitPalette`, `MiniLeague`, `AppBootstrap` | Pitch dimensions (home attacks +Z in the first half), AI difficulty tuning table, saved start-screen choices (PlayerPrefs), kit colours, the 3-match mini-league state (static, saved to PlayerPrefs), 60 fps / quality bootstrap. |
 | `Ball` | `BallController`, `BallSettings` | Rigidbody ball with custom drag, Magnus spin, rolling resistance; last toucher and previous toucher (for assists); `Freeze` for restarts (kinematic; velocity writes are skipped while frozen). |
 | `Players` | `PlayerController`, `PlayerData`, `PlayerVisual`, `StaminaModel`, `GoalkeeperModel` | Locomotion, dribble touch, pass, shoot, tackle (a keeper's tackle button dives and he saves shots), stamina; procedural player model and animation (`PlayerVisual.SetKit` recolours); pure rule classes for stamina and keeper saves (unit tested). |
 | `Input` | `PlayerInputSource`, `TouchControls` (+`AIInputSource`) | `IPlayerInput` implementations: keyboard/gamepad, on-screen touch controls, AI output (one-shot actions consumed on read). |

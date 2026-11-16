@@ -500,3 +500,6 @@ Input for a joined slot is accepted only from the address that joined; a copied 
 
 ## Listening beyond loopback (2026-11-16)
 Server can opt in to all interfaces and a fixed port; clients pick the socket to match the server address. Default unchanged (loopback). EditMode 93/93 (2 new). Never crossed a real LAN; no rate limit or join approval, so not safe to expose. See `networking.md`.
+
+## League saved between sessions (2026-11-16)
+`MiniLeague` now saves to PlayerPrefs after every change (start, result, abandon) and restores on first use, so closing the game mid-league no longer abandons it. Saved data that cannot be right (counts or points that do not add up) is discarded with a warning and cleared. EditMode 96/96 (3 new: restart mid-league, finished/abandoned restore, nonsense data). Not tried on a phone; PlayerPrefs on Android is the normal shared-preferences store, but I have not confirmed it survives an app update or a 'clear cache'.
