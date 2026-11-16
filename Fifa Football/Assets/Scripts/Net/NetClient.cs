@@ -13,6 +13,8 @@ namespace FootballSim.Net
         float nextHello;
 
         public readonly SnapshotInterpolator Buffer = new SnapshotInterpolator();
+        /// <summary>Measures arrival jitter and suggests how far behind to draw.</summary>
+        public readonly AdaptiveDelay Delay = new AdaptiveDelay();
         public int Received { get; private set; }
         public int Dropped { get; private set; }
 
@@ -85,7 +87,7 @@ namespace FootballSim.Net
                 if (n == 1 && rx[0] == NetCodec.FullPacket) { ServerFull = true; continue; }
                 if (n != NetCodec.SnapshotBytes) continue; // not a snapshot
                 NetCodec.Read(rx, 0, incoming);
-                if (Buffer.Add(incoming)) Received++; else Dropped++;
+                if (Buffer.Add(incoming)) { Received++; Delay.OnArrival(Time.unscaledTimeAsDouble, incoming.tick); } else Dropped++;
             }
         }
 

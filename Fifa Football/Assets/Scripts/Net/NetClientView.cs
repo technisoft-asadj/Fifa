@@ -12,6 +12,8 @@ namespace FootballSim.Net
         public NetClient client;
         /// <summary>How many server ticks behind the newest snapshot to draw. 6 ticks is 100 ms at 60 ticks per second.</summary>
         public float delayTicks = 6f;
+        /// <summary>When true the delay comes from the client's measured arrival jitter (never below 6 ticks) and <see cref="delayTicks"/> is ignored.</summary>
+        public bool adaptive = true;
 
         Transform[] bodies;
         Transform ballBody;
@@ -46,7 +48,8 @@ namespace FootballSim.Net
         void LateUpdate()
         {
             if (client == null || client.Buffer.Count == 0) return;
-            float t = clock.Step(Time.unscaledDeltaTime, client.Buffer.NewestTick - delayTicks);
+            float delay = adaptive ? client.Delay.Ticks : delayTicks;
+            float t = clock.Step(Time.unscaledDeltaTime, client.Buffer.NewestTick - delay);
             if (!client.Buffer.Sample(t, view)) return;
             for (int i = 0; i < bodies.Length; i++)
             {

@@ -482,3 +482,6 @@ A client silent for more than 5 s (configurable) is dropped: its player goes bac
 
 ## Leave message (2026-11-16)
 Clients say goodbye (`Leave()`, also on destroy) and the server frees the slot at once; a stranger's Leave is ignored; the timeout remains the fallback. 1 PlayMode test; EditMode unchanged 85/85. Address not authenticated. See `networking.md`.
+
+## Adaptive render delay (2026-11-16)
+`AdaptiveDelay` measures arrival jitter and sets the client view's delay between 6 and 30 ticks. EditMode 90/90 (5 new). Constants are guesses; synthetic tests only. See `networking.md`.
