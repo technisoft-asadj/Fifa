@@ -476,3 +476,6 @@ Clients now join, get a player index and token from the server (distinct per cli
 
 ## Client timeout and keep-alive (2026-11-16)
 A client silent for more than 5 s (configurable) is dropped: its player goes back to the AI, the slot is re-offered with a fresh token. Clients send a hello every second as keep-alive. 1 PlayMode test. No reconnect that keeps identity, no leave message, loopback only. See `networking.md`.
+
+## Smooth render clock (2026-11-16)
+`RenderClock` gives the client view a steady playback time that eases toward newest-minus-delay and snaps on stalls. EditMode 85/85 (5 new). Constants untuned; no adaptive delay or prediction. See `networking.md`.

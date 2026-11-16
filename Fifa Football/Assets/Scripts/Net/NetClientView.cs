@@ -16,6 +16,7 @@ namespace FootballSim.Net
         Transform[] bodies;
         Transform ballBody;
         readonly WorldSnapshot view = new WorldSnapshot();
+        readonly RenderClock clock = new RenderClock();
 
         public Transform Ball => ballBody;
         public Transform[] Bodies => bodies;
@@ -44,7 +45,9 @@ namespace FootballSim.Net
 
         void LateUpdate()
         {
-            if (client == null || !client.Buffer.Sample(client.Buffer.NewestTick - delayTicks, view)) return;
+            if (client == null || client.Buffer.Count == 0) return;
+            float t = clock.Step(Time.unscaledDeltaTime, client.Buffer.NewestTick - delayTicks);
+            if (!client.Buffer.Sample(t, view)) return;
             for (int i = 0; i < bodies.Length; i++)
             {
                 var p = view.players[i];
