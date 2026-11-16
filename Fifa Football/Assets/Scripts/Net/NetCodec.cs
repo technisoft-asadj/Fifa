@@ -37,6 +37,8 @@ namespace FootballSim.Net
         /// <summary>Join (client to server, 1 byte) asks for a player slot. Welcome (server to client) = type, player index, 4-byte token. Full = the server has no free slot.
         /// Snapshots have no type byte; the client tells them apart by length (<see cref="SnapshotBytes"/>), so no other server-to-client datagram may have that length.</summary>
         public const byte JoinPacket = 3, WelcomePacket = 4, FullPacket = 5;
+        /// <summary>Client to server, 1 byte: the client is leaving; its slot is freed at once instead of after the timeout.</summary>
+        public const byte LeavePacket = 6;
         public const int WelcomeBytes = 6;
 
         public static int WriteWelcome(byte[] b, int playerIndex, uint token)

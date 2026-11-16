@@ -29,6 +29,15 @@ namespace FootballSim.Net
         /// <summary>Sends input for the player the server assigned. Does nothing before the Welcome arrives.</summary>
         public void SendInput(FootballSim.Inputs.InputFrame frame) { if (Joined) SendInput(PlayerIndex, Token, frame); }
 
+        /// <summary>Tells the server we are going so our slot is freed now. Unreliable: if it is lost the server's timeout still frees the slot. Stops hello and join.</summary>
+        public void Leave()
+        {
+            if (endpoint == null) return;
+            endpoint.Send(new byte[] { NetCodec.LeavePacket }, 1, server);
+            wantsJoin = false; Joined = false; left = true;
+        }
+        bool left;
+
         public void Connect(IPEndPoint serverEndPoint)
         {
             server = serverEndPoint;
@@ -59,7 +68,7 @@ namespace FootballSim.Net
 
         void Update()
         {
-            if (endpoint == null) return;
+            if (endpoint == null || left) return;
             if (Time.unscaledTime >= nextHello) // hello once a second doubles as the keep-alive that stops the server timing us out
             {
                 endpoint.Send(new byte[] { NetCodec.HelloPacket }, 1, server);
@@ -80,6 +89,10 @@ namespace FootballSim.Net
             }
         }
 
-        void OnDestroy() { endpoint?.Dispose(); }
+        void OnDestroy()
+        {
+            if (endpoint != null && !left) endpoint.Send(new byte[] { NetCodec.LeavePacket }, 1, server); // polite goodbye when the object goes away
+            endpoint?.Dispose();
+        }
     }
 }

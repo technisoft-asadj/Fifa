@@ -479,3 +479,6 @@ A client silent for more than 5 s (configurable) is dropped: its player goes bac
 
 ## Smooth render clock (2026-11-16)
 `RenderClock` gives the client view a steady playback time that eases toward newest-minus-delay and snaps on stalls. EditMode 85/85 (5 new). Constants untuned; no adaptive delay or prediction. See `networking.md`.
+
+## Leave message (2026-11-16)
+Clients say goodbye (`Leave()`, also on destroy) and the server frees the slot at once; a stranger's Leave is ignored; the timeout remains the fallback. 1 PlayMode test; EditMode unchanged 85/85. Address not authenticated. See `networking.md`.

@@ -116,10 +116,13 @@ Limits: the join has no password or approval, so any process that can reach the 
 ## Client timeout and keep-alive
 The client sends a 1-byte hello once a second at all times (the keep-alive). The server records when it last heard any datagram from each address; a client silent for longer than `clientTimeoutSeconds` (default 5 s, real time) is removed: its player returns to the input he had before (the AI brain), his token is forgotten and the slot goes back to the front of the free list (`ClientsTimedOut` counts these). A client that joins the freed slot gets a new token, so the old one stops working. The timeout must be longer than the one-second keep-alive; a first test with 0.5 s wrongly dropped live clients.
 PlayMode test `SilentClientIsDroppedItsPlayerGoesBackToTheAiAndTheSlotCanBeReused`: a live client is kept, a silent one is dropped, its player is back on the AI, and a new client reuses the slot with a different token.
-Limits: addresses are trusted as sent (UDP source can be spoofed); no explicit leave message; a client whose address changes (mobile network switch) is treated as a new client; loopback only.
+Limits: addresses are trusted as sent (UDP source can be spoofed); a client whose address changes (mobile network switch) is treated as a new client; loopback only.
 
 ## Smooth render clock
 `RenderClock` replaces "newest tick minus delay" as the client view's sample time. It advances at real time (60 ticks/s) and is eased toward that target at 2 per second, so uneven arrival no longer moves the picture; an error above 12 ticks snaps (stall or reconnect). EditMode tests (5): first step starts at the target, runs at real time when the target does, and with a jittery target its per-frame deviation is under a quarter of the raw target's; big jump snaps; reset. Not measured on a real network or a phone; the constants (12 ticks, 2/s) are first guesses. The render delay is still fixed at 6 ticks (adaptive delay not built), and there is no local prediction.
+
+## Leave message
+`NetClient.Leave()` sends a 1-byte Leave (type 6) and stops hello/join; destroying the client object sends one too. The server frees the slot at once (player back to the AI, token forgotten, slot re-offered; `ClientsLeft`), only if the sender's address is a known client, so a stranger's Leave changes nothing. Leave is unreliable: if lost, the timeout above still frees the slot. PlayMode test: with a 60 s timeout, a stranger's Leave leaves the real client alone, the real client's Leave returns the player to the AI within 20 frames, and a new client reuses slot 5 with a new token. Limits: the source address is not authenticated (a spoofer who knows a client's address could evict it); loopback only.
 
 ## Open questions
 - Is 20-30 Hz enough for tackles and shots to feel right on a phone connection? Unknown until measured.

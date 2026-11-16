@@ -40,6 +40,8 @@ namespace FootballSim.Net
         /// <summary>A client we have heard nothing from for this long (seconds, real time) is dropped and its player goes back to the AI.</summary>
         public float clientTimeoutSeconds = 5f;
         public int ClientsTimedOut { get; private set; }
+        /// <summary>Clients that said goodbye with a Leave packet.</summary>
+        public int ClientsLeft { get; private set; }
         readonly Dictionary<IPEndPoint, float> lastHeard = new Dictionary<IPEndPoint, float>();
         readonly Dictionary<int, FootballSim.Inputs.IPlayerInput> originalInputs = new Dictionary<int, FootballSim.Inputs.IPlayerInput>();
 
@@ -71,11 +73,13 @@ namespace FootballSim.Net
             foreach (var c in clients)
                 if (lastHeard.TryGetValue(c, out float t) && Time.unscaledTime - t > clientTimeoutSeconds) (gone ?? (gone = new List<IPEndPoint>())).Add(c);
             if (gone == null) return;
-            foreach (var c in gone)
-            {
-                clients.Remove(c); lastHeard.Remove(c); ClientsTimedOut++;
-                if (assigned.TryGetValue(c, out int slot)) { assigned.Remove(c); ReleaseRemote(slot); freeSlots.Insert(0, slot); }
-            }
+            foreach (var c in gone) { RemoveClient(c); ClientsTimedOut++; }
+        }
+
+        void RemoveClient(IPEndPoint c)
+        {
+            clients.Remove(c); lastHeard.Remove(c);
+            if (assigned.TryGetValue(c, out int slot)) { assigned.Remove(c); ReleaseRemote(slot); freeSlots.Insert(0, slot); }
         }
 
         public void Init(MatchManager match, BallController ball, IList<PlayerController> players, int sendEveryFrames)
@@ -91,6 +95,7 @@ namespace FootballSim.Net
             {
                 var ip = (IPEndPoint)from;
                 if (n < 1) continue;
+                if (rx[0] == NetCodec.LeavePacket) { if (clients.Contains(ip)) { RemoveClient(ip); ClientsLeft++; } continue; }
                 lastHeard[ip] = Time.unscaledTime;
                 if (rx[0] == NetCodec.HelloPacket)
                 {
