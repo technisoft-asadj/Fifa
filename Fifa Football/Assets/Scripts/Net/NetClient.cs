@@ -25,6 +25,11 @@ namespace FootballSim.Net
         public uint Token { get; private set; }
         bool wantsJoin; float nextJoin;
 
+        /// <summary>The newest input sequence the server says it has applied for our player, and the server tick that was true at. False until the first ack.</summary>
+        public bool HasAck { get; private set; }
+        public ushort AckedSequence { get; private set; }
+        public uint AckedTick { get; private set; }
+
         /// <summary>Asks the server for a player slot; repeats once a second until it answers.</summary>
         public void Join() { wantsJoin = true; nextJoin = 0f; }
 
@@ -98,6 +103,12 @@ namespace FootballSim.Net
         {
             if (NetCodec.TryReadWelcome(data, n, out int idx, out uint token)) { PlayerIndex = idx; Token = token; Joined = true; return; }
             if (n == 1 && data[0] == NetCodec.FullPacket) { ServerFull = true; return; }
+            if (NetCodec.TryReadAck(data, n, out ushort ackSeq, out uint ackTick))
+            {
+                // ignore a late, reordered ack that would move the confirmed point backwards
+                if (!HasAck || NetCodec.IsNewer(ackSeq, AckedSequence)) { AckedSequence = ackSeq; AckedTick = ackTick; HasAck = true; }
+                return;
+            }
             if (n != NetCodec.SnapshotBytes) return; // not a snapshot
             NetCodec.Read(data, 0, incoming);
             if (Buffer.Add(incoming)) { Received++; Delay.OnArrival(Time.unscaledTimeAsDouble, incoming.tick); } else Dropped++;

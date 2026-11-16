@@ -352,6 +352,9 @@ namespace FootballSim.Tests
             Assert.AreEqual(5, guest.client.PlayerIndex);
             Assert.Greater(guest.client.Received, 30, "the view receives the match");
             Assert.Greater(players[5].transform.position.x - start.x, 3f, "the guest's input drives the hosted player");
+            Assert.IsTrue(guest.client.HasAck, "the server confirms the inputs it applied");
+            Assert.Greater(guest.client.AckedSequence, 10, "and the confirmed sequence keeps moving");
+            Assert.LessOrEqual(guest.client.AckedTick, host.server.Tick);
 
             Object.Destroy(guest.root);
             for (int i = 0; i < 30; i++) yield return null;

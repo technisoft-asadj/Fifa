@@ -147,3 +147,10 @@ A slot handed out by Join now remembers the address that joined (`owners`). Inpu
 - Is 20-30 Hz enough for tackles and shots to feel right on a phone connection? Unknown until measured.
 - Hosting: dedicated server builds, relay, or player-hosted? Cost and ops not assessed.
 - Anti-cheat and accounts: out of scope until phase 10.
+
+## Input acknowledgement (groundwork for client-side prediction)
+- New datagram type 7, server to client, 7 bytes: type, 2-byte input sequence, 4-byte server tick (`NetCodec.WriteAck` / `TryReadAck`). Sent right after each snapshot to every client that holds a slot and whose first input has arrived; the sequence is the newest one the server applied for that player (`RemoteInput.LastSequence`). Spectators get none. Snapshots still have no type byte and are told apart by their 174-byte length, which the ack's 7 bytes cannot collide with (test).
+- `NetClient` exposes `HasAck`, `AckedSequence`, `AckedTick`; a late, reordered ack that would move the confirmed point backwards is ignored.
+- Cost: about 35 bytes per second per client at 20 snapshots per second (7 + 28 header, x 20 / ... roughly 700 B/s), on top of the snapshot stream.
+- NOT done: the prediction itself. A client would keep sent inputs, drop those up to `AckedSequence`, and replay the rest on its own copy of its player after each snapshot. That needs a local movement model matching `PlayerController`, and it cannot be judged without playing over a real, laggy connection.
+- Verified: EditMode `AckRoundTripsAndIsNeverTakenForASnapshot`; PlayMode `SessionHelpersHostAndJoinInOneCallEach` now also asserts the guest receives an advancing ack no newer than the server tick.

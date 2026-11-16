@@ -41,6 +41,29 @@ namespace FootballSim.Net
         public const byte LeavePacket = 6;
         public const int WelcomeBytes = 6;
 
+        /// <summary>Server to client: "I have applied your input up to this sequence, as of this server tick". Type, 2-byte sequence, 4-byte tick.
+        /// The groundwork for client-side prediction: a client can drop the inputs the server has confirmed and replay the rest.</summary>
+        public const byte AckPacket = 7;
+        public const int AckBytes = 1 + 2 + 4;
+
+        public static int WriteAck(byte[] b, ushort sequence, uint tick)
+        {
+            int o = 0;
+            b[o++] = AckPacket; b[o++] = (byte)(sequence & 0xFF); b[o++] = (byte)(sequence >> 8);
+            PutUInt(b, ref o, tick);
+            return o;
+        }
+
+        public static bool TryReadAck(byte[] b, int length, out ushort sequence, out uint tick)
+        {
+            sequence = 0; tick = 0;
+            if (length != AckBytes || b[0] != AckPacket) return false;
+            int o = 1;
+            sequence = (ushort)(b[o] | (b[o + 1] << 8)); o += 2;
+            tick = GetUInt(b, ref o);
+            return true;
+        }
+
         public static int WriteWelcome(byte[] b, int playerIndex, uint token)
         {
             int o = 0;

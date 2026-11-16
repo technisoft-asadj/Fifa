@@ -61,6 +61,21 @@ namespace FootballSim.Tests
         }
 
         [Test]
+        public void AckRoundTripsAndIsNeverTakenForASnapshot()
+        {
+            var buf = new byte[NetCodec.AckBytes];
+            Assert.AreEqual(NetCodec.AckBytes, NetCodec.WriteAck(buf, 65535, 0xCAFEF00D));
+            Assert.IsTrue(NetCodec.TryReadAck(buf, buf.Length, out ushort seq, out uint tick));
+            Assert.AreEqual((ushort)65535, seq); Assert.AreEqual(0xCAFEF00D, tick);
+            Assert.AreNotEqual(NetCodec.SnapshotBytes, NetCodec.AckBytes, "snapshots are told apart by length");
+            Assert.AreNotEqual(NetCodec.WelcomeBytes, NetCodec.AckBytes);
+            Assert.IsFalse(NetCodec.TryReadAck(buf, buf.Length - 1, out _, out _), "wrong length");
+            buf[0] = NetCodec.WelcomePacket;
+            Assert.IsFalse(NetCodec.TryReadAck(buf, NetCodec.AckBytes, out _, out _), "wrong type");
+            Assert.IsFalse(NetCodec.TryReadWelcome(buf, NetCodec.AckBytes, out _, out _), "a welcome must be exactly 6 bytes");
+        }
+
+        [Test]
         public void InputWithoutAimStaysWithoutAim()
         {
             var buf = new byte[NetCodec.InputBytes];

@@ -36,6 +36,7 @@ namespace FootballSim.Net
         readonly List<int> freeSlots = new List<int>();
         readonly Dictionary<IPEndPoint, int> assigned = new Dictionary<IPEndPoint, int>();
         readonly byte[] welcome = new byte[NetCodec.WelcomeBytes];
+        readonly byte[] ackBuffer = new byte[NetCodec.AckBytes];
         public int JoinsRefused { get; private set; }
         /// <summary>A client we have heard nothing from for this long (seconds, real time) is dropped and its player goes back to the AI.</summary>
         public float clientTimeoutSeconds = 5f;
@@ -140,7 +141,13 @@ namespace FootballSim.Net
             if (++frame % sendEvery != 0 || clients.Count == 0) return;
             SnapshotCapture.Fill(snapshot, tick, match, ball, players);
             int len = NetCodec.Write(snapshot, wire);
-            foreach (var c in clients) { endpoint.Send(wire, len, c); Sent++; }
+            foreach (var c in clients)
+            {
+                endpoint.Send(wire, len, c); Sent++;
+                // tell a joined client how far its input has been applied (not a spectator, and not before the first input arrived)
+                if (assigned.TryGetValue(c, out int slot) && remotes.TryGetValue(slot, out var mine) && mine.HasSequence)
+                    endpoint.Send(ackBuffer, NetCodec.WriteAck(ackBuffer, mine.LastSequence, tick), c);
+            }
         }
 
         void OnDestroy() { endpoint?.Dispose(); }
