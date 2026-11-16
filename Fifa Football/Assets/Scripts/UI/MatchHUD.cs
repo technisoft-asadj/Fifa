@@ -433,9 +433,10 @@ namespace FootballSim.UI
             Button(st, "<", new Vector2(-370, -290), new Vector2(90, 70), ToggleLeagueMode, btnCol);
             Button(st, ">", new Vector2(370, -290), new Vector2(90, 70), ToggleLeagueMode, btnCol);
             Button(st, "PLAY", new Vector2(0, -385), new Vector2(420, 110), BeginMatch, Accent);
-            var resetButton = Button(st, "Reset progress", new Vector2(-370, -385), new Vector2(190, 60), TapResetProgress, btnCol);
+            var resetButton = Button(st, "Reset progress", new Vector2(-345, -385), new Vector2(180, 60), TapResetProgress, btnCol);
             resetLabel = resetButton.GetComponentInChildren<Text>();
-            recordLabel = Label("Record", st, 20, TextAnchor.MiddleCenter, new Vector2(370, -385), new Vector2(190, 84));
+            resetLabel.fontSize = 22; // the default 40 is wider than this small button
+            recordLabel = Label("Record", st, 20, TextAnchor.MiddleCenter, new Vector2(345, -385), new Vector2(180, 84));
             recordLabel.color = new Color(1f, 0.9f, 0.4f);
             recordLabel.text = CareerRecord.Summary() + (TeamGrowth.CurrentLevel > 0 ? $"\nSquad lv {TeamGrowth.CurrentLevel}" : "");
             var saved = MatchSettingsStore.Load(selectedMinutes, FormationData.PresetNames.Length, (int)AiTuning.CurrentDifficulty, System.Enum.GetValues(typeof(Difficulty)).Length);

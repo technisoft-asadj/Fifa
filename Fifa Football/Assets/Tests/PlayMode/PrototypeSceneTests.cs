@@ -22,8 +22,13 @@ namespace FootballSim.Tests
             Time.timeScale = 1f; // the start screen pauses the game
         }
 
+        // Every test that plays a match to full time records it in the player's saved career record; the tests must neither start
+        // from a leftover record (it changes the squad level) nor leave theirs behind in the real saved data.
+        [SetUp]
+        public void SetUp() { FootballSim.Core.CareerRecord.Clear(); }
+
         [TearDown]
-        public void TearDown() { Time.timeScale = 1f; }
+        public void TearDown() { Time.timeScale = 1f; FootballSim.Core.CareerRecord.Clear(); }
 
         [UnityTest]
         public IEnumerator LiveMatchSnapshotSurvivesEncodingAndStaysSmall()
