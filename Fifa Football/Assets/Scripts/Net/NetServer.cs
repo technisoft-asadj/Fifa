@@ -79,8 +79,12 @@ namespace FootballSim.Net
         void RemoveClient(IPEndPoint c)
         {
             clients.Remove(c); lastHeard.Remove(c);
-            if (assigned.TryGetValue(c, out int slot)) { assigned.Remove(c); ReleaseRemote(slot); freeSlots.Insert(0, slot); }
+            if (assigned.TryGetValue(c, out int slot)) { assigned.Remove(c); owners.Remove(slot); ReleaseRemote(slot); freeSlots.Insert(0, slot); }
         }
+
+        readonly Dictionary<int, IPEndPoint> owners = new Dictionary<int, IPEndPoint>();
+        /// <summary>Packets with the right token for a joined slot but from a different address than the one that joined.</summary>
+        public int InputWrongAddress { get; private set; }
 
         public void Init(MatchManager match, BallController ball, IList<PlayerController> players, int sendEveryFrames)
         {
@@ -114,7 +118,7 @@ namespace FootballSim.Net
                         }
                         slot = freeSlots[0]; freeSlots.RemoveAt(0);
                         RegisterRemote(slot);
-                        assigned[ip] = slot;
+                        assigned[ip] = slot; owners[slot] = ip;
                     }
                     int welcomeLen = NetCodec.WriteWelcome(welcome, slot, remotes[slot].Token);
                     endpoint.Send(welcome, welcomeLen, ip);
@@ -123,6 +127,8 @@ namespace FootballSim.Net
                 {
                     // the player must be handed over AND the packet must carry that player's secret token; anything else is dropped
                     if (!remotes.TryGetValue(index, out var remote) || remote.Token != token) { InputRejected++; continue; }
+                    // a slot given out by Join is bound to the address that joined; the same token from elsewhere is refused
+                    if (owners.TryGetValue(index, out var owner) && !owner.Equals(ip)) { InputWrongAddress++; continue; }
                     if (!clients.Contains(ip)) clients.Add(ip);
                     if (remote.ApplySequenced(frame, sequence)) InputReceived++; else InputStale++;
                 }

@@ -488,3 +488,6 @@ Clients say goodbye (`Leave()`, also on destroy) and the server frees the slot a
 
 ## Client over a simulated bad network (2026-11-16)
 `NetClient.Inbound` test hook plus a PlayMode test: with loss, latency and reordering the adaptive delay rises and the view still tracks the match. PlayMode 59 tests (58 passed before the new one, new one passes). Server-to-client direction only. See `networking.md`.
+
+## Slot bound to the joining address (2026-11-16)
+Input for a joined slot is accepted only from the address that joined; a copied token from elsewhere is refused and counted. 1 PlayMode test; the 3 existing input/join tests still pass. Address spoofing and clear-text tokens remain. See `networking.md`.

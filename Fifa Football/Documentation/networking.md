@@ -131,6 +131,9 @@ Limits: the margin of 4 and the mean-error estimator are guesses (a spike-heavy 
 ### Whole stack over the simulated bad network
 `NetClient.Inbound` (test hook) routes everything the server sends through a `NetworkConditioner` before the client handles it. PlayMode test: 5% loss, 40 ms latency, up to 120 ms jitter (so packets reorder), 600 frames at 60 fps: at least 100 snapshots arrive, the adaptive delay rises above 8 ticks (cap 30), and all 22 drawn bodies end within 8 m of the real players. Only the server-to-client direction is conditioned (client input is not), the thresholds are loose, and it is one seed on one machine.
 
+## Slot bound to the joining address
+A slot handed out by Join now remembers the address that joined (`owners`). Input for that slot with the right token from any other address is refused and counted (`InputWrongAddress`); slots registered directly with `RegisterRemote` (tests, local players) stay unbound. PlayMode test: a second client replays the owner's index and token 30 times, none is applied, and the owner's own input still works. This stops a token copied by someone who is not on the owner's address. It does not stop a spoofer who forges the owner's source address and knows the token, and the token is still clear text; a client whose address changes mid-match (mobile network switch) loses its slot to the timeout and must rejoin.
+
 ## Open questions
 - Is 20-30 Hz enough for tackles and shots to feel right on a phone connection? Unknown until measured.
 - Hosting: dedicated server builds, relay, or player-hosted? Cost and ops not assessed.

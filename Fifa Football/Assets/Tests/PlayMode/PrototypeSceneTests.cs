@@ -266,6 +266,38 @@ namespace FootballSim.Tests
         }
 
         [UnityTest]
+        public IEnumerator CopiedTokenSentFromAnotherAddressIsRefused()
+        {
+            yield return LoadScene();
+            var match = Object.FindFirstObjectByType<MatchManager>();
+            var ball = Object.FindFirstObjectByType<BallController>();
+            var teams = new System.Collections.Generic.List<TeamController>(Object.FindObjectsByType<TeamController>(FindObjectsSortMode.None));
+            teams.Sort((x, y) => x.teamId.CompareTo(y.teamId));
+            var players = new System.Collections.Generic.List<PlayerController>();
+            foreach (var t in teams) { t.ReleaseHumanControl(); players.AddRange(t.players); }
+            var server = new GameObject("NetServer").AddComponent<NetServer>();
+            server.Init(match, ball, players, 3);
+            server.OfferRemoteSlots(5);
+            var owner = new GameObject("Owner").AddComponent<NetClient>();
+            owner.Connect(server.LocalEndPoint); owner.Join();
+            var thief = new GameObject("Thief").AddComponent<NetClient>();
+            thief.Connect(server.LocalEndPoint);
+            Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>().BeginMatch();
+            Time.captureFramerate = 60;
+            for (int i = 0; i < 20; i++) yield return null;
+            Assert.IsTrue(owner.Joined);
+
+            var sprint = new FootballSim.Inputs.InputFrame { move = new Vector2(1f, 0f), sprint = true };
+            for (int i = 0; i < 30; i++) { thief.SendInput(owner.PlayerIndex, owner.Token, sprint); yield return null; }
+            Assert.GreaterOrEqual(server.InputWrongAddress, 25, "the copied token from another address must be refused");
+            Assert.AreEqual(0, server.InputReceived, "none of the thief's packets may be applied");
+
+            for (int i = 0; i < 30; i++) { owner.SendInput(sprint); yield return null; }
+            Time.captureFramerate = 0;
+            Assert.Greater(server.InputReceived, 20, "the real owner still works");
+        }
+
+        [UnityTest]
         public IEnumerator SilentClientIsDroppedItsPlayerGoesBackToTheAiAndTheSlotCanBeReused()
         {
             yield return LoadScene();
