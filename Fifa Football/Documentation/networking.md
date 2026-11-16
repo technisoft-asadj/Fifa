@@ -137,6 +137,9 @@ A slot handed out by Join now remembers the address that joined (`owners`). Inpu
 ## Input sender
 `NetInputSender` reads any `IPlayerInput` (keyboard, touch, a replay) once per frame, builds an `InputFrame` and sends it through a joined `NetClient`; nothing is sent before the Welcome or before a source is set. PlayMode test: a scripted replay as the source makes the server's player run more than 3 m along +x within 90 frames. Not tried with the real keyboard or touch input, and a one-shot action (pass, tackle) in a lost packet is lost. There is still no in-game screen that hosts or joins a match, and the client does not predict its own player, so a real player would feel the full round trip plus the render delay.
 
+## Session helpers
+`NetSession.Host(match, ball, players, slots...)` starts a server next to the running match; `NetSession.Join(endpoint, input, viewOrigin)` creates one object holding a client (which joins), a view and an input sender. Destroying the returned root shuts it down, and a client says goodbye as it goes. PlayMode test: host and guest in one call each, the guest's scripted input moves hosted player 5 more than 3 m, the guest's view receives snapshots, and destroying the guest registers a Leave. These are the calls a future host/join screen would make. The server still binds loopback only (no LAN or internet address, no discovery), so this is one process talking to itself.
+
 ## Open questions
 - Is 20-30 Hz enough for tackles and shots to feel right on a phone connection? Unknown until measured.
 - Hosting: dedicated server builds, relay, or player-hosted? Cost and ops not assessed.

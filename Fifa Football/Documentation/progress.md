@@ -494,3 +494,6 @@ Input for a joined slot is accepted only from the address that joined; a copied 
 
 ## Input sender (2026-11-16)
 `NetInputSender` turns a local input source into network input frames for a joined client. 1 PlayMode test. Not tried with real keyboard or touch input; no host/join screen; no prediction. See `networking.md`.
+
+## Session helpers (2026-11-16)
+`NetSession.Host` / `NetSession.Join` wrap the server, client, view and input sender. 1 PlayMode test. Loopback only; no menu screen, no discovery. See `networking.md`.

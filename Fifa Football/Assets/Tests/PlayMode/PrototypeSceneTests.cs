@@ -331,6 +331,36 @@ namespace FootballSim.Tests
         }
 
         [UnityTest]
+        public IEnumerator SessionHelpersHostAndJoinInOneCallEach()
+        {
+            yield return LoadScene();
+            var match = Object.FindFirstObjectByType<MatchManager>();
+            var ball = Object.FindFirstObjectByType<BallController>();
+            var teams = new System.Collections.Generic.List<TeamController>(Object.FindObjectsByType<TeamController>(FindObjectsSortMode.None));
+            teams.Sort((x, y) => x.teamId.CompareTo(y.teamId));
+            var players = new System.Collections.Generic.List<PlayerController>();
+            foreach (var t in teams) { t.ReleaseHumanControl(); players.AddRange(t.players); }
+            var host = NetSession.Host(match, ball, players, 5);
+            var script = new System.Collections.Generic.List<FootballSim.Inputs.InputFrame>();
+            for (int i = 0; i < 400; i++) script.Add(new FootballSim.Inputs.InputFrame { move = new Vector2(1f, 0f), moveIsWorldSpace = true, sprint = true });
+            var guest = NetSession.Join(host.server.LocalEndPoint, new FootballSim.Inputs.ReplayInput(script, Time.frameCount + 30), new Vector3(500f, 0f, 0f));
+            Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>().BeginMatch();
+            Vector3 start = players[5].transform.position;
+            Time.captureFramerate = 60;
+            for (int i = 0; i < 150; i++) yield return null;
+            Assert.IsTrue(guest.client.Joined);
+            Assert.AreEqual(5, guest.client.PlayerIndex);
+            Assert.Greater(guest.client.Received, 30, "the view receives the match");
+            Assert.Greater(players[5].transform.position.x - start.x, 3f, "the guest's input drives the hosted player");
+
+            Object.Destroy(guest.root);
+            for (int i = 0; i < 30; i++) yield return null;
+            Time.captureFramerate = 0;
+            Assert.AreEqual(1, host.server.ClientsLeft, "destroying the guest says goodbye");
+            Object.Destroy(host.root);
+        }
+
+        [UnityTest]
         public IEnumerator SilentClientIsDroppedItsPlayerGoesBackToTheAiAndTheSlotCanBeReused()
         {
             yield return LoadScene();
