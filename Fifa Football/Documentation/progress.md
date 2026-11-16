@@ -546,3 +546,7 @@ Limits: this is a season ladder, not a career: no transfers, squads, player grow
 - Captured in play mode (editor wide view): the Season mode label, the pause panel and the full-time panel. Fixed: "1 points" in the season and league summaries (`Season.PointsText`, test `OnePointIsNotWrittenAsOnePoints`) and the pause panel's RESUME and SOUND buttons touching the panel edges (370 wide, 20 margin).
 - Still not seen: a true landscape phone shape (the editor's Game view pane overrode the size I set), touch controls (none appear without a touchscreen), League, Tournament and Training labels, the shoot-out text on the full-time panel.
 - Totals: EditMode 154/154; PlayMode last full run 71/71, plus the pause and season tests re-run after the last change (3/3).
+
+## Shoot-out text was invisible, fixed
+- Looking at a drawn tournament match on the full-time panel showed "DRAW 0 - 0" and nothing else: the "WIN x - y ON PENALTIES" line had been added as a second line to a one-line-high text box and was cut off. It now sits on the same line in a smaller size: "DRAW  0 - 0  (HOME WIN 4 - 1 ON PENALTIES)". New PlayMode test `ADrawnTournamentMatchShowsThePenaltyResultOnTheResultLine`.
+- Seen in the editor (wide view): League, Tournament and Season mode labels, the pause and full-time panels. Not seen: Training label, a true landscape phone shape, touch controls.

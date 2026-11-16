@@ -472,6 +472,29 @@ namespace FootballSim.Tests
         }
 
         [UnityTest]
+        public IEnumerator ADrawnTournamentMatchShowsThePenaltyResultOnTheResultLine()
+        {
+            yield return LoadScene();
+            FootballSim.Core.MiniLeague.Abandon(); FootballSim.Core.Season.Abandon(); FootballSim.Core.TrainingMode.Active = false;
+            FootballSim.Core.Tournament.Start();
+            try
+            {
+                var hud = Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>();
+                hud.BeginMatch();
+                yield return null;
+                // the match has just kicked off at 0-0; ending it now is a draw, which a cup settles on penalties
+                typeof(FootballSim.UI.MatchHUD).GetMethod("OnFullTime", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).Invoke(hud, null);
+                UnityEngine.UI.Text result = null;
+                foreach (var t in Object.FindObjectsByType<UnityEngine.UI.Text>(FindObjectsInactive.Include, FindObjectsSortMode.None)) if (t.name == "Result") result = t;
+                Assert.IsNotNull(result);
+                StringAssert.Contains("DRAW", result.text);
+                StringAssert.Contains("ON PENALTIES", result.text);
+                StringAssert.DoesNotContain("\n", result.text, "one line: the box is one line high and a second line is cut off");
+            }
+            finally { Time.timeScale = 1f; FootballSim.Core.Tournament.Abandon(); }
+        }
+
+        [UnityTest]
         public IEnumerator GuestModeSilencesTheLocalMatchAndLeavingRestoresItExactly()
         {
             yield return LoadScene();

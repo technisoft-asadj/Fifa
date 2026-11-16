@@ -136,7 +136,8 @@ namespace FootballSim.UI
                 {
                     ShootOut.Chances(Tournament.CurrentOpponent, out float homeChance, out float awayChance);
                     penalties = ShootOut.Simulate(new RandomStream(System.Environment.TickCount), homeChance, awayChance);
-                    resultText.text += $"\n{(penalties.homeWins ? "HOME" : "AWAY")} WIN {(penalties.homeWins ? penalties.homeGoals : penalties.awayGoals)} - {(penalties.homeWins ? penalties.awayGoals : penalties.homeGoals)} ON PENALTIES";
+                    // on the same line, smaller: the result box is one line high and a second line was cut off
+                    resultText.text += $"  <size=30>({(penalties.homeWins ? "HOME" : "AWAY")} WIN {(penalties.homeWins ? penalties.homeGoals : penalties.awayGoals)} - {(penalties.homeWins ? penalties.awayGoals : penalties.homeGoals)} ON PENALTIES)</size>";
                 }
                 Tournament.RecordResult(match.HomeScore, match.AwayScore, penalties);
             }
