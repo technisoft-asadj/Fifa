@@ -389,23 +389,56 @@ namespace FootballSim.Tests
         }
 
         [UnityTest]
-        public IEnumerator ModeToggleCyclesSingleLeagueTournamentTrainingThenSingle()
+        public IEnumerator ModeToggleCyclesSingleLeagueTournamentSeasonTrainingThenSingle()
+        {
+            yield return LoadScene();
+            FootballSim.Core.MiniLeague.Abandon(); FootballSim.Core.Tournament.Abandon(); FootballSim.Core.Season.Abandon(); FootballSim.Core.TrainingMode.Active = false;
+            var hud = Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>();
+            // [league, tournament, season, training] expected after each press
+            bool[][] expected =
+            {
+                new[] { true, false, false, false }, new[] { false, true, false, false }, new[] { false, false, true, false },
+                new[] { false, false, false, true }, new[] { false, false, false, false },
+            };
+            try
+            {
+                for (int press = 0; press < expected.Length; press++)
+                {
+                    hud.ToggleLeagueMode();
+                    var e = expected[press];
+                    Assert.AreEqual(e[0], FootballSim.Core.MiniLeague.Active, $"press {press + 1}: league");
+                    Assert.AreEqual(e[1], FootballSim.Core.Tournament.Active, $"press {press + 1}: tournament");
+                    Assert.AreEqual(e[2], FootballSim.Core.Season.Active, $"press {press + 1}: season");
+                    Assert.AreEqual(e[3], FootballSim.Core.TrainingMode.Active, $"press {press + 1}: training");
+                }
+            }
+            finally { FootballSim.Core.MiniLeague.Abandon(); FootballSim.Core.Tournament.Abandon(); FootballSim.Core.Season.Abandon(); FootballSim.Core.TrainingMode.Active = false; }
+        }
+
+        [UnityTest]
+        public IEnumerator SeasonFullTimeRecordsOneResultAndTheTableUpdates()
         {
             yield return LoadScene();
             FootballSim.Core.MiniLeague.Abandon(); FootballSim.Core.Tournament.Abandon(); FootballSim.Core.TrainingMode.Active = false;
-            var hud = Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>();
+            FootballSim.Core.Season.Start(5);
             try
             {
-                hud.ToggleLeagueMode();
-                Assert.IsTrue(FootballSim.Core.MiniLeague.Active); Assert.IsFalse(FootballSim.Core.Tournament.Active); Assert.IsFalse(FootballSim.Core.TrainingMode.Active);
-                hud.ToggleLeagueMode();
-                Assert.IsFalse(FootballSim.Core.MiniLeague.Active); Assert.IsTrue(FootballSim.Core.Tournament.Active); Assert.IsFalse(FootballSim.Core.TrainingMode.Active);
-                hud.ToggleLeagueMode();
-                Assert.IsFalse(FootballSim.Core.MiniLeague.Active); Assert.IsFalse(FootballSim.Core.Tournament.Active); Assert.IsTrue(FootballSim.Core.TrainingMode.Active);
-                hud.ToggleLeagueMode();
-                Assert.IsFalse(FootballSim.Core.MiniLeague.Active); Assert.IsFalse(FootballSim.Core.Tournament.Active); Assert.IsFalse(FootballSim.Core.TrainingMode.Active);
+                var match = Object.FindFirstObjectByType<MatchManager>();
+                var hud = Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>();
+                hud.BeginMatch();
+                Assert.AreEqual(FootballSim.Core.Difficulty.Amateur, FootballSim.Core.AiTuning.CurrentDifficulty, "the first opponent is the weakest");
+                match.SetDurationMinutes(0.5f);
+                Time.captureFramerate = 60;
+                for (int i = 0; i < 2400 && !match.Finished; i++) yield return null;
+                Time.captureFramerate = 0;
+                Assert.IsTrue(match.Finished);
+                Assert.AreEqual(1, FootballSim.Core.Season.Round, "one result per match");
+                var you = FootballSim.Core.Season.Table().Find(r => r.name == "You");
+                Assert.AreEqual(1, you.played);
+                Assert.AreEqual(match.HomeScore, you.goalsFor);
+                Assert.AreEqual(match.AwayScore, you.goalsAgainst);
             }
-            finally { FootballSim.Core.MiniLeague.Abandon(); FootballSim.Core.Tournament.Abandon(); FootballSim.Core.TrainingMode.Active = false; }
+            finally { Time.timeScale = 1f; FootballSim.Core.Season.Abandon(); }
         }
 
         [UnityTest]

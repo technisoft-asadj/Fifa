@@ -137,8 +137,10 @@ namespace FootballSim.UI
                 }
                 Tournament.RecordResult(match.HomeScore, match.AwayScore, penalties);
             }
-            leagueText.text = Tournament.Active ? Tournament.Summary() : MiniLeague.Summary();
-            rematchLabel.text = Tournament.Active ? (Tournament.Over ? "NEW TOURNAMENT" : "NEXT MATCH")
+            if (Season.Active && !Season.Over) Season.RecordResult(match.HomeScore, match.AwayScore);
+            leagueText.text = Tournament.Active ? Tournament.Summary() : Season.Active ? Season.Summary() : MiniLeague.Summary();
+            rematchLabel.text = Season.Active ? (Season.Over ? "NEW SEASON" : "NEXT MATCH")
+                : Tournament.Active ? (Tournament.Over ? "NEW TOURNAMENT" : "NEXT MATCH")
                 : !MiniLeague.Active ? "REMATCH" : MiniLeague.Finished ? "NEW LEAGUE" : "NEXT MATCH";
             fullTimePanel.SetActive(true);
             Time.timeScale = 0f;
@@ -207,6 +209,7 @@ namespace FootballSim.UI
         {
             if (MiniLeague.Finished) MiniLeague.Start(); // "NEW LEAGUE"
             if (Tournament.Over) Tournament.Start(); // "NEW TOURNAMENT"
+            if (Season.Over) Season.Start(); // "NEW SEASON"
             Time.timeScale = 1f;
             SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
         }
@@ -261,6 +264,12 @@ namespace FootballSim.UI
                 difficultyLabel.text = $"Opponent: {AiTuning.CurrentDifficulty}";
                 return;
             }
+            if (Season.Active && !Season.Over)
+            {
+                AiTuning.CurrentDifficulty = Season.CurrentOpponent; // the season picks the opponent too
+                difficultyLabel.text = $"Opponent: {Season.CurrentOpponentName} ({AiTuning.CurrentDifficulty})";
+                return;
+            }
             if (Tournament.Active && !Tournament.Over)
             {
                 AiTuning.CurrentDifficulty = Tournament.CurrentOpponent; // the cup picks the opponent too
@@ -279,9 +288,10 @@ namespace FootballSim.UI
         /// <summary>Switch between a single match and the three-match mini-league (see MiniLeague).</summary>
         public void ToggleLeagueMode()
         {
-            // single match -> league -> tournament -> training -> single match
+            // single match -> league -> tournament -> season -> training -> single match
             if (TrainingMode.Active) TrainingMode.Active = false;
-            else if (Tournament.Active) { Tournament.Abandon(); AiTuning.CurrentDifficulty = savedDifficulty; TrainingMode.Active = true; }
+            else if (Season.Active) { Season.Abandon(); AiTuning.CurrentDifficulty = savedDifficulty; TrainingMode.Active = true; }
+            else if (Tournament.Active) { Tournament.Abandon(); Season.Start(); }
             else if (MiniLeague.Active) { MiniLeague.Abandon(); Tournament.Start(); }
             else { savedDifficulty = AiTuning.CurrentDifficulty; MiniLeague.Start(); }
             RefreshMode();
@@ -293,6 +303,7 @@ namespace FootballSim.UI
         {
             if (modeLabel != null)
                 modeLabel.text = TrainingMode.Active ? "Mode: Training"
+                    : Season.Active ? (Season.Over ? "Mode: Season over" : $"Mode: Season {Season.Round + 1}/{Season.Rounds}")
                     : Tournament.Active ? (Tournament.Won ? "Mode: Tournament won" : Tournament.Eliminated ? "Mode: Tournament over" : $"Mode: Tournament - {Tournament.CurrentStage}")
                     : !MiniLeague.Active ? "Mode: Single match"
                     : MiniLeague.Finished ? "Mode: League finished" : $"Mode: League {MiniLeague.Round + 1}/{MiniLeague.Matches}";
