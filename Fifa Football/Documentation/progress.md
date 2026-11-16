@@ -529,3 +529,10 @@ Limits: this is a season ladder, not a career: no transfers, squads, player grow
 - `Core/CareerRecord.cs`: lifetime matches / wins / draws / losses / goals, saved to PlayerPrefs (`career_record`) after every match; saved data that does not add up is discarded with a warning. Recorded in `MatchHUD.OnFullTime` for every real match (training excluded). `SaveData.ResetProgress` keeps it; `SaveData.ResetAll` clears it.
 - Start screen shows it as a small label (W/D/L, GF/GA) beside the PLAY button, opposite "Reset progress". The label has never been viewed on screen.
 - Tests: EditMode `CareerRecordTests` (8), PlayMode `FullTimeAddsOneMatchToTheCareerRecordButTrainingDoesNot`. Totals: EditMode 149/149, PlayMode 68/68 (5 gated probes Inconclusive, expected).
+
+## Squad growth
+- `Players/TeamGrowth.cs`: a squad level from the saved career record (2 points per win, 1 per draw, a level per 4 points, capped at 6). Each level adds +1 to every outfield attribute of the home team, capped at 99. No save data of its own: it follows `CareerRecord` and goes back to 0 with a full reset.
+- `PlayerController.SetGrowth(levels)` applies it to a private copy of the player's data (the shared asset is never changed, repeated calls do not stack, 0 restores the original). `MatchHUD.BeginMatch` applies it to the home outfield only; the keeper and the away side are unchanged.
+- Start screen: the record label gets a "Squad lv N" line once the level is above 0.
+- Effect size: +6 at the cap moves speed by about 0.1 m/s and shot power by about 1 m/s; deliberately small. Whether it feels like growth, or upsets the difficulty balance, has not been judged by playing.
+- Tests: EditMode `TeamGrowthTests` (3), PlayMode `SquadGrowthRaisesOnlyTheHomeOutfieldOnACopyAndDoesNotStack`. Totals: EditMode 153/153, PlayMode 69/69 (5 gated probes Inconclusive, expected).

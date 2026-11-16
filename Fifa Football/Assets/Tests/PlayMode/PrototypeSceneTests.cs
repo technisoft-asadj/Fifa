@@ -467,6 +467,36 @@ namespace FootballSim.Tests
         }
 
         [UnityTest]
+        public IEnumerator SquadGrowthRaisesOnlyTheHomeOutfieldOnACopyAndDoesNotStack()
+        {
+            yield return LoadScene();
+            FootballSim.Core.CareerRecord.Clear();
+            for (int i = 0; i < 6; i++) FootballSim.Core.CareerRecord.Record(1, 0); // 6 wins = 12 points = level 3
+            try
+            {
+                var hud = Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>();
+                var teams = new System.Collections.Generic.List<TeamController>(Object.FindObjectsByType<TeamController>(FindObjectsSortMode.None));
+                teams.Sort((x, y) => x.teamId.CompareTo(y.teamId));
+                var outfield = teams[0].players.Find(p => !p.isGoalkeeper);
+                var keeper = teams[0].players.Find(p => p.isGoalkeeper);
+                var awayPlayer = teams[1].players.Find(p => !p.isGoalkeeper);
+                var shared = outfield.Data;
+                int basePace = shared.pace, keeperPace = keeper.Data.pace, awayPace = awayPlayer.Data.pace;
+                hud.BeginMatch();
+                Assert.AreEqual(3, FootballSim.Players.TeamGrowth.CurrentLevel);
+                Assert.AreEqual(System.Math.Min(99, basePace + 3), outfield.Data.pace, "home outfield grows");
+                Assert.AreEqual(basePace, shared.pace, "the shared data is untouched");
+                Assert.AreEqual(keeperPace, keeper.Data.pace, "the keeper does not");
+                Assert.AreEqual(awayPace, awayPlayer.Data.pace, "nor does the away side");
+                outfield.SetGrowth(3);
+                Assert.AreEqual(System.Math.Min(99, basePace + 3), outfield.Data.pace, "asking again does not stack");
+                outfield.SetGrowth(0);
+                Assert.AreSame(shared, outfield.Data);
+            }
+            finally { Time.timeScale = 1f; FootballSim.Core.CareerRecord.Clear(); }
+        }
+
+        [UnityTest]
         public IEnumerator FullTimeAddsOneMatchToTheCareerRecordButTrainingDoesNot()
         {
             yield return LoadScene();

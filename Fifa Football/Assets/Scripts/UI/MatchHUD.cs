@@ -6,6 +6,7 @@ using UnityEngine.UI;
 using FootballSim.Core;
 using FootballSim.FootballAI;
 using FootballSim.Match;
+using FootballSim.Players;
 
 namespace FootballSim.UI
 {
@@ -190,6 +191,7 @@ namespace FootballSim.UI
             CycleDifficulty(0, false); // a running league or cup fixes the opponent; otherwise this leaves the chosen difficulty alone
             match.SetDurationMinutes(TrainingMode.Active ? TrainingMode.Minutes : selectedMinutes);
             ApplyTraining();
+            ApplyGrowth();
             ApplyFormations();
             match.PrepareKickoff();
             startPanel.SetActive(false);
@@ -205,6 +207,14 @@ namespace FootballSim.UI
                 var ai = p.GetComponent<FootballSim.FootballAI.PlayerAI>();
                 if (ai != null) ai.passive = TrainingMode.Active;
             }
+        }
+
+        /// <summary>The home outfield play with the growth their results have earned (see <see cref="TeamGrowth"/>); the keeper and the away side do not change.</summary>
+        void ApplyGrowth()
+        {
+            if (homeTeam == null) return;
+            int level = TeamGrowth.CurrentLevel;
+            foreach (var p in homeTeam.players) if (!p.isGoalkeeper) p.SetGrowth(level);
         }
 
         void Rematch()
@@ -425,9 +435,9 @@ namespace FootballSim.UI
             Button(st, "PLAY", new Vector2(0, -385), new Vector2(420, 110), BeginMatch, Accent);
             var resetButton = Button(st, "Reset progress", new Vector2(-370, -385), new Vector2(190, 60), TapResetProgress, btnCol);
             resetLabel = resetButton.GetComponentInChildren<Text>();
-            recordLabel = Label("Record", st, 20, TextAnchor.MiddleCenter, new Vector2(370, -385), new Vector2(190, 60));
+            recordLabel = Label("Record", st, 20, TextAnchor.MiddleCenter, new Vector2(370, -385), new Vector2(190, 84));
             recordLabel.color = new Color(1f, 0.9f, 0.4f);
-            recordLabel.text = CareerRecord.Summary();
+            recordLabel.text = CareerRecord.Summary() + (TeamGrowth.CurrentLevel > 0 ? $"\nSquad lv {TeamGrowth.CurrentLevel}" : "");
             var saved = MatchSettingsStore.Load(selectedMinutes, FormationData.PresetNames.Length, (int)AiTuning.CurrentDifficulty, System.Enum.GetValues(typeof(Difficulty)).Length);
             selectedFormation = saved.formation;
             AiTuning.CurrentDifficulty = (Difficulty)saved.difficulty;

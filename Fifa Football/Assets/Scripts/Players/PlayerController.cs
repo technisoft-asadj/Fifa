@@ -53,6 +53,22 @@ namespace FootballSim.Players
             if (controlMarker) controlMarker.SetActive(false);
         }
 
+        PlayerData sharedData;
+
+        /// <summary>
+        /// Gives this player <paramref name="levels"/> points of growth on a private copy of his data. Always starts from the original
+        /// data, so calling it again does not stack, and the shared asset is never changed. 0 puts the original back.
+        /// </summary>
+        public void SetGrowth(int levels)
+        {
+            if (sharedData == null) sharedData = data;
+            if (data != sharedData) Destroy(data); // the previous private copy
+            if (levels <= 0) { data = sharedData; return; }
+            var copy = Instantiate(sharedData);
+            TeamGrowth.Apply(copy, levels);
+            data = copy;
+        }
+
         public void SetInput(IPlayerInput newInput, bool humanControlled)
         {
             input = newInput;
