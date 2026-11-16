@@ -126,8 +126,10 @@ namespace FootballSim.UI
             goalsText.text = GoalsSummary(match);
             statsText.text = StatLines(match);
             if (MiniLeague.Active && !MiniLeague.Finished) MiniLeague.RecordResult(match.HomeScore, match.AwayScore); // the human is home
-            leagueText.text = MiniLeague.Summary();
-            rematchLabel.text = !MiniLeague.Active ? "REMATCH" : MiniLeague.Finished ? "NEW LEAGUE" : "NEXT MATCH";
+            if (Tournament.Active && !Tournament.Over) Tournament.RecordResult(match.HomeScore, match.AwayScore);
+            leagueText.text = Tournament.Active ? Tournament.Summary() : MiniLeague.Summary();
+            rematchLabel.text = Tournament.Active ? (Tournament.Over ? "NEW TOURNAMENT" : "NEXT MATCH")
+                : !MiniLeague.Active ? "REMATCH" : MiniLeague.Finished ? "NEW LEAGUE" : "NEXT MATCH";
             fullTimePanel.SetActive(true);
             Time.timeScale = 0f;
         }
@@ -171,6 +173,7 @@ namespace FootballSim.UI
 
         public void BeginMatch()
         {
+            CycleDifficulty(0, false); // a running league or cup fixes the opponent; otherwise this leaves the chosen difficulty alone
             match.SetDurationMinutes(TrainingMode.Active ? TrainingMode.Minutes : selectedMinutes);
             ApplyTraining();
             ApplyFormations();
@@ -193,6 +196,7 @@ namespace FootballSim.UI
         void Rematch()
         {
             if (MiniLeague.Finished) MiniLeague.Start(); // "NEW LEAGUE"
+            if (Tournament.Over) Tournament.Start(); // "NEW TOURNAMENT"
             Time.timeScale = 1f;
             SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
         }
@@ -247,6 +251,12 @@ namespace FootballSim.UI
                 difficultyLabel.text = $"Opponent: {AiTuning.CurrentDifficulty}";
                 return;
             }
+            if (Tournament.Active && !Tournament.Over)
+            {
+                AiTuning.CurrentDifficulty = Tournament.CurrentOpponent; // the cup picks the opponent too
+                difficultyLabel.text = $"{Tournament.CurrentStage}: {AiTuning.CurrentDifficulty}";
+                return;
+            }
             int n = System.Enum.GetValues(typeof(Difficulty)).Length;
             AiTuning.CurrentDifficulty = (Difficulty)(((int)AiTuning.CurrentDifficulty + step + n) % n);
             difficultyLabel.text = $"Difficulty: {AiTuning.CurrentDifficulty}";
@@ -259,9 +269,10 @@ namespace FootballSim.UI
         /// <summary>Switch between a single match and the three-match mini-league (see MiniLeague).</summary>
         public void ToggleLeagueMode()
         {
-            // single match -> league -> training -> single match
+            // single match -> league -> tournament -> training -> single match
             if (TrainingMode.Active) TrainingMode.Active = false;
-            else if (MiniLeague.Active) { MiniLeague.Abandon(); AiTuning.CurrentDifficulty = savedDifficulty; TrainingMode.Active = true; }
+            else if (Tournament.Active) { Tournament.Abandon(); AiTuning.CurrentDifficulty = savedDifficulty; TrainingMode.Active = true; }
+            else if (MiniLeague.Active) { MiniLeague.Abandon(); Tournament.Start(); }
             else { savedDifficulty = AiTuning.CurrentDifficulty; MiniLeague.Start(); }
             RefreshMode();
         }
@@ -272,6 +283,7 @@ namespace FootballSim.UI
         {
             if (modeLabel != null)
                 modeLabel.text = TrainingMode.Active ? "Mode: Training"
+                    : Tournament.Active ? (Tournament.Won ? "Mode: Tournament won" : Tournament.Eliminated ? "Mode: Tournament over" : $"Mode: Tournament - {Tournament.CurrentStage}")
                     : !MiniLeague.Active ? "Mode: Single match"
                     : MiniLeague.Finished ? "Mode: League finished" : $"Mode: League {MiniLeague.Round + 1}/{MiniLeague.Matches}";
             CycleDifficulty(0, false);

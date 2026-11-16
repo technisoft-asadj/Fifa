@@ -389,21 +389,47 @@ namespace FootballSim.Tests
         }
 
         [UnityTest]
-        public IEnumerator ModeToggleCyclesSingleThenLeagueThenTrainingThenSingle()
+        public IEnumerator ModeToggleCyclesSingleLeagueTournamentTrainingThenSingle()
         {
             yield return LoadScene();
-            FootballSim.Core.MiniLeague.Abandon(); FootballSim.Core.TrainingMode.Active = false;
+            FootballSim.Core.MiniLeague.Abandon(); FootballSim.Core.Tournament.Abandon(); FootballSim.Core.TrainingMode.Active = false;
             var hud = Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>();
             try
             {
                 hud.ToggleLeagueMode();
-                Assert.IsTrue(FootballSim.Core.MiniLeague.Active); Assert.IsFalse(FootballSim.Core.TrainingMode.Active);
+                Assert.IsTrue(FootballSim.Core.MiniLeague.Active); Assert.IsFalse(FootballSim.Core.Tournament.Active); Assert.IsFalse(FootballSim.Core.TrainingMode.Active);
                 hud.ToggleLeagueMode();
-                Assert.IsFalse(FootballSim.Core.MiniLeague.Active); Assert.IsTrue(FootballSim.Core.TrainingMode.Active);
+                Assert.IsFalse(FootballSim.Core.MiniLeague.Active); Assert.IsTrue(FootballSim.Core.Tournament.Active); Assert.IsFalse(FootballSim.Core.TrainingMode.Active);
                 hud.ToggleLeagueMode();
-                Assert.IsFalse(FootballSim.Core.MiniLeague.Active); Assert.IsFalse(FootballSim.Core.TrainingMode.Active);
+                Assert.IsFalse(FootballSim.Core.MiniLeague.Active); Assert.IsFalse(FootballSim.Core.Tournament.Active); Assert.IsTrue(FootballSim.Core.TrainingMode.Active);
+                hud.ToggleLeagueMode();
+                Assert.IsFalse(FootballSim.Core.MiniLeague.Active); Assert.IsFalse(FootballSim.Core.Tournament.Active); Assert.IsFalse(FootballSim.Core.TrainingMode.Active);
             }
-            finally { FootballSim.Core.MiniLeague.Abandon(); FootballSim.Core.TrainingMode.Active = false; }
+            finally { FootballSim.Core.MiniLeague.Abandon(); FootballSim.Core.Tournament.Abandon(); FootballSim.Core.TrainingMode.Active = false; }
+        }
+
+        [UnityTest]
+        public IEnumerator TournamentFullTimeRecordsTheResultAndAWinMovesToTheNextRound()
+        {
+            yield return LoadScene();
+            FootballSim.Core.MiniLeague.Abandon(); FootballSim.Core.TrainingMode.Active = false;
+            FootballSim.Core.Tournament.Start();
+            try
+            {
+                var match = Object.FindFirstObjectByType<MatchManager>();
+                var hud = Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>();
+                hud.BeginMatch();
+                Assert.AreEqual(FootballSim.Core.Difficulty.Amateur, FootballSim.Core.AiTuning.CurrentDifficulty, "the quarter-final fixes the opponent");
+                match.OnGoal(0);
+                match.SetDurationMinutes(0.5f);
+                Time.captureFramerate = 60;
+                for (int i = 0; i < 2400 && !match.Finished; i++) yield return null;
+                Time.captureFramerate = 0;
+                Assert.IsTrue(match.Finished, "the match should reach full time");
+                Assert.AreEqual(1, FootballSim.Core.Tournament.Results.Count, "full time records exactly one result");
+                if (match.HomeScore > match.AwayScore) Assert.AreEqual(1, FootballSim.Core.Tournament.Round);
+            }
+            finally { Time.timeScale = 1f; FootballSim.Core.Tournament.Abandon(); }
         }
 
         [UnityTest]
