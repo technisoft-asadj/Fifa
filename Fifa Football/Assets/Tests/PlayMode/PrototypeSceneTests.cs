@@ -298,6 +298,39 @@ namespace FootballSim.Tests
         }
 
         [UnityTest]
+        public IEnumerator InputSenderTurnsALocalInputIntoAPlayerOnTheServer()
+        {
+            yield return LoadScene();
+            var match = Object.FindFirstObjectByType<MatchManager>();
+            var ball = Object.FindFirstObjectByType<BallController>();
+            var teams = new System.Collections.Generic.List<TeamController>(Object.FindObjectsByType<TeamController>(FindObjectsSortMode.None));
+            teams.Sort((x, y) => x.teamId.CompareTo(y.teamId));
+            var players = new System.Collections.Generic.List<PlayerController>();
+            foreach (var t in teams) { t.ReleaseHumanControl(); players.AddRange(t.players); }
+            var server = new GameObject("NetServer").AddComponent<NetServer>();
+            server.Init(match, ball, players, 3);
+            server.OfferRemoteSlots(5);
+            var client = new GameObject("NetClient").AddComponent<NetClient>();
+            client.Connect(server.LocalEndPoint); client.Join();
+            var sender = client.gameObject.AddComponent<NetInputSender>();
+            sender.client = client;
+            var script = new System.Collections.Generic.List<FootballSim.Inputs.InputFrame>();
+            for (int i = 0; i < 400; i++) script.Add(new FootballSim.Inputs.InputFrame { move = new Vector2(1f, 0f), moveIsWorldSpace = true, sprint = true });
+            Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>().BeginMatch();
+            Time.captureFramerate = 60;
+            for (int i = 0; i < 20; i++) yield return null;
+            Assert.IsTrue(client.Joined);
+            Assert.AreEqual(0, sender.Sent, "nothing is sent until a source is set");
+            sender.SetSource(new FootballSim.Inputs.ReplayInput(script, Time.frameCount));
+            Vector3 start = players[5].transform.position;
+            for (int i = 0; i < 90; i++) yield return null;
+            Time.captureFramerate = 0;
+            Assert.Greater(sender.Sent, 60);
+            Assert.Greater(server.InputReceived, 40);
+            Assert.Greater(players[5].transform.position.x - start.x, 3f, "the scripted local input should have moved the server's player along +x");
+        }
+
+        [UnityTest]
         public IEnumerator SilentClientIsDroppedItsPlayerGoesBackToTheAiAndTheSlotCanBeReused()
         {
             yield return LoadScene();

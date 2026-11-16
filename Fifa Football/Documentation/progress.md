@@ -491,3 +491,6 @@ Clients say goodbye (`Leave()`, also on destroy) and the server frees the slot a
 
 ## Slot bound to the joining address (2026-11-16)
 Input for a joined slot is accepted only from the address that joined; a copied token from elsewhere is refused and counted. 1 PlayMode test; the 3 existing input/join tests still pass. Address spoofing and clear-text tokens remain. See `networking.md`.
+
+## Input sender (2026-11-16)
+`NetInputSender` turns a local input source into network input frames for a joined client. 1 PlayMode test. Not tried with real keyboard or touch input; no host/join screen; no prediction. See `networking.md`.

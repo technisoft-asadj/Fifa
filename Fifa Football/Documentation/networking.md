@@ -134,6 +134,9 @@ Limits: the margin of 4 and the mean-error estimator are guesses (a spike-heavy 
 ## Slot bound to the joining address
 A slot handed out by Join now remembers the address that joined (`owners`). Input for that slot with the right token from any other address is refused and counted (`InputWrongAddress`); slots registered directly with `RegisterRemote` (tests, local players) stay unbound. PlayMode test: a second client replays the owner's index and token 30 times, none is applied, and the owner's own input still works. This stops a token copied by someone who is not on the owner's address. It does not stop a spoofer who forges the owner's source address and knows the token, and the token is still clear text; a client whose address changes mid-match (mobile network switch) loses its slot to the timeout and must rejoin.
 
+## Input sender
+`NetInputSender` reads any `IPlayerInput` (keyboard, touch, a replay) once per frame, builds an `InputFrame` and sends it through a joined `NetClient`; nothing is sent before the Welcome or before a source is set. PlayMode test: a scripted replay as the source makes the server's player run more than 3 m along +x within 90 frames. Not tried with the real keyboard or touch input, and a one-shot action (pass, tackle) in a lost packet is lost. There is still no in-game screen that hosts or joins a match, and the client does not predict its own player, so a real player would feel the full round trip plus the render delay.
+
 ## Open questions
 - Is 20-30 Hz enough for tackles and shots to feel right on a phone connection? Unknown until measured.
 - Hosting: dedicated server builds, relay, or player-hosted? Cost and ops not assessed.
