@@ -60,7 +60,7 @@ namespace FootballSim.Net
         void Update()
         {
             if (endpoint == null) return;
-            if (Received == 0 && Time.unscaledTime >= nextHello)
+            if (Time.unscaledTime >= nextHello) // hello once a second doubles as the keep-alive that stops the server timing us out
             {
                 endpoint.Send(new byte[] { NetCodec.HelloPacket }, 1, server);
                 nextHello = Time.unscaledTime + 1f;

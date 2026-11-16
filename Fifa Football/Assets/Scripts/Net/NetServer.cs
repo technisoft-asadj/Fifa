@@ -37,6 +37,11 @@ namespace FootballSim.Net
         readonly Dictionary<IPEndPoint, int> assigned = new Dictionary<IPEndPoint, int>();
         readonly byte[] welcome = new byte[NetCodec.WelcomeBytes];
         public int JoinsRefused { get; private set; }
+        /// <summary>A client we have heard nothing from for this long (seconds, real time) is dropped and its player goes back to the AI.</summary>
+        public float clientTimeoutSeconds = 5f;
+        public int ClientsTimedOut { get; private set; }
+        readonly Dictionary<IPEndPoint, float> lastHeard = new Dictionary<IPEndPoint, float>();
+        readonly Dictionary<int, FootballSim.Inputs.IPlayerInput> originalInputs = new Dictionary<int, FootballSim.Inputs.IPlayerInput>();
 
         /// <summary>Player indices that joining clients may be given, in order. A client that sends Join gets the next free one (the same one again if it asks twice).</summary>
         public void OfferRemoteSlots(params int[] playerIndices) { freeSlots.AddRange(playerIndices); }
@@ -47,9 +52,30 @@ namespace FootballSim.Net
             var tokenBytes = new byte[4];
             using (var rng = System.Security.Cryptography.RandomNumberGenerator.Create()) rng.GetBytes(tokenBytes);
             var remote = new RemoteInput(System.BitConverter.ToUInt32(tokenBytes, 0));
+            if (!originalInputs.ContainsKey(playerIndex)) originalInputs[playerIndex] = players[playerIndex].Input;
             remotes[playerIndex] = remote;
             players[playerIndex].SetInput(remote, false);
             return remote;
+        }
+
+        /// <summary>Gives a remote-controlled player back to the input he had before (the AI brain) and forgets his token.</summary>
+        void ReleaseRemote(int playerIndex)
+        {
+            if (originalInputs.TryGetValue(playerIndex, out var original)) { players[playerIndex].SetInput(original, false); originalInputs.Remove(playerIndex); }
+            remotes.Remove(playerIndex);
+        }
+
+        void DropSilentClients()
+        {
+            List<IPEndPoint> gone = null;
+            foreach (var c in clients)
+                if (lastHeard.TryGetValue(c, out float t) && Time.unscaledTime - t > clientTimeoutSeconds) (gone ?? (gone = new List<IPEndPoint>())).Add(c);
+            if (gone == null) return;
+            foreach (var c in gone)
+            {
+                clients.Remove(c); lastHeard.Remove(c); ClientsTimedOut++;
+                if (assigned.TryGetValue(c, out int slot)) { assigned.Remove(c); ReleaseRemote(slot); freeSlots.Insert(0, slot); }
+            }
         }
 
         public void Init(MatchManager match, BallController ball, IList<PlayerController> players, int sendEveryFrames)
@@ -65,6 +91,7 @@ namespace FootballSim.Net
             {
                 var ip = (IPEndPoint)from;
                 if (n < 1) continue;
+                lastHeard[ip] = Time.unscaledTime;
                 if (rx[0] == NetCodec.HelloPacket)
                 {
                     if (!clients.Contains(ip)) clients.Add(ip);
@@ -95,6 +122,7 @@ namespace FootballSim.Net
                     if (remote.ApplySequenced(frame, sequence)) InputReceived++; else InputStale++;
                 }
             }
+            DropSilentClients();
             tick++;
             if (++frame % sendEvery != 0 || clients.Count == 0) return;
             SnapshotCapture.Fill(snapshot, tick, match, ball, players);

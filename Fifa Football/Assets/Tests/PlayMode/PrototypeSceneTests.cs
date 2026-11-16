@@ -230,6 +230,47 @@ namespace FootballSim.Tests
         }
 
         [UnityTest]
+        public IEnumerator SilentClientIsDroppedItsPlayerGoesBackToTheAiAndTheSlotCanBeReused()
+        {
+            yield return LoadScene();
+            var match = Object.FindFirstObjectByType<MatchManager>();
+            var ball = Object.FindFirstObjectByType<BallController>();
+            var teams = new System.Collections.Generic.List<TeamController>(Object.FindObjectsByType<TeamController>(FindObjectsSortMode.None));
+            teams.Sort((x, y) => x.teamId.CompareTo(y.teamId));
+            var players = new System.Collections.Generic.List<PlayerController>();
+            foreach (var t in teams) { t.ReleaseHumanControl(); players.AddRange(t.players); }
+            var aiInput = players[5].Input;
+            var server = new GameObject("NetServer").AddComponent<NetServer>();
+            server.Init(match, ball, players, 3);
+            server.clientTimeoutSeconds = 2.5f; // must be longer than the client's one-second keep-alive
+            server.OfferRemoteSlots(5);
+            var first = new GameObject("NetClient1").AddComponent<NetClient>();
+            first.Connect(server.LocalEndPoint); first.Join();
+            Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>().BeginMatch();
+            Time.captureFramerate = 60;
+            for (int i = 0; i < 20; i++) yield return null;
+            Assert.IsTrue(first.Joined);
+            Assert.AreNotSame(aiInput, players[5].Input, "player 5 should be network controlled while the client is there");
+
+            // a client that keeps sending hello (every second) is not timed out, even well past the timeout
+            for (int i = 0; i < 240; i++) yield return null;
+            Assert.AreEqual(0, server.ClientsTimedOut, "a live client was timed out");
+
+            first.enabled = false; // the client goes silent (a phone that lost signal or was closed)
+            for (int i = 0; i < 240; i++) yield return null;
+            Assert.AreEqual(1, server.ClientsTimedOut);
+            Assert.AreSame(aiInput, players[5].Input, "the AI should have the player back");
+
+            var second = new GameObject("NetClient2").AddComponent<NetClient>();
+            second.Connect(server.LocalEndPoint); second.Join();
+            for (int i = 0; i < 20; i++) yield return null;
+            Time.captureFramerate = 0;
+            Assert.IsTrue(second.Joined, "the freed slot should be offered again");
+            Assert.AreEqual(5, second.PlayerIndex);
+            Assert.AreNotEqual(first.Token, second.Token, "a new session must have a new token");
+        }
+
+        [UnityTest]
         public IEnumerator SceneHasNoMissingScripts()
         {
             yield return LoadScene();
