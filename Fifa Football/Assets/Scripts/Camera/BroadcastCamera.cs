@@ -31,6 +31,16 @@ namespace FootballSim.CameraSystem
         /// <summary>Set the player the camera blends toward (called when control switches).</summary>
         public void SetPlayer(Transform p) { player = p; }
 
+        public Transform Ball => ball;
+        public Transform Player => player;
+
+        /// <summary>Points the camera at a different ball and player (a guest watching a network view). Null keeps the current one.</summary>
+        public void SetTargets(Transform newBall, Transform newPlayer)
+        {
+            if (newBall != null) ball = newBall;
+            player = newPlayer;
+        }
+
         void LateUpdate()
         {
             if (ball == null) return;

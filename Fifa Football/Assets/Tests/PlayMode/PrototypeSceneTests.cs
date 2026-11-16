@@ -467,6 +467,75 @@ namespace FootballSim.Tests
         }
 
         [UnityTest]
+        public IEnumerator GuestModeSilencesTheLocalMatchAndLeavingRestoresItExactly()
+        {
+            yield return LoadScene();
+            var match = Object.FindFirstObjectByType<MatchManager>();
+            var ball = Object.FindFirstObjectByType<BallController>();
+            var cam = Object.FindFirstObjectByType<FootballSim.CameraSystem.BroadcastCamera>();
+            var players = Object.FindObjectsByType<PlayerController>(FindObjectsSortMode.None);
+            var teams = Object.FindObjectsByType<TeamController>(FindObjectsSortMode.None);
+            var oldBall = cam.Ball; var oldPlayer = cam.Player;
+            bool ballWasKinematic = ball.Body.isKinematic;
+            int renderersOn = 0;
+            foreach (var p in players) foreach (var r in p.GetComponentsInChildren<Renderer>()) if (r.enabled) renderersOn++;
+            Assert.Greater(renderersOn, 0);
+
+            // nobody is listening on port 9 locally: the point here is only what the screen does, not the network
+            var guest = FootballSim.Net.GuestMode.Enter(new System.Net.IPEndPoint(System.Net.IPAddress.Loopback, 9), new FootballSim.Inputs.ReplayInput(new System.Collections.Generic.List<FootballSim.Inputs.InputFrame>(), 0));
+            yield return null; yield return null;
+            Assert.IsTrue(guest.Active);
+            Assert.IsFalse(match.enabled, "the local clock is stopped");
+            foreach (var t in teams) Assert.IsFalse(t.enabled);
+            foreach (var p in players) { Assert.IsFalse(p.enabled); foreach (var r in p.GetComponentsInChildren<Renderer>()) Assert.IsFalse(r.enabled, "local players are hidden"); }
+            Assert.IsFalse(ball.enabled);
+            Assert.IsTrue(ball.Body.isKinematic);
+            Assert.AreSame(guest.Session.view.Ball, cam.Ball, "the camera follows the network ball");
+
+            guest.Leave();
+            yield return null;
+            Assert.IsFalse(guest.Active);
+            Assert.IsTrue(match.enabled);
+            foreach (var t in teams) Assert.IsTrue(t.enabled);
+            int renderersBack = 0;
+            foreach (var p in players) { Assert.IsTrue(p.enabled); foreach (var r in p.GetComponentsInChildren<Renderer>()) if (r.enabled) renderersBack++; }
+            Assert.AreEqual(renderersOn, renderersBack);
+            Assert.IsTrue(ball.enabled);
+            Assert.AreEqual(ballWasKinematic, ball.Body.isKinematic);
+            Assert.AreSame(oldBall, cam.Ball); Assert.AreSame(oldPlayer, cam.Player);
+        }
+
+        [UnityTest]
+        public IEnumerator GuestCameraBlendsTowardThePlayerTheServerAssigned()
+        {
+            yield return LoadScene();
+            var match = Object.FindFirstObjectByType<MatchManager>();
+            var ball = Object.FindFirstObjectByType<BallController>();
+            var cam = Object.FindFirstObjectByType<FootballSim.CameraSystem.BroadcastCamera>();
+            var teams = new System.Collections.Generic.List<TeamController>(Object.FindObjectsByType<TeamController>(FindObjectsSortMode.None));
+            teams.Sort((x, y) => x.teamId.CompareTo(y.teamId));
+            var players = new System.Collections.Generic.List<PlayerController>();
+            foreach (var t in teams) { t.ReleaseHumanControl(); players.AddRange(t.players); }
+            var host = NetSession.Host(match, ball, players, 5);
+            var oldBall = cam.Ball; var oldPlayer = cam.Player;
+            // host and guest share this one scene, so the local match must keep running for the server
+            var guest = FootballSim.Net.GuestMode.Enter(host.server.LocalEndPoint, new FootballSim.Inputs.ReplayInput(new System.Collections.Generic.List<FootballSim.Inputs.InputFrame>(), 0), false);
+            Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>().BeginMatch();
+            Time.captureFramerate = 60;
+            for (int i = 0; i < 120; i++) yield return null;
+            Time.captureFramerate = 0;
+            Assert.IsTrue(guest.Session.client.Joined);
+            Assert.AreEqual(5, guest.Session.client.PlayerIndex);
+            Assert.AreSame(guest.Session.view.Bodies[5], cam.Player, "the camera blends toward the guest's own player");
+            Assert.AreSame(guest.Session.view.Ball, cam.Ball);
+
+            guest.Leave();
+            Object.Destroy(host.root);
+            yield return null;
+            Assert.AreSame(oldBall, cam.Ball); Assert.AreSame(oldPlayer, cam.Player);
+        }
+
+        [UnityTest]
         public IEnumerator SquadGrowthRaisesOnlyTheHomeOutfieldOnACopyAndDoesNotStack()
         {
             yield return LoadScene();

@@ -10,7 +10,7 @@ Written 2026-11-17. This is the short version; `progress.md` has the detail for 
 - Networking (server-authoritative over UDP): snapshots, join handshake with a per-player token bound to the joining address, input packets with sequence numbers, keep-alive, timeout, leave message, adaptive render delay, smooth render clock, input acknowledgement (type 7), a bad-network simulator for tests, `NetSession.Host/Join` helpers, `LanAddress` parsing.
 
 ## Test state
-EditMode 153/153. PlayMode 69/69, plus 5 gated probe tests that show as Inconclusive unless a file named `run_balance.flag` exists in the project root (expected). Android IL2CPP build succeeds (0 errors).
+EditMode 153/153. PlayMode 71/71, plus 5 gated probe tests that show as Inconclusive unless a file named `run_balance.flag` exists in the project root (expected). Android IL2CPP build succeeds (0 errors).
 
 ## Never checked by a person or on a device
 - Anything on a phone: touch feel, frame rate with the newer code, the Android back key (KB-015).
@@ -20,7 +20,7 @@ EditMode 153/153. PlayMode 69/69, plus 5 gated probe tests that show as Inconclu
 - Constants chosen by guess: shoot-out chances, season goal averages, clock snap and adaptive-delay margins, squad growth size.
 
 ## Not built
-- Host/join screen and the guest's view (a joining device must switch off its own simulation and draw from snapshots with a camera). Needs two devices to verify.
+- The host/join screen. The guest's side exists (`Net/GuestMode`: silences the local match, draws snapshots, camera follows) and is tested over loopback, but no button calls it and the scoreboard is not fed by the server. Needs two devices to verify.
 - Client-side prediction (the ack it needs is in; the replay logic is not).
 - A full career (squads, transfers, player development beyond the squad level).
 - AI-versus-AI realism (KB-018): too few passes and no offsides; needs support runs and passing lanes.

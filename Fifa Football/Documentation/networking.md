@@ -154,3 +154,10 @@ A slot handed out by Join now remembers the address that joined (`owners`). Inpu
 - Cost: 35 bytes per ack including the 28-byte IP and UDP headers, so about 700 bytes per second per client at 20 snapshots per second, on top of the snapshot stream.
 - NOT done: the prediction itself. A client would keep sent inputs, drop those up to `AckedSequence`, and replay the rest on its own copy of its player after each snapshot. That needs a local movement model matching `PlayerController`, and it cannot be judged without playing over a real, laggy connection.
 - Verified: EditMode `AckRoundTripsAndIsNeverTakenForASnapshot`; PlayMode `SessionHelpersHostAndJoinInOneCallEach` now also asserts the guest receives an advancing ack no newer than the server tick.
+
+## Guest mode (the joining device's screen)
+- `Net/GuestMode.Enter(server, input)` turns the running scene into a guest's screen: it switches off the local `MatchManager`, `TeamController`s, `PlayerController`s, `PlayerAI`s and `BallController`, hides the local players and ball, makes the ball kinematic, joins the server (`NetSession.Join`, view at the world origin so it lines up with the pitch), and points the `BroadcastCamera` at the network ball. Once the server assigns a player, the camera blends toward his capsule.
+- `GuestMode.Leave()` says goodbye (the client's destroy sends Leave) and restores everything exactly as it was: components, renderers, ball physics state, camera targets.
+- `BroadcastCamera` gained `Ball`, `Player` and `SetTargets`.
+- Verified in the editor (PlayMode): silencing and restoring the local match, and the camera following the assigned player over loopback.
+- NOT done: no start-screen button reaches it yet (nothing calls `Enter` in the game itself), the scoreboard and clock are not driven by the server (they stay at the local, stopped values), the view is plain capsules, and none of it has been run between two devices.
