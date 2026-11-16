@@ -171,11 +171,23 @@ namespace FootballSim.UI
 
         public void BeginMatch()
         {
-            match.SetDurationMinutes(selectedMinutes);
+            match.SetDurationMinutes(TrainingMode.Active ? TrainingMode.Minutes : selectedMinutes);
+            ApplyTraining();
             ApplyFormations();
             match.PrepareKickoff();
             startPanel.SetActive(false);
             Time.timeScale = 1f;
+        }
+
+        /// <summary>In training the away outfield players stand still; otherwise they play. Run at kick-off.</summary>
+        void ApplyTraining()
+        {
+            if (awayTeam == null) return;
+            foreach (var p in awayTeam.players)
+            {
+                var ai = p.GetComponent<FootballSim.FootballAI.PlayerAI>();
+                if (ai != null) ai.passive = TrainingMode.Active;
+            }
         }
 
         void Rematch()
@@ -247,7 +259,9 @@ namespace FootballSim.UI
         /// <summary>Switch between a single match and the three-match mini-league (see MiniLeague).</summary>
         public void ToggleLeagueMode()
         {
-            if (MiniLeague.Active) { MiniLeague.Abandon(); AiTuning.CurrentDifficulty = savedDifficulty; }
+            // single match -> league -> training -> single match
+            if (TrainingMode.Active) TrainingMode.Active = false;
+            else if (MiniLeague.Active) { MiniLeague.Abandon(); AiTuning.CurrentDifficulty = savedDifficulty; TrainingMode.Active = true; }
             else { savedDifficulty = AiTuning.CurrentDifficulty; MiniLeague.Start(); }
             RefreshMode();
         }
@@ -257,7 +271,8 @@ namespace FootballSim.UI
         void RefreshMode()
         {
             if (modeLabel != null)
-                modeLabel.text = !MiniLeague.Active ? "Mode: Single match"
+                modeLabel.text = TrainingMode.Active ? "Mode: Training"
+                    : !MiniLeague.Active ? "Mode: Single match"
                     : MiniLeague.Finished ? "Mode: League finished" : $"Mode: League {MiniLeague.Round + 1}/{MiniLeague.Matches}";
             CycleDifficulty(0, false);
         }

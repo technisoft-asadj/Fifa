@@ -37,11 +37,15 @@ namespace FootballSim.FootballAI
             return Quaternion.Euler(0f, SimRandom.Ai.Range(-e, e), 0f) * dir;
         }
 
+        /// <summary>Training dummy: an outfield player with this set does nothing at all. Goalkeepers ignore it.</summary>
+        public bool passive;
+
         void Awake() { pc = GetComponent<PlayerController>(); }
 
         void Update()
         {
             if (team == null || team.ball == null) return;
+            if (passive && !pc.isGoalkeeper) { Input.MoveVector = Vector2.zero; Input.SprintFlag = false; return; } // training dummy: stands where he is
             actionCooldown -= Time.deltaTime;
             if (pc.isGoalkeeper) Goalkeeper(); else Outfield();
         }

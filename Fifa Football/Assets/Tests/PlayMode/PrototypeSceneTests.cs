@@ -361,6 +361,52 @@ namespace FootballSim.Tests
         }
 
         [UnityTest]
+        public IEnumerator TrainingModeLeavesTheAwayOutfieldStandingAndTheClockEffectivelyEndless()
+        {
+            yield return LoadScene();
+            FootballSim.Core.MiniLeague.Abandon();
+            FootballSim.Core.TrainingMode.Active = true;
+            try
+            {
+                var match = Object.FindFirstObjectByType<MatchManager>();
+                var hud = Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>();
+                var teams = new System.Collections.Generic.List<TeamController>(Object.FindObjectsByType<TeamController>(FindObjectsSortMode.None));
+                teams.Sort((x, y) => x.teamId.CompareTo(y.teamId));
+                hud.BeginMatch();
+                yield return null;
+                var away = teams[1];
+                var start = new System.Collections.Generic.Dictionary<PlayerController, Vector3>();
+                foreach (var p in away.players) if (!p.isGoalkeeper) start[p] = p.transform.position;
+                Time.captureFramerate = 60;
+                for (int i = 0; i < 480; i++) yield return null;
+                Time.captureFramerate = 0;
+                foreach (var kv in start)
+                    Assert.Less(Vector3.Distance(kv.Key.transform.position, kv.Value), 1.0f, "a training dummy walked off");
+                Assert.IsFalse(match.Finished);
+                Assert.Greater(match.MatchMinutes, 100f, "training must not end at the usual few minutes");
+            }
+            finally { FootballSim.Core.TrainingMode.Active = false; }
+        }
+
+        [UnityTest]
+        public IEnumerator ModeToggleCyclesSingleThenLeagueThenTrainingThenSingle()
+        {
+            yield return LoadScene();
+            FootballSim.Core.MiniLeague.Abandon(); FootballSim.Core.TrainingMode.Active = false;
+            var hud = Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>();
+            try
+            {
+                hud.ToggleLeagueMode();
+                Assert.IsTrue(FootballSim.Core.MiniLeague.Active); Assert.IsFalse(FootballSim.Core.TrainingMode.Active);
+                hud.ToggleLeagueMode();
+                Assert.IsFalse(FootballSim.Core.MiniLeague.Active); Assert.IsTrue(FootballSim.Core.TrainingMode.Active);
+                hud.ToggleLeagueMode();
+                Assert.IsFalse(FootballSim.Core.MiniLeague.Active); Assert.IsFalse(FootballSim.Core.TrainingMode.Active);
+            }
+            finally { FootballSim.Core.MiniLeague.Abandon(); FootballSim.Core.TrainingMode.Active = false; }
+        }
+
+        [UnityTest]
         public IEnumerator SilentClientIsDroppedItsPlayerGoesBackToTheAiAndTheSlotCanBeReused()
         {
             yield return LoadScene();
