@@ -111,5 +111,17 @@ namespace FootballSim.Tests
             Assert.IsFalse(r.TacklePressed, "the rejected frame's tackle must not leak in");
             Assert.AreEqual(1, r.Applied);
         }
+
+        [Test]
+        public void PacketTypeBytesAreDistinctAndNoServerDatagramLooksLikeASnapshot()
+        {
+            var types = new System.Collections.Generic.HashSet<byte>
+            { NetCodec.HelloPacket, NetCodec.InputPacket, NetCodec.JoinPacket, NetCodec.WelcomePacket, NetCodec.FullPacket, NetCodec.LeavePacket };
+            Assert.AreEqual(6, types.Count, "two packet types share a byte");
+            // the client tells snapshots from other server datagrams only by length
+            Assert.AreNotEqual(NetCodec.SnapshotBytes, NetCodec.WelcomeBytes);
+            Assert.AreNotEqual(NetCodec.SnapshotBytes, 1, "Full is one byte");
+            Assert.AreNotEqual(NetCodec.SnapshotBytes, NetCodec.InputPacketBytes);
+        }
     }
 }
