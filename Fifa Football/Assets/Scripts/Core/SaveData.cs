@@ -22,6 +22,7 @@ namespace FootballSim.Core
         public static void ResetAll()
         {
             ResetProgress();
+            CareerRecord.Clear();
             try
             {
                 foreach (var key in new[]

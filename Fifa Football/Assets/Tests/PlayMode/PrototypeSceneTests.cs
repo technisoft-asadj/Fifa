@@ -464,6 +464,30 @@ namespace FootballSim.Tests
         }
 
         [UnityTest]
+        public IEnumerator FullTimeAddsOneMatchToTheCareerRecordButTrainingDoesNot()
+        {
+            yield return LoadScene();
+            FootballSim.Core.MiniLeague.Abandon(); FootballSim.Core.Tournament.Abandon(); FootballSim.Core.Season.Abandon();
+            FootballSim.Core.TrainingMode.Active = false;
+            FootballSim.Core.CareerRecord.Clear();
+            try
+            {
+                var match = Object.FindFirstObjectByType<MatchManager>();
+                var hud = Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>();
+                hud.BeginMatch();
+                match.SetDurationMinutes(0.5f);
+                Time.captureFramerate = 60;
+                for (int i = 0; i < 2400 && !match.Finished; i++) yield return null;
+                Time.captureFramerate = 0;
+                Assert.IsTrue(match.Finished);
+                Assert.AreEqual(1, FootballSim.Core.CareerRecord.Played);
+                Assert.AreEqual(match.HomeScore, FootballSim.Core.CareerRecord.GoalsFor);
+                Assert.AreEqual(match.AwayScore, FootballSim.Core.CareerRecord.GoalsAgainst);
+            }
+            finally { Time.timeScale = 1f; Time.captureFramerate = 0; FootballSim.Core.CareerRecord.Clear(); }
+        }
+
+        [UnityTest]
         public IEnumerator TournamentFullTimeRecordsTheResultAndAWinMovesToTheNextRound()
         {
             yield return LoadScene();

@@ -126,6 +126,7 @@ namespace FootballSim.UI
                 : $"DRAW  {match.HomeScore} - {match.AwayScore}";
             goalsText.text = GoalsSummary(match);
             statsText.text = StatLines(match);
+            if (!TrainingMode.Active) CareerRecord.Record(match.HomeScore, match.AwayScore);
             if (MiniLeague.Active && !MiniLeague.Finished) MiniLeague.RecordResult(match.HomeScore, match.AwayScore); // the human is home
             if (Tournament.Active && !Tournament.Over)
             {
@@ -232,7 +233,7 @@ namespace FootballSim.UI
         }
 
         int selectedKit;
-        Text kitLabel, subtitleLabel;
+        Text kitLabel, subtitleLabel, recordLabel;
 
         /// <summary>Choose the home shirt colour (index into KitPalette); the away team gets a colour that does not clash.</summary>
         public void SetHomeKit(int index, bool save = true)
@@ -424,6 +425,9 @@ namespace FootballSim.UI
             Button(st, "PLAY", new Vector2(0, -385), new Vector2(420, 110), BeginMatch, Accent);
             var resetButton = Button(st, "Reset progress", new Vector2(-370, -385), new Vector2(190, 60), TapResetProgress, btnCol);
             resetLabel = resetButton.GetComponentInChildren<Text>();
+            recordLabel = Label("Record", st, 20, TextAnchor.MiddleCenter, new Vector2(370, -385), new Vector2(190, 60));
+            recordLabel.color = new Color(1f, 0.9f, 0.4f);
+            recordLabel.text = CareerRecord.Summary();
             var saved = MatchSettingsStore.Load(selectedMinutes, FormationData.PresetNames.Length, (int)AiTuning.CurrentDifficulty, System.Enum.GetValues(typeof(Difficulty)).Length);
             selectedFormation = saved.formation;
             AiTuning.CurrentDifficulty = (Difficulty)saved.difficulty;

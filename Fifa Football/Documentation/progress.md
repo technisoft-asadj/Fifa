@@ -524,3 +524,8 @@ Limits: this is a season ladder, not a career: no transfers, squads, player grow
 - Android IL2CPP build of everything up to the reset button: succeeded (0 errors, 15 warnings, ~19 min). Compiles for Android; nothing about phone behaviour is verified.
 - `Net/LanAddress.cs`: `TryParse` ("a.b.c.d" or "a.b.c.d:port", IPv4 only, no hostnames, default port 7777), `LocalAddress()` (this device's private IPv4 via an unsent UDP connect, null when offline), `IsPrivate`. 19 EditMode tests, all pass.
 - NOT done: the host/join screen itself. A guest needs the local simulation switched off and the snapshot view drawn with a camera; that needs a second device to verify, so it is deferred rather than guessed.
+
+## Career record
+- `Core/CareerRecord.cs`: lifetime matches / wins / draws / losses / goals, saved to PlayerPrefs (`career_record`) after every match; saved data that does not add up is discarded with a warning. Recorded in `MatchHUD.OnFullTime` for every real match (training excluded). `SaveData.ResetProgress` keeps it; `SaveData.ResetAll` clears it.
+- Start screen shows it as a small label (W/D/L, GF/GA) beside the PLAY button, opposite "Reset progress". The label has never been viewed on screen.
+- Tests: EditMode `CareerRecordTests` (8), PlayMode `FullTimeAddsOneMatchToTheCareerRecordButTrainingDoesNot`. Totals: EditMode 149/149, PlayMode 68/68 (5 gated probes Inconclusive, expected).
