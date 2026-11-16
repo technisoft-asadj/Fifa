@@ -126,7 +126,17 @@ namespace FootballSim.UI
             goalsText.text = GoalsSummary(match);
             statsText.text = StatLines(match);
             if (MiniLeague.Active && !MiniLeague.Finished) MiniLeague.RecordResult(match.HomeScore, match.AwayScore); // the human is home
-            if (Tournament.Active && !Tournament.Over) Tournament.RecordResult(match.HomeScore, match.AwayScore);
+            if (Tournament.Active && !Tournament.Over)
+            {
+                ShootOut.Result penalties = null;
+                if (match.HomeScore == match.AwayScore)
+                {
+                    ShootOut.Chances(Tournament.CurrentOpponent, out float homeChance, out float awayChance);
+                    penalties = ShootOut.Simulate(new RandomStream(System.Environment.TickCount), homeChance, awayChance);
+                    resultText.text += $"\n{(penalties.homeWins ? "HOME" : "AWAY")} WIN {(penalties.homeWins ? penalties.homeGoals : penalties.awayGoals)} - {(penalties.homeWins ? penalties.awayGoals : penalties.homeGoals)} ON PENALTIES";
+                }
+                Tournament.RecordResult(match.HomeScore, match.AwayScore, penalties);
+            }
             leagueText.text = Tournament.Active ? Tournament.Summary() : MiniLeague.Summary();
             rematchLabel.text = Tournament.Active ? (Tournament.Over ? "NEW TOURNAMENT" : "NEXT MATCH")
                 : !MiniLeague.Active ? "REMATCH" : MiniLeague.Finished ? "NEW LEAGUE" : "NEXT MATCH";

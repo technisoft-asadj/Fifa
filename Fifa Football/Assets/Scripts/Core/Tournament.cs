@@ -5,7 +5,8 @@ namespace FootballSim.Core
 {
     /// <summary>
     /// A three-round knockout (quarter-final, semi-final, final) against opponents of rising difficulty. Win to go through, lose and you are
-    /// out. There is no extra time or penalty shoot-out yet, so a draw means the match is played again. Static so it survives the scene reload
+    /// out. A drawn match is settled by a simulated penalty shoot-out when one is supplied (see <see cref="ShootOut"/>), otherwise it is
+    /// played again; there is no extra time. Static so it survives the scene reload
     /// between matches, and saved to PlayerPrefs after every change; saved data that does not add up is discarded.
     /// </summary>
     public static class Tournament
@@ -36,14 +37,17 @@ namespace FootballSim.Core
         public static void Abandon() { restored = true; active = false; eliminated = false; round = 0; results.Clear(); Save(); }
 
         /// <summary>Records the match just played (human = home). A win advances, a loss eliminates, a draw replays. Ignored when no cup is running.</summary>
-        public static Outcome RecordResult(int homeGoals, int awayGoals)
+        public static Outcome RecordResult(int homeGoals, int awayGoals, ShootOut.Result shootOut = null)
         {
             if (!Active || Over) return Outcome.None;
             string line = $"{CurrentStage}: {homeGoals}-{awayGoals} vs {CurrentOpponent}";
             Outcome o;
-            if (homeGoals > awayGoals) { round++; o = round >= Rounds ? Outcome.Champion : Outcome.Advanced; }
-            else if (homeGoals < awayGoals) { eliminated = true; o = Outcome.Eliminated; }
-            else { line += " (draw, replay)"; o = Outcome.Replay; }
+            bool homeThrough = homeGoals > awayGoals;
+            bool decided = homeGoals != awayGoals;
+            if (!decided && shootOut != null) { decided = true; homeThrough = shootOut.homeWins; line += $" ({shootOut})"; }
+            if (!decided) { line += " (draw, replay)"; o = Outcome.Replay; }
+            else if (homeThrough) { round++; o = round >= Rounds ? Outcome.Champion : Outcome.Advanced; }
+            else { eliminated = true; o = Outcome.Eliminated; }
             results.Add(line);
             Save();
             return o;

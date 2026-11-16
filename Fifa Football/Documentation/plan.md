@@ -31,7 +31,7 @@ Source: `My Plan/FOOTBALL SIMULATOR.docx` (v1.0). This file refines it; the docx
 3. **Vertical slice:** 1 stadium, 2 teams, full match vs AI -> playable end to end in the editor (soak-tested); on a phone only an older build was ever tried
 4. Characters & animation -> procedural placeholder models and animation only
 5. Football AI, formations, difficulty -> basic; AI-vs-AI is quiet (KB-018), tuning has plateaued
-6. Offline modes & save system -> single match and a 3-match mini-league (saved between sessions); remembered start-screen choices. Training mode: free play against stationary defenders (no drills). Tournament: a 3-round knockout ladder (saved), a draw replays. No career
+6. Offline modes & save system -> single match and a 3-match mini-league (saved between sessions); remembered start-screen choices. Training mode: free play against stationary defenders (no drills). Tournament: a 3-round knockout ladder (saved), a draw goes to a simulated shoot-out. No career
 7. Networking evaluation + dedicated server (decide NGO vs custom; record in networking.md) -> not started
 8. 1v1 online -> not started
 9. Stadium/graphics/audio, replays, commentary -> procedural sound only
