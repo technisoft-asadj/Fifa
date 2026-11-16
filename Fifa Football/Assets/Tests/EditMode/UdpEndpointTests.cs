@@ -88,5 +88,34 @@ namespace FootballSim.Tests
                 Assert.AreEqual(7, rx[0]);
             }
         }
+
+        [Test]
+        public void DefaultsToLoopbackOnlyAndAllInterfacesIsAnExplicitChoice()
+        {
+            using (var safe = new UdpEndpoint())
+                Assert.IsTrue(IPAddress.IsLoopback(safe.LocalEndPoint.Address), "default must not be reachable from other machines");
+            using (var open = new UdpEndpoint(0, true))
+                Assert.AreEqual(IPAddress.Any, open.LocalEndPoint.Address);
+        }
+
+        [Test]
+        public void ServerOpenToAllInterfacesStillTalksToAClient()
+        {
+            using (var server = new UdpEndpoint(0, true))
+            using (var client = new UdpEndpoint(0, true))
+            {
+                var target = new IPEndPoint(IPAddress.Loopback, server.LocalEndPoint.Port); // 0.0.0.0 is not an address to send to
+                client.Send(new byte[] { 3 }, 1, target);
+                var rx = new byte[16];
+                EndPoint from = null;
+                var sw = Stopwatch.StartNew();
+                int n = 0;
+                while (sw.ElapsedMilliseconds < 1000 && !server.TryReceive(rx, out n, out from)) { }
+                Assert.IsNotNull(from);
+                server.Send(new byte[] { 4 }, 1, (IPEndPoint)from);
+                Assert.IsTrue(WaitFor(client, rx, out n));
+                Assert.AreEqual(4, rx[0]);
+            }
+        }
     }
 }

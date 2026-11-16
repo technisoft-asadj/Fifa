@@ -497,3 +497,6 @@ Input for a joined slot is accepted only from the address that joined; a copied 
 
 ## Session helpers (2026-11-16)
 `NetSession.Host` / `NetSession.Join` wrap the server, client, view and input sender. 1 PlayMode test. Loopback only; no menu screen, no discovery. See `networking.md`.
+
+## Listening beyond loopback (2026-11-16)
+Server can opt in to all interfaces and a fixed port; clients pick the socket to match the server address. Default unchanged (loopback). EditMode 93/93 (2 new). Never crossed a real LAN; no rate limit or join approval, so not safe to expose. See `networking.md`.

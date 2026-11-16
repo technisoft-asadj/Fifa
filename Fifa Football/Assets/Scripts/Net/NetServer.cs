@@ -86,10 +86,12 @@ namespace FootballSim.Net
         /// <summary>Packets with the right token for a joined slot but from a different address than the one that joined.</summary>
         public int InputWrongAddress { get; private set; }
 
-        public void Init(MatchManager match, BallController ball, IList<PlayerController> players, int sendEveryFrames)
+        /// <param name="listenOnAllInterfaces">false (default): loopback only. true: reachable from other machines; only for a deliberate LAN/online host.</param>
+        /// <param name="port">0 picks a free port.</param>
+        public void Init(MatchManager match, BallController ball, IList<PlayerController> players, int sendEveryFrames, bool listenOnAllInterfaces = false, int port = 0)
         {
             this.match = match; this.ball = ball; this.players = players; sendEvery = Mathf.Max(1, sendEveryFrames);
-            endpoint = new UdpEndpoint();
+            endpoint = new UdpEndpoint(port, listenOnAllInterfaces);
         }
 
         void Update()

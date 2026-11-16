@@ -12,11 +12,14 @@ namespace FootballSim.Net
     {
         readonly Socket socket;
 
-        /// <summary>Binds to the loopback address on the given port (0 = pick a free one).</summary>
-        public UdpEndpoint(int port = 0)
+        /// <summary>
+        /// Binds on the given port (0 = pick a free one). By default only the loopback address, so nothing outside this machine can reach it;
+        /// <paramref name="allInterfaces"/> opens it to the local network and beyond, and must be a deliberate choice.
+        /// </summary>
+        public UdpEndpoint(int port = 0, bool allInterfaces = false)
         {
             socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-            socket.Bind(new IPEndPoint(IPAddress.Loopback, port));
+            socket.Bind(new IPEndPoint(allInterfaces ? IPAddress.Any : IPAddress.Loopback, port));
             socket.Blocking = false;
         }
 

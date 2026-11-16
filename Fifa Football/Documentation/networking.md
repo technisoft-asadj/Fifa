@@ -140,6 +140,9 @@ A slot handed out by Join now remembers the address that joined (`owners`). Inpu
 ## Session helpers
 `NetSession.Host(match, ball, players, slots...)` starts a server next to the running match; `NetSession.Join(endpoint, input, viewOrigin)` creates one object holding a client (which joins), a view and an input sender. Destroying the returned root shuts it down, and a client says goodbye as it goes. PlayMode test: host and guest in one call each, the guest's scripted input moves hosted player 5 more than 3 m, the guest's view receives snapshots, and destroying the guest registers a Leave. These are the calls a future host/join screen would make. The server still binds loopback only (no LAN or internet address, no discovery), so this is one process talking to itself.
 
+## Listening beyond loopback
+`UdpEndpoint(port, allInterfaces)` and `NetServer.Init(..., listenOnAllInterfaces, port)`: the default is still loopback only, so nothing outside the machine can reach a server unless the host asks for it. A client connecting to a non-loopback address opens its socket on all interfaces (a loopback socket cannot send to another machine). EditMode tests (2): the default endpoint is loopback and the open one is 0.0.0.0; an open server and client still exchange datagrams (sent to 127.0.0.1, since 0.0.0.0 is not a destination). The tests could only run on this machine: nothing has crossed a real LAN, a firewall prompt or a NAT, and an open port means anyone who can reach it can send hello and join (clear-text token, no approval, no rate limit) - do not expose it to the internet as is.
+
 ## Open questions
 - Is 20-30 Hz enough for tackles and shots to feel right on a phone connection? Unknown until measured.
 - Hosting: dedicated server builds, relay, or player-hosted? Cost and ops not assessed.

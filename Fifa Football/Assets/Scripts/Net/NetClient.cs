@@ -43,7 +43,8 @@ namespace FootballSim.Net
         public void Connect(IPEndPoint serverEndPoint)
         {
             server = serverEndPoint;
-            endpoint = new UdpEndpoint();
+            // a loopback server needs a loopback socket; a server elsewhere can only be reached from a socket open to the network
+            endpoint = new UdpEndpoint(0, !IPAddress.IsLoopback(serverEndPoint.Address));
         }
 
         readonly byte[] inputPacket = new byte[NetCodec.InputPacketBytes];
