@@ -17,7 +17,8 @@ namespace FootballSim.UI
         /// <summary>Set before a scene reload (rematch, restart, next match) so the new scene opens match setup instead of the main menu.</summary>
         public static bool OpenSetupDirectly;
 
-        GameObject mainMenu, settingsPanel;
+        GameObject mainMenu, settingsPanel, controlsPanel;
+        TextMeshProUGUI ctlStyle, ctlHand, ctlSize, ctlOpacity;
         TextMeshProUGUI menuLevel, menuXp, menuCoins, dailySub, settingsSound, settingsSize, settingsOpacity, settingsQuality, settingsFps, settingsReset;
         RectTransform xpFill;
         Button dailyButton;
@@ -26,6 +27,7 @@ namespace FootballSim.UI
 
         public bool MainMenuOpen => mainMenu != null && mainMenu.activeSelf;
         public bool SettingsOpen => settingsPanel != null && settingsPanel.activeSelf;
+        public bool ControlsOpen => controlsPanel != null && controlsPanel.activeSelf;
         public bool OnlineOpen => onlinePanel != null && onlinePanel.activeSelf;
         public bool SetupOpen => startPanel != null && startPanel.activeSelf;
         bool MenuOpen => startPanel.activeSelf || fullTimePanel.activeSelf || MainMenuOpen;
@@ -44,6 +46,7 @@ namespace FootballSim.UI
             Time.timeScale = 0f;
             startPanel.SetActive(false); fullTimePanel.SetActive(false);
             if (settingsPanel != null) settingsPanel.SetActive(false);
+            CloseControls();
             if (onlinePanel != null) onlinePanel.SetActive(false);
             RefreshMainMenu();
             mainMenu.SetActive(true);
@@ -54,6 +57,7 @@ namespace FootballSim.UI
             startPanel.SetActive(false);
             if (mainMenu != null) mainMenu.SetActive(false);
             if (settingsPanel != null) settingsPanel.SetActive(false);
+            CloseControls();
             if (onlinePanel != null) onlinePanel.SetActive(false);
         }
 
@@ -67,6 +71,7 @@ namespace FootballSim.UI
         /// <summary>One step back for Escape / the Android Back button. Returns true if it did something.</summary>
         bool NavigateBack()
         {
+            if (ControlsOpen) { CloseControls(); return true; }
             if (SettingsOpen) { CloseSettings(); return true; }
             if (OnlineOpen) { CloseOnline(); return true; }
             if (SetupOpen && !OnlineGuestActive) { ShowMainMenu(); return true; }
@@ -170,9 +175,50 @@ namespace FootballSim.UI
             RowPlusMinus(p, "Touch opacity", -20f, out settingsOpacity, () => AdjustTouch(0f, -0.1f), () => AdjustTouch(0f, 0.1f), blue);
             Row(p, "Graphics", -135f, out settingsQuality, CycleQuality, "CHANGE");
             Row(p, "Frame rate", -250f, out settingsFps, ToggleFps, "CHANGE");
-            var reset = UIKit.SmallButton(p, "Reset progress", UITheme.Red, UIKit.Center, new Vector2(0f, -365f), new Vector2(520f, 80f), TapSettingsReset, 34f);
+            UIKit.SmallButton(p, "Controls", UITheme.Blue, UIKit.Center, new Vector2(-280f, -365f), new Vector2(480f, 80f), OpenControls, 34f);
+            var reset = UIKit.SmallButton(p, "Reset progress", UITheme.Red, UIKit.Center, new Vector2(280f, -365f), new Vector2(480f, 80f), TapSettingsReset, 34f);
             settingsReset = reset.GetComponentInChildren<TextMeshProUGUI>();
             settingsPanel.SetActive(false);
+            BuildControlsPanel(root);
+        }
+
+        // ---- controls customisation: stick style, handedness, button size and opacity; the real controls show live while it is open ----
+        void BuildControlsPanel(RectTransform root)
+        {
+            var p = UIKit.GlassPanel(root, "Controls", UIKit.Center, Vector2.zero, new Vector2(1100f, 880f), true, 1f);
+            controlsPanel = p.parent.gameObject;
+            UIKit.TextAt(p, "Title", "CONTROLS", 64f, Color.white, UIKit.Center, new Vector2(0f, 350f), new Vector2(700f, 90f), TextAlignmentOptions.Center, true);
+            UIKit.SmallButton(p, "< Back", UITheme.Slate, UIKit.TopLeft, new Vector2(30f, -30f), new Vector2(190f, 72f), CloseControls, 34f);
+            Row(p, "Stick", 210f, out ctlStyle, ToggleStick, "CHANGE");
+            Row(p, "Hand", 95f, out ctlHand, ToggleHand, "CHANGE");
+            RowPlusMinus(p, "Button size", -20f, out ctlSize, () => AdjustTouch(-0.1f, 0f), () => AdjustTouch(0.1f, 0f), UITheme.BlueDark);
+            RowPlusMinus(p, "Opacity", -135f, out ctlOpacity, () => AdjustTouch(0f, -0.1f), () => AdjustTouch(0f, 0.1f), UITheme.BlueDark);
+            UIKit.TextAt(p, "Note", "The real buttons show at the sides of the screen while you change them.", 28f, UITheme.Muted, UIKit.Center, new Vector2(0f, -240f), new Vector2(1000f, 40f));
+            UIKit.SmallButton(p, "Reset controls", UITheme.Red, UIKit.Center, new Vector2(0f, -365f), new Vector2(520f, 80f), ResetControls, 34f);
+            controlsPanel.SetActive(false);
+        }
+
+        public void OpenControls() { RefreshControls(); controlsPanel.SetActive(true); var tc = Touch(); if (tc != null) tc.SetPreview(true); }
+
+        public void CloseControls()
+        {
+            if (controlsPanel == null || !controlsPanel.activeSelf) return;
+            controlsPanel.SetActive(false);
+            var tc = Touch(); if (tc != null) tc.SetPreview(false);
+        }
+
+        public void ToggleStick() { var tc = Touch(); if (tc == null) return; tc.SetLayout(tc.leftHanded, !tc.fixedStick); RefreshControls(); }
+        public void ToggleHand() { var tc = Touch(); if (tc == null) return; tc.SetLayout(!tc.leftHanded, tc.fixedStick); RefreshControls(); }
+        void ResetControls() { var tc = Touch(); if (tc == null) return; tc.ResetToDefaults(); RefreshControls(); }
+
+        void RefreshControls()
+        {
+            if (ctlStyle == null) return;
+            var tc = Touch();
+            ctlStyle.text = tc == null ? "-" : tc.fixedStick ? "Fixed" : "Floating";
+            ctlHand.text = tc == null ? "-" : tc.leftHanded ? "Left-handed" : "Right-handed";
+            ctlSize.text = tc == null ? "-" : $"{tc.controlScale * 100f:0}%";
+            ctlOpacity.text = tc == null ? "-" : $"{tc.controlOpacity * 100f:0}%";
         }
 
         void Row(RectTransform parent, string label, float y, out TextMeshProUGUI value, UnityEngine.Events.UnityAction onClick, string button)
@@ -203,7 +249,7 @@ namespace FootballSim.UI
         }
 
         // the base AdjustTouch refreshes the pause labels; keep the settings labels in step as well
-        void OnTouchAdjusted() { if (settingsPanel != null && settingsPanel.activeSelf) RefreshSettings(); }
+        void OnTouchAdjusted() { if (settingsPanel != null && settingsPanel.activeSelf) RefreshSettings(); RefreshControls(); }
 
         void CycleQuality()
         {

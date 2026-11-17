@@ -17,7 +17,12 @@ namespace FootballSim.Inputs
         [Range(0.5f, 1.6f)] public float controlScale = 1f;
         [Range(0.2f, 1f)] public float controlOpacity = 0.6f;
 
-        public const string PrefScale = "touch.scale", PrefOpacity = "touch.opacity";
+        /// <summary>Mirror the layout: thumb stick on the right, buttons on the left.</summary>
+        public bool leftHanded;
+        /// <summary>A stick that is always shown in the same place instead of appearing where the thumb lands.</summary>
+        public bool fixedStick;
+
+        public const string PrefScale = "touch.scale", PrefOpacity = "touch.opacity", PrefLeft = "touch.left", PrefFixed = "touch.fixed";
 
         Canvas canvas;
         Joystick joystick;
@@ -51,6 +56,8 @@ namespace FootballSim.Inputs
             {
                 controlScale = PlayerPrefs.GetFloat(PrefScale, controlScale);
                 controlOpacity = PlayerPrefs.GetFloat(PrefOpacity, controlOpacity);
+                leftHanded = PlayerPrefs.GetInt(PrefLeft, leftHanded ? 1 : 0) == 1;
+                fixedStick = PlayerPrefs.GetInt(PrefFixed, fixedStick ? 1 : 0) == 1;
             }
             catch { /* prefs unavailable: use defaults */ }
             EnsureEventSystem();
@@ -75,6 +82,22 @@ namespace FootballSim.Inputs
             controlScale = Mathf.Clamp(scale, 0.5f, 1.6f);
             controlOpacity = Mathf.Clamp(opacity, 0.2f, 1f);
             try { PlayerPrefs.SetFloat(PrefScale, controlScale); PlayerPrefs.SetFloat(PrefOpacity, controlOpacity); PlayerPrefs.Save(); } catch { }
+            Rebuild();
+        }
+
+        /// <summary>Persist and apply the stick style and handedness.</summary>
+        public void SetLayout(bool left, bool fixedStyle)
+        {
+            leftHanded = left; fixedStick = fixedStyle;
+            try { PlayerPrefs.SetInt(PrefLeft, left ? 1 : 0); PlayerPrefs.SetInt(PrefFixed, fixedStyle ? 1 : 0); PlayerPrefs.Save(); } catch { }
+            Rebuild();
+        }
+
+        /// <summary>Back to the default look and layout (and forget the saved choices).</summary>
+        public void ResetToDefaults()
+        {
+            controlScale = 1f; controlOpacity = 0.6f; leftHanded = false; fixedStick = false;
+            try { PlayerPrefs.DeleteKey(PrefScale); PlayerPrefs.DeleteKey(PrefOpacity); PlayerPrefs.DeleteKey(PrefLeft); PlayerPrefs.DeleteKey(PrefFixed); PlayerPrefs.Save(); } catch { }
             Rebuild();
         }
 
@@ -139,11 +162,11 @@ namespace FootballSim.Inputs
             var area = new GameObject("JoystickArea", typeof(RectTransform), typeof(Image));
             area.transform.SetParent(rt, false);
             var art = (RectTransform)area.transform;
-            art.anchorMin = new Vector2(0f, 0f); art.anchorMax = new Vector2(0.45f, 0.65f);
+            art.anchorMin = leftHanded ? new Vector2(0.55f, 0f) : new Vector2(0f, 0f); art.anchorMax = leftHanded ? new Vector2(1f, 0.65f) : new Vector2(0.45f, 0.65f);
             art.offsetMin = art.offsetMax = Vector2.zero;
             area.GetComponent<Image>().color = new Color(0, 0, 0, 0); // invisible but raycastable
             joystick = area.AddComponent<Joystick>();
-            joystick.Init(rt, controlScale, controlOpacity, Circle());
+            joystick.Init(rt, controlScale, controlOpacity, Circle(), fixedStick, leftHanded);
 
             float s = controlScale;
             shoot = Button(rt, font, "SHOOT", new Vector2(-210, 210), 190 * s, new Color(0.9f, 0.25f, 0.2f));
@@ -174,9 +197,9 @@ namespace FootballSim.Inputs
             var go = new GameObject(label + "Btn", typeof(RectTransform), typeof(Image), typeof(HoldButton));
             go.transform.SetParent(parent, false);
             var rt = (RectTransform)go.transform;
-            rt.anchorMin = rt.anchorMax = new Vector2(1f, 0f); // bottom-right
+            rt.anchorMin = rt.anchorMax = new Vector2(leftHanded ? 0f : 1f, 0f); // bottom-right, or bottom-left when mirrored
             rt.pivot = new Vector2(0.5f, 0.5f);
-            rt.anchoredPosition = new Vector2(pos.x, pos.y);
+            rt.anchoredPosition = new Vector2(leftHanded ? -pos.x : pos.x, pos.y);
             rt.sizeDelta = new Vector2(size, size);
             var img = go.GetComponent<Image>();
             img.sprite = Circle();
@@ -200,17 +223,42 @@ namespace FootballSim.Inputs
     {
         RectTransform canvasRect, baseRect, knobRect;
         float radius = 110f;
+        bool fixedBase;
 
         public Vector2 Value { get; private set; }
 
-        public void Init(RectTransform canvas, float scale, float opacity, Sprite circle)
+        public bool IsFixed => fixedBase;
+        public RectTransform BaseForTest => baseRect;
+
+        public void Init(RectTransform canvas, float scale, float opacity, Sprite circle, bool fixedStyle = false, bool leftHanded = false)
         {
             canvasRect = canvas;
             radius = 110f * scale;
+            fixedBase = fixedStyle;
             baseRect = MakeDisc("Base", circle, radius * 2f, new Color(1, 1, 1, opacity * 0.5f));
             knobRect = MakeDisc("Knob", circle, radius * 0.9f, new Color(1, 1, 1, Mathf.Clamp01(opacity + 0.2f)));
-            baseRect.gameObject.SetActive(false);
-            knobRect.gameObject.SetActive(false);
+            if (fixedBase)
+            {
+                // always visible, in the corner under the thumb
+                float x = radius + 110f, y = radius + 110f;
+                var anchor = new Vector2(leftHanded ? 1f : 0f, 0f);
+                baseRect.anchorMin = baseRect.anchorMax = knobRect.anchorMin = knobRect.anchorMax = anchor;
+                baseRect.anchoredPosition = knobRect.anchoredPosition = new Vector2(leftHanded ? -x : x, y);
+            }
+            else
+            {
+                baseRect.gameObject.SetActive(false);
+                knobRect.gameObject.SetActive(false);
+            }
+        }
+
+        void DriveFixed(PointerEventData e)
+        {
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(baseRect, e.position, null, out var d);
+            Vector2 clamped = Vector2.ClampMagnitude(d, radius);
+            knobRect.anchoredPosition = baseRect.anchoredPosition + clamped;
+            Vector2 v = clamped / radius;
+            Value = v.magnitude < 0.12f ? Vector2.zero : v;
         }
 
         RectTransform MakeDisc(string n, Sprite sprite, float size, Color c)
@@ -233,6 +281,7 @@ namespace FootballSim.Inputs
 
         public void OnPointerDown(PointerEventData e)
         {
+            if (fixedBase) { DriveFixed(e); return; }
             var p = ToCanvas(e);
             baseRect.anchoredPosition = p;
             knobRect.anchoredPosition = p;
@@ -243,6 +292,7 @@ namespace FootballSim.Inputs
 
         public void OnDrag(PointerEventData e)
         {
+            if (fixedBase) { DriveFixed(e); return; }
             Vector2 delta = ToCanvas(e) - baseRect.anchoredPosition;
             Vector2 clamped = Vector2.ClampMagnitude(delta, radius);
             knobRect.anchoredPosition = baseRect.anchoredPosition + clamped;
@@ -258,6 +308,7 @@ namespace FootballSim.Inputs
 
         void HideStick()
         {
+            if (fixedBase) { if (knobRect != null && baseRect != null) knobRect.anchoredPosition = baseRect.anchoredPosition; return; }
             if (baseRect != null) baseRect.gameObject.SetActive(false);
             if (knobRect != null) knobRect.gameObject.SetActive(false);
         }

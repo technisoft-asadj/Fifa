@@ -814,6 +814,49 @@ namespace FootballSim.Tests
         }
 
         [UnityTest]
+        public IEnumerator ControlsScreenOpensFromSettingsPreviewsTheControlsAndBackClosesIt()
+        {
+            yield return LoadScene();
+            var hud = Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>();
+            var touch = Object.FindFirstObjectByType<FootballSim.Inputs.TouchControls>();
+            touch.forceShow = true;
+            hud.ShowMainMenu(); // the match waits behind the menu (time stopped)
+            hud.MenuSettings();
+            hud.OpenControls();
+            yield return null; yield return null;
+            Assert.IsTrue(hud.ControlsOpen);
+            Assert.IsTrue(touch.IsVisible, "the real controls show behind the screen so changes can be seen");
+            Assert.IsTrue(hud.GoBack()); Assert.IsFalse(hud.ControlsOpen); Assert.IsTrue(hud.SettingsOpen, "Back from controls returns to settings");
+            yield return null; yield return null;
+            Assert.IsFalse(touch.IsVisible, "no preview once the screen is closed (the main menu is up)");
+            Assert.IsTrue(hud.GoBack()); Assert.IsFalse(hud.SettingsOpen);
+        }
+
+        [UnityTest]
+        public IEnumerator LeftHandedMirrorsTheLayoutAndAFixedStickIsAlwaysShown()
+        {
+            yield return LoadScene();
+            var touch = Object.FindFirstObjectByType<FootballSim.Inputs.TouchControls>();
+            try
+            {
+                touch.ResetToDefaults();
+                Assert.AreEqual(1f, touch.ShootForTest.GetComponent<RectTransform>().anchorMin.x, "right-handed: buttons on the right");
+                Assert.IsFalse(touch.StickForTest.IsFixed);
+                touch.SetLayout(true, true);
+                Assert.AreEqual(0f, touch.ShootForTest.GetComponent<RectTransform>().anchorMin.x, "left-handed: buttons on the left");
+                Assert.Greater(touch.ShootForTest.GetComponent<RectTransform>().anchoredPosition.x, 0f);
+                Assert.IsTrue(touch.StickForTest.IsFixed);
+                Assert.AreEqual(1f, touch.StickForTest.GetComponent<RectTransform>().anchorMax.x, 1e-4f, "the stick area reaches the right edge");
+                Assert.Greater(touch.StickForTest.GetComponent<RectTransform>().anchorMin.x, 0.5f, "and sits in the right half");
+                Assert.IsTrue(touch.StickForTest.BaseForTest.gameObject.activeSelf, "a fixed stick is visible without a touch");
+                Assert.AreEqual(Vector2.zero, touch.StickForTest.Value);
+                Assert.AreEqual(1, PlayerPrefs.GetInt(FootballSim.Inputs.TouchControls.PrefLeft, 0), "the choice is saved");
+            }
+            finally { touch.ResetToDefaults(); }
+            Assert.IsFalse(PlayerPrefs.HasKey(FootballSim.Inputs.TouchControls.PrefLeft), "defaults forget the saved choice");
+        }
+
+        [UnityTest]
         public IEnumerator LiveMatchAccumulatesStatsAndSummaryText()
         {
             yield return LoadScene();
