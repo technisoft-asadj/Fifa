@@ -16,6 +16,27 @@ namespace FootballSim.CameraSystem
         Vector3 vel;
         float viewSign = 1f;
 
+        public const string PrefKey = "camera_preset";
+        /// <summary>Camera views the player can pick: (height, distance). The first is the default broadcast view.</summary>
+        public static readonly string[] PresetNames = { "Broadcast", "Close", "Wide", "High" };
+        static readonly Vector2[] PresetValues = { new Vector2(18f, 22f), new Vector2(11f, 14f), new Vector2(26f, 32f), new Vector2(34f, 12f) };
+        public int Preset { get; private set; }
+        public float Height => height;
+        public float Distance => distance;
+
+        void Awake()
+        {
+            try { SetPreset(PlayerPrefs.GetInt(PrefKey, 0), false); } catch { }
+        }
+
+        /// <summary>Choose a camera view (wraps around). The camera glides to it; the choice is saved.</summary>
+        public void SetPreset(int index, bool save = true)
+        {
+            Preset = ((index % PresetValues.Length) + PresetValues.Length) % PresetValues.Length;
+            height = PresetValues[Preset].x; distance = PresetValues[Preset].y;
+            if (save) { try { PlayerPrefs.SetInt(PrefKey, Preset); PlayerPrefs.Save(); } catch { } }
+        }
+
         /// <summary>+1 = looking toward +Z (default); -1 = looking toward -Z after the teams change ends. Snaps so players see the new view at once.</summary>
         public void SetViewSign(float sign)
         {

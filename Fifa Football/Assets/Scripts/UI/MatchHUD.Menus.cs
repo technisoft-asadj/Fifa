@@ -17,7 +17,9 @@ namespace FootballSim.UI
         /// <summary>Set before a scene reload (rematch, restart, next match) so the new scene opens match setup instead of the main menu.</summary>
         public static bool OpenSetupDirectly;
 
-        GameObject mainMenu, settingsPanel, controlsPanel;
+        GameObject mainMenu, settingsPanel, controlsPanel, careerPanel;
+        TextMeshProUGUI settingsCamera, careerText;
+        FootballSim.CameraSystem.BroadcastCamera cam;
         TextMeshProUGUI ctlStyle, ctlHand, ctlSize, ctlOpacity;
         TextMeshProUGUI menuLevel, menuXp, menuCoins, dailySub, settingsSound, settingsSize, settingsOpacity, settingsQuality, settingsFps, settingsReset;
         RectTransform xpFill;
@@ -27,6 +29,7 @@ namespace FootballSim.UI
 
         public bool MainMenuOpen => mainMenu != null && mainMenu.activeSelf;
         public bool SettingsOpen => settingsPanel != null && settingsPanel.activeSelf;
+        public bool CareerOpen => careerPanel != null && careerPanel.activeSelf;
         public bool ControlsOpen => controlsPanel != null && controlsPanel.activeSelf;
         public bool OnlineOpen => onlinePanel != null && onlinePanel.activeSelf;
         public bool SetupOpen => startPanel != null && startPanel.activeSelf;
@@ -46,7 +49,7 @@ namespace FootballSim.UI
             Time.timeScale = 0f;
             startPanel.SetActive(false); fullTimePanel.SetActive(false);
             if (settingsPanel != null) settingsPanel.SetActive(false);
-            CloseControls();
+            CloseControls(); CloseCareer();
             if (onlinePanel != null) onlinePanel.SetActive(false);
             RefreshMainMenu();
             mainMenu.SetActive(true);
@@ -57,7 +60,7 @@ namespace FootballSim.UI
             startPanel.SetActive(false);
             if (mainMenu != null) mainMenu.SetActive(false);
             if (settingsPanel != null) settingsPanel.SetActive(false);
-            CloseControls();
+            CloseControls(); CloseCareer();
             if (onlinePanel != null) onlinePanel.SetActive(false);
         }
 
@@ -71,6 +74,7 @@ namespace FootballSim.UI
         /// <summary>One step back for Escape / the Android Back button. Returns true if it did something.</summary>
         bool NavigateBack()
         {
+            if (CareerOpen) { CloseCareer(); return true; }
             if (ControlsOpen) { CloseControls(); return true; }
             if (SettingsOpen) { CloseSettings(); return true; }
             if (OnlineOpen) { CloseOnline(); return true; }
@@ -119,6 +123,7 @@ namespace FootballSim.UI
             avatar.rectTransform.anchoredPosition = new Vector2(40f, -30f); avatar.rectTransform.sizeDelta = new Vector2(104f, 104f);
             var face = UIKit.Image(avatar.transform, "Face", UITheme.Icon(UIIcon.Person), new Color(1f, 1f, 1f, 0.9f), false, false);
             face.rectTransform.anchorMin = new Vector2(0.18f, 0.18f); face.rectTransform.anchorMax = new Vector2(0.82f, 0.82f); face.rectTransform.offsetMin = face.rectTransform.offsetMax = Vector2.zero;
+            var profileBtn = avatar.gameObject.AddComponent<Button>(); profileBtn.targetGraphic = avatar; profileBtn.onClick.AddListener(OpenCareer); avatar.raycastTarget = true;
             UIKit.TextAt(menu, "Name", "Player", 38f, Color.white, UIKit.TopLeft, new Vector2(166f, -30f), new Vector2(360f, 46f), TextAlignmentOptions.Left, true);
             menuLevel = UIKit.TextAt(menu, "Level", "Level 1", 26f, UITheme.Gold, UIKit.TopLeft, new Vector2(166f, -76f), new Vector2(200f, 34f), TextAlignmentOptions.Left, true);
             xpFill = UIKit.Bar(menu, "XpBar", UITheme.Gold, UIKit.TopLeft, new Vector2(166f, -118f), new Vector2(300f, 16f));
@@ -159,7 +164,36 @@ namespace FootballSim.UI
 
             UIKit.TextAt(menu, "Version", "v" + Application.version, 22f, new Color(1f, 1f, 1f, 0.45f), UIKit.BottomRight, new Vector2(-30f, 20f), new Vector2(200f, 30f), TextAlignmentOptions.Right);
             BuildSettingsPanel(root);
+            BuildCareerPanel(root);
         }
+
+        // ---- career: the player's own lifetime record (local; a real online leaderboard would need a server) ----
+        void BuildCareerPanel(RectTransform root)
+        {
+            var p = UIKit.GlassPanel(root, "Career", UIKit.Center, Vector2.zero, new Vector2(1000f, 800f), true, 1f);
+            careerPanel = p.parent.gameObject;
+            UIKit.TextAt(p, "Title", "CAREER", 64f, Color.white, UIKit.Center, new Vector2(0f, 320f), new Vector2(700f, 90f), TextAlignmentOptions.Center, true);
+            UIKit.SmallButton(p, "< Back", UITheme.Slate, UIKit.TopLeft, new Vector2(30f, -30f), new Vector2(190f, 72f), CloseCareer, 34f);
+            careerText = UIKit.TextAt(p, "Stats", "", 40f, Color.white, UIKit.Center, new Vector2(0f, -30f), new Vector2(880f, 560f), TextAlignmentOptions.Center, false);
+            careerText.textWrappingMode = TextWrappingModes.Normal; careerText.lineSpacing = 18f;
+            careerPanel.SetActive(false);
+        }
+
+        /// <summary>The lifetime record as shown on the Career screen.</summary>
+        public string CareerStats()
+        {
+            int played = CareerRecord.Played;
+            string rate = played == 0 ? "-" : $"{100f * CareerRecord.Won / played:0}%";
+            string gd = (CareerRecord.GoalsFor - CareerRecord.GoalsAgainst).ToString("+0;-0;0");
+            return $"<color=#FFC71F>Level {PlayerProfile.Level}</color>   {PlayerProfile.XpInLevel} / {PlayerProfile.XpPerLevel} XP   <color=#FFC71F>{PlayerProfile.Coins:N0} coins</color>\n\n"
+                 + $"Matches played: {played}\nWon {CareerRecord.Won}   Drawn {CareerRecord.Drawn}   Lost {CareerRecord.Lost}\nWin rate: {rate}\n"
+                 + $"Goals for {CareerRecord.GoalsFor}   against {CareerRecord.GoalsAgainst}   difference {gd}\n\n"
+                 + "<size=28><color=#B0B8C8>Saved on this phone only. Training matches are not counted.</color></size>";
+        }
+
+        public string CareerShown => careerText != null ? careerText.text : "";
+        public void OpenCareer() { careerText.text = CareerStats(); careerPanel.SetActive(true); }
+        public void CloseCareer() { if (careerPanel != null) careerPanel.SetActive(false); }
 
         void BuildSettingsPanel(RectTransform root)
         {
@@ -170,10 +204,11 @@ namespace FootballSim.UI
             UIKit.SmallButton(p, "< Back", UITheme.Slate, UIKit.TopLeft, new Vector2(30f, -30f), new Vector2(190f, 72f), CloseSettings, 34f);
 
             var blue = UITheme.BlueDark;
-            Row(p, "Sound", 210f, out settingsSound, () => { ToggleSound(); RefreshSettings(); }, "TOGGLE");
-            RowPlusMinus(p, "Touch button size", 95f, out settingsSize, () => AdjustTouch(-0.1f, 0f), () => AdjustTouch(0.1f, 0f), blue);
-            RowPlusMinus(p, "Touch opacity", -20f, out settingsOpacity, () => AdjustTouch(0f, -0.1f), () => AdjustTouch(0f, 0.1f), blue);
-            Row(p, "Graphics", -135f, out settingsQuality, CycleQuality, "CHANGE");
+            Row(p, "Sound", 250f, out settingsSound, () => { ToggleSound(); RefreshSettings(); }, "TOGGLE");
+            Row(p, "Camera", 150f, out settingsCamera, CycleCamera, "CHANGE");
+            RowPlusMinus(p, "Touch button size", 50f, out settingsSize, () => AdjustTouch(-0.1f, 0f), () => AdjustTouch(0.1f, 0f), blue);
+            RowPlusMinus(p, "Touch opacity", -50f, out settingsOpacity, () => AdjustTouch(0f, -0.1f), () => AdjustTouch(0f, 0.1f), blue);
+            Row(p, "Graphics", -150f, out settingsQuality, CycleQuality, "CHANGE");
             Row(p, "Frame rate", -250f, out settingsFps, ToggleFps, "CHANGE");
             UIKit.SmallButton(p, "Controls", UITheme.Blue, UIKit.Center, new Vector2(-280f, -365f), new Vector2(480f, 80f), OpenControls, 34f);
             var reset = UIKit.SmallButton(p, "Reset progress", UITheme.Red, UIKit.Center, new Vector2(280f, -365f), new Vector2(480f, 80f), TapSettingsReset, 34f);
@@ -245,11 +280,21 @@ namespace FootballSim.UI
             var names = QualitySettings.names;
             settingsQuality.text = names.Length == 0 ? "-" : names[Mathf.Clamp(QualitySettings.GetQualityLevel(), 0, names.Length - 1)];
             settingsFps.text = Application.targetFrameRate > 0 ? Application.targetFrameRate + " FPS" : "Max";
+            var bc = Cam(); settingsCamera.text = bc == null ? "-" : FootballSim.CameraSystem.BroadcastCamera.PresetNames[bc.Preset];
             if (!ResetArmed) settingsReset.text = "Reset progress";
         }
 
         // the base AdjustTouch refreshes the pause labels; keep the settings labels in step as well
         void OnTouchAdjusted() { if (settingsPanel != null && settingsPanel.activeSelf) RefreshSettings(); RefreshControls(); }
+
+        FootballSim.CameraSystem.BroadcastCamera Cam()
+        {
+            if (cam == null) cam = FindFirstObjectByType<FootballSim.CameraSystem.BroadcastCamera>();
+            return cam;
+        }
+
+        /// <summary>Next camera view: Broadcast, Close, Wide, High.</summary>
+        public void CycleCamera() { var c = Cam(); if (c == null) return; c.SetPreset(c.Preset + 1); RefreshSettings(); }
 
         void CycleQuality()
         {

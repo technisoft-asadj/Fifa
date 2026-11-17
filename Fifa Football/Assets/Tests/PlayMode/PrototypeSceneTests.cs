@@ -833,6 +833,44 @@ namespace FootballSim.Tests
         }
 
         [UnityTest]
+        public IEnumerator CareerScreenShowsTheRecordAndBackClosesIt()
+        {
+            yield return LoadScene();
+            var hud = Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>();
+            FootballSim.Core.CareerRecord.Clear();
+            FootballSim.Core.CareerRecord.Record(3, 1);
+            FootballSim.Core.CareerRecord.Record(0, 0);
+            hud.OpenCareer();
+            Assert.IsTrue(hud.CareerOpen);
+            StringAssert.Contains("Matches played: 2", hud.CareerShown);
+            StringAssert.Contains("Won 1   Drawn 1   Lost 0", hud.CareerShown);
+            StringAssert.Contains("Win rate: 50%", hud.CareerShown);
+            StringAssert.Contains("difference +2", hud.CareerShown);
+            Assert.IsTrue(hud.GoBack()); Assert.IsFalse(hud.CareerOpen); Assert.IsTrue(hud.MainMenuOpen, "back to the main menu");
+        }
+
+        [UnityTest]
+        public IEnumerator CameraViewCyclesWrapsAndIsSaved()
+        {
+            yield return LoadScene();
+            var hud = Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>();
+            var cam = Object.FindFirstObjectByType<FootballSim.CameraSystem.BroadcastCamera>();
+            try
+            {
+                cam.SetPreset(0);
+                float broadcastHeight = cam.Height;
+                hud.CycleCamera();
+                Assert.AreEqual(1, cam.Preset);
+                Assert.Less(cam.Height, broadcastHeight, "Close view is lower");
+                Assert.AreEqual(1, PlayerPrefs.GetInt(FootballSim.CameraSystem.BroadcastCamera.PrefKey, -1), "the choice is saved");
+                for (int i = 0; i < FootballSim.CameraSystem.BroadcastCamera.PresetNames.Length - 1; i++) hud.CycleCamera();
+                Assert.AreEqual(0, cam.Preset, "wraps back to Broadcast");
+                Assert.AreEqual(broadcastHeight, cam.Height, 1e-4f);
+            }
+            finally { cam.SetPreset(0); PlayerPrefs.DeleteKey(FootballSim.CameraSystem.BroadcastCamera.PrefKey); }
+        }
+
+        [UnityTest]
         public IEnumerator LeftHandedMirrorsTheLayoutAndAFixedStickIsAlwaysShown()
         {
             yield return LoadScene();
