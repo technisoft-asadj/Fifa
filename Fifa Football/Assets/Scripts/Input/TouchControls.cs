@@ -71,6 +71,51 @@ namespace FootballSim.Inputs
             want &= running || preview; // hide during menus, except while previewing from the pause settings
             if (root.activeSelf != want) root.SetActive(want);
             if (group != null) group.blocksRaycasts = running; // a preview must not swallow menu touches
+            if (running && Time.unscaledTime >= nextContextCheck) { nextContextCheck = Time.unscaledTime + 0.2f; UpdateContext(); }
+        }
+
+        // ---- context-sensitive look (attacking / defending / keeper) ----
+        float nextContextCheck;
+        Core.ControlContext context = Core.ControlContext.Loose;
+        bool contextApplied;
+        FootballSim.Ball.BallController ball;
+        public Core.ControlContext Context => context;
+        public string ShootLabel => LabelOf(shoot);
+        public string PassLabel => LabelOf(pass);
+        public string TackleLabel => LabelOf(tackle);
+        public float TackleScale => tackle != null ? tackle.transform.localScale.x : 1f;
+        static string LabelOf(HoldButton b) { return b != null ? b.GetComponentInChildren<Text>().text : ""; }
+
+        void UpdateContext()
+        {
+            FootballSim.Players.PlayerController me = null;
+            foreach (var t in FindObjectsByType<FootballSim.FootballAI.TeamController>(FindObjectsSortMode.None))
+                if (t.humanControlled && t.Controlled != null) { me = t.Controlled; break; }
+            if (me == null) return;
+            if (ball == null) ball = FindFirstObjectByType<FootballSim.Ball.BallController>();
+            if (ball == null) return;
+            var next = Core.ControlContextRules.Decide(me.isGoalkeeper, me.TeamId, ball.LastTouchTeam, ball.Velocity.magnitude);
+            if (contextApplied && next == context) return;
+            SetContext(next);
+        }
+
+        /// <summary>Applies a context's labels, sizes and dimming (also used by tests).</summary>
+        public void SetContext(Core.ControlContext c)
+        {
+            context = c; contextApplied = true;
+            var look = Core.ControlContextRules.Look(c);
+            Restyle(shoot, look.shoot); Restyle(pass, look.pass); Restyle(tackle, look.tackle);
+        }
+
+        void Restyle(HoldButton b, Core.ButtonLook l)
+        {
+            if (b == null) return;
+            var txt = b.GetComponentInChildren<Text>();
+            txt.text = l.label;
+            b.transform.localScale = Vector3.one * l.size;
+            var img = b.GetComponent<Image>();
+            var c = img.color; c.a = controlOpacity * l.alpha; img.color = c;
+            var tc = txt.color; tc.a = Mathf.Clamp01(controlOpacity + 0.3f) * l.alpha; txt.color = tc;
         }
 
         /// <summary>Show the controls while the game is paused so size/opacity changes can be seen.</summary>
@@ -174,6 +219,7 @@ namespace FootballSim.Inputs
             tackle = Button(rt, font, "TACKLE", new Vector2(-120, 450), 150 * s, new Color(0.95f, 0.7f, 0.1f));
             switchBtn = Button(rt, font, "SWITCH", new Vector2(-390, 380), 130 * s, new Color(0.5f, 0.5f, 0.55f));
             sprint = Button(rt, font, "SPRINT", new Vector2(-640, 100), 130 * s, new Color(0.2f, 0.75f, 0.4f), anchorLeft: false);
+            if (contextApplied) SetContext(context); // a rebuild (new size or layout) keeps the current context look
         }
 
         /// <summary>Stretch a rect to the safe area, given in screen pixels.</summary>

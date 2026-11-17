@@ -868,6 +868,41 @@ namespace FootballSim.Tests
         }
 
         [UnityTest]
+        public IEnumerator TheTouchButtonsChangeWithPossessionAndKeepTheirLookAcrossARebuild()
+        {
+            yield return LoadScene();
+            var hud = Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>();
+            var touch = Object.FindFirstObjectByType<FootballSim.Inputs.TouchControls>();
+            touch.forceShow = true;
+            hud.BeginMatch();
+            yield return null; yield return null;
+            var ball = Object.FindFirstObjectByType<FootballSim.Ball.BallController>();
+            ball.Freeze(true); // nobody touches it while the test sets who has it
+            var human = System.Array.Find(Object.FindObjectsByType<FootballSim.FootballAI.TeamController>(FindObjectsSortMode.None), t => t.humanControlled);
+            Assert.IsNotNull(human, "a human team");
+            int mine = human.Controlled.TeamId;
+
+            ball.LastTouchTeam = mine;
+            yield return new WaitForSecondsRealtime(0.5f);
+            Assert.AreEqual(FootballSim.Core.ControlContext.Attack, touch.Context);
+            Assert.AreEqual("SHOOT", touch.ShootLabel); Assert.Less(touch.TackleScale, 1f, "the tackle button shrinks while attacking");
+
+            ball.LastTouchTeam = 1 - mine;
+            yield return new WaitForSecondsRealtime(0.5f);
+            Assert.AreEqual(FootballSim.Core.ControlContext.Defend, touch.Context);
+            Assert.AreEqual("CLEAR", touch.ShootLabel); Assert.AreEqual("TACKLE", touch.TackleLabel); Assert.Greater(touch.TackleScale, 1.1f);
+
+            float scale = touch.controlScale, opacity = touch.controlOpacity;
+            touch.SetAppearance(scale, opacity); // a rebuild must not forget the context
+            yield return null;
+            Assert.AreEqual("CLEAR", touch.ShootLabel); Assert.Greater(touch.TackleScale, 1.1f);
+
+            touch.SetContext(FootballSim.Core.ControlContext.Keeper);
+            Assert.AreEqual("DIVE", touch.TackleLabel);
+            ball.Freeze(false);
+        }
+
+        [UnityTest]
         public IEnumerator ControlsScreenOpensFromSettingsPreviewsTheControlsAndBackClosesIt()
         {
             yield return LoadScene();
