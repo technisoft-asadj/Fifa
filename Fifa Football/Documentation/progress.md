@@ -550,3 +550,9 @@ Limits: this is a season ladder, not a career: no transfers, squads, player grow
 ## Shoot-out text was invisible, fixed
 - Looking at a drawn tournament match on the full-time panel showed "DRAW 0 - 0" and nothing else: the "WIN x - y ON PENALTIES" line had been added as a second line to a one-line-high text box and was cut off. It now sits on the same line in a smaller size: "DRAW  0 - 0  (HOME WIN 4 - 1 ON PENALTIES)". New PlayMode test `ADrawnTournamentMatchShowsThePenaltyResultOnTheResultLine`.
 - Seen in the editor (wide view): League, Tournament and Season mode labels, the pause and full-time panels. Not seen: Training label, a true landscape phone shape, touch controls.
+
+## First run on a real phone (2026-11-17, Infinix X6881, 2436x1080)
+- Installed `Builds/Android/Fifa Football.apk` (built 02:04, includes every fix through the shoot-out text) with `adb install -r`, launched it, and drove it with adb taps and screenshots.
+- Works on the phone: the app starts (no exceptions or errors in the Unity log, about 1600 lines), the start screen fits the 1080-high screen with readable text and buttons, PLAY starts a match, the in-match HUD shows scoreboard, clock, stamina bar, pause button and the five touch buttons (TACKLE, SWITCH, SHOOT, PASS, SPRINT) on the right, the floating movement stick appears where the left side is touched and the controlled player moves, the pause panel opens and Escape resumes.
+- Not verified: frame rate (not measured this time), the buttons by tapping each one, goals/full time on the phone, a real two-finger session, the Android Back key (see KB-015: does nothing under adb), the Squad lv line, the other modes on the phone.
+- Small things seen: the scoreboard shows faintly behind the top of the start panel on the phone (the panel fills the full height); the clock reads in game minutes (11:00 after about 35 s of a 5-minute match).
