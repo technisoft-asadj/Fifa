@@ -630,3 +630,5 @@ Limits: this is a season ladder, not a career: no transfers, squads, player grow
 - Bugs found and fixed after this build (need a rebuild to see): (1) the setup panel was 1000 high but this 2436x1080 screen shows only about 960 canvas units, so the PLAY button was cut off at the bottom: the panel now scales down to fit (`FitSetupPanel`, test added); (2) Career showed "Level 10 / 100 XP" because the level and the XP had no gap between them.
 - Known, not fixed: in landscape the soft keyboard covers the name field and its buttons while typing (the text is still readable in the keyboard bar). Controls screen: the Sprint preview button overlaps the panel edge slightly.
 - Still not seen on the phone: fixed stick, camera views in play, online host/guest, real Back gesture, frame rate.
+
+- Rebuilt APK (commit 7e04d6e) checked on the phone: the setup panel now fits and PLAY is fully visible; Career reads "Level 1   0 / 100 XP". Both fixes confirmed.
