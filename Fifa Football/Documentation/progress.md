@@ -632,3 +632,9 @@ Limits: this is a season ladder, not a career: no transfers, squads, player grow
 - Still not seen on the phone: fixed stick, camera views in play, online host/guest, real Back gesture, frame rate.
 
 - Rebuilt APK (commit 7e04d6e) checked on the phone: the setup panel now fits and PLAY is fully visible; Career reads "Level 1   0 / 100 XP". Both fixes confirmed.
+
+## Performance baseline for the animation phases (2026-11-17)
+- New optional readout: Settings > Show FPS (off by default, remembered). Shows average fps, 1% low and worst frame, and logs a `[perf] ...` line every 5 s (read with `adb logcat -s Unity | grep perf`). `FrameStats` keeps a rolling 300-frame window.
+- Baseline, Infinix X6881 (the only device), release-style Android build of commit 038ac5b, quality "Mobile", frame cap 60, a Single match in progress with 22 primitive-body players (the current visuals, no Animator): average 59.6 fps, 1% low 58.8-59.6 fps, worst frame 16.8-17.0 ms, over 30 s (6 log lines). So the current game sits at the 60 fps cap with no visible spikes.
+- What this does NOT say: how much headroom there is below the cap (the cap hides it), whether it holds through long play, thermal throttling after minutes, or other phones. Phase 2 must repeat this exact measurement with the Animator-driven characters; the budget to beat is the numbers above.
+- Tests: EditMode 169/169 (new FrameStats tests), PlayMode 92/92 (+5 gated probes Inconclusive; new test: readout off by default, toggles, remembered).

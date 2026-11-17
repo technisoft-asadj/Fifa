@@ -143,3 +143,5 @@ Licence notes gathered so far (secondary sources, **to be re-checked at the prim
 1. Record the baseline: fps of the current build on the phone with 22 players.
 2. Wait for the owner's downloads; inspect licences; fill `asset_licenses.md`.
 3. Import the base character as Humanoid, build the Animator and the speed-matched locomotion tree, add `PlayerAnimationController` behind a switch on one player, test no-slide numerically (compare measured foot speed to body speed in a PlayMode test where possible) and visually.
+
+**Baseline recorded (2026-11-17):** 22 primitive players, Infinix X6881, Mobile quality, cap 60: 59.6 fps average, 1% low about 59, worst 17 ms (see progress.md). Phase 2 compares against this.
