@@ -95,7 +95,7 @@ namespace FootballSim.UI
             UIKit.SetBar(xpFill, PlayerProfile.XpInLevel / (float)PlayerProfile.XpPerLevel);
             menuCoins.text = PlayerProfile.Coins.ToString("N0");
             bool ready = PlayerProfile.DailyAvailable;
-            dailySub.text = ready ? $"+{PlayerProfile.DailyRewardCoins} coins" : "Come back tomorrow";
+            dailySub.text = ready ? $"+{PlayerProfile.DailyRewardCoins} coins" : "Back tomorrow";
             dailyButton.interactable = ready;
             dailyButtonLabel.text = ready ? "CLAIM" : "CLAIMED";
         }
