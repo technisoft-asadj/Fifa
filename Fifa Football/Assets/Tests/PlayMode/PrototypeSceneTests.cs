@@ -903,6 +903,91 @@ namespace FootballSim.Tests
         }
 
         [UnityTest]
+        public IEnumerator MovedButtonsStayWhereTheyWereDroppedAcrossRebuildsHandsAndRestarts()
+        {
+            yield return LoadScene();
+            var hud = Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>();
+            var touch = Object.FindFirstObjectByType<FootballSim.Inputs.TouchControls>();
+            touch.forceShow = true;
+            var shoot = FootballSim.Core.TouchButtonId.Shoot;
+            var pass = FootballSim.Core.TouchButtonId.Pass;
+            try
+            {
+                touch.ResetToDefaults();
+                hud.ShowMainMenu(); hud.MenuSettings(); hud.OpenControls();
+                yield return null;
+                hud.StartMovingButtons();
+                yield return null;
+                Assert.IsTrue(hud.MovingButtons); Assert.IsTrue(touch.IsEditing); Assert.IsFalse(hud.ControlsOpen, "the big panel gets out of the way");
+
+                // pressing a button while moving does nothing
+                var btn = touch.ButtonFor(shoot);
+                btn.Press();
+                Assert.IsFalse(btn.Held, "a locked button does not act");
+                Assert.IsFalse(btn.ConsumePress());
+
+                // drag the shoot button down and right (clear of the others), then let go
+                var start = touch.ButtonPosition(shoot);
+                touch.DragButton(shoot, new Vector2(60f, -60f));
+                touch.DropButton(shoot, start);
+                var moved = touch.ButtonPosition(shoot);
+                Assert.AreNotEqual(start, moved, "the button moved");
+                Assert.IsTrue(touch.IsMoved(shoot));
+                var rt = (RectTransform)btn.transform;
+                Assert.AreEqual(moved.x, rt.anchoredPosition.x, 1e-3f, "right-handed: the on-screen spot is the saved one");
+
+                // dropping it on top of another button sends it back to where it was picked up
+                var before = touch.ButtonPosition(shoot);
+                touch.DragButton(shoot, Vector2.zero);
+                var passPos = touch.ButtonPosition(pass);
+                touch.MoveButton(shoot, passPos, true);
+                Assert.AreEqual(before, touch.ButtonPosition(shoot), "refused: it would hide the pass button");
+
+                // a rebuild (size change) and a left-handed switch both keep it
+                touch.SetAppearance(touch.controlScale, touch.controlOpacity);
+                yield return null;
+                Assert.AreEqual(before, touch.ButtonPosition(shoot));
+                touch.SetLayout(true, false);
+                yield return null;
+                var rt2 = (RectTransform)touch.ButtonFor(shoot).transform;
+                Assert.AreEqual(0f, rt2.anchorMin.x, "left-handed: anchored to the left");
+                Assert.AreEqual(-before.x, rt2.anchoredPosition.x, 1e-3f, "and mirrored");
+                Assert.AreEqual(before.y, rt2.anchoredPosition.y, 1e-3f);
+                touch.SetLayout(false, false);
+
+                // it survives a restart: a fresh load reads the saved layout back
+                string saved = PlayerPrefs.GetString(FootballSim.Inputs.TouchControls.PrefPositions, "");
+                Assert.IsNotEmpty(saved, "the layout was written");
+                var read = FootballSim.Core.TouchLayout.Parse(saved);
+                Assert.AreEqual(before, read[shoot]);
+
+                // the stick follows its sensitivity, and the buzz can be switched off
+                touch.SetTuning(1.5f, true);
+                Assert.AreEqual(1.5f, touch.stickSensitivity, 1e-4f);
+                int buzzes = FootballSim.Inputs.TouchControls.BuzzCount;
+                hud.StopMovingButtons();
+                Assert.IsFalse(touch.IsEditing); Assert.IsTrue(hud.ControlsOpen, "Done returns to the controls screen");
+                touch.ButtonFor(shoot).Press(); touch.ButtonFor(shoot).Release();
+                Assert.AreEqual(buzzes + 1, FootballSim.Inputs.TouchControls.BuzzCount, "a press buzzes once");
+                touch.SetTuning(1.5f, false);
+                touch.ButtonFor(shoot).Press(); touch.ButtonFor(shoot).Release();
+                Assert.AreEqual(buzzes + 1, FootballSim.Inputs.TouchControls.BuzzCount, "and not when vibration is off");
+
+                // Put back / Reset restores the defaults
+                touch.ResetPositions();
+                Assert.AreEqual(FootballSim.Core.TouchLayout.DefaultPosition(shoot), touch.ButtonPosition(shoot));
+                Assert.AreEqual(0, touch.MovedCount);
+                Assert.AreEqual("", PlayerPrefs.GetString(FootballSim.Inputs.TouchControls.PrefPositions, ""));
+            }
+            finally
+            {
+                touch.ResetToDefaults();
+                hud.StopMovingButtons();
+                hud.GoBack(); hud.GoBack();
+            }
+        }
+
+        [UnityTest]
         public IEnumerator ControlsScreenOpensFromSettingsPreviewsTheControlsAndBackClosesIt()
         {
             yield return LoadScene();

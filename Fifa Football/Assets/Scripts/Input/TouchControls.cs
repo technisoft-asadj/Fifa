@@ -22,7 +22,18 @@ namespace FootballSim.Inputs
         /// <summary>A stick that is always shown in the same place instead of appearing where the thumb lands.</summary>
         public bool fixedStick;
 
+        /// <summary>Stick response: above 1 a smaller push already gives full speed.</summary>
+        public float stickSensitivity = 1f;
+        /// <summary>A short buzz on the action buttons (phones only).</summary>
+        public bool haptics = true;
+
         public const string PrefScale = "touch.scale", PrefOpacity = "touch.opacity", PrefLeft = "touch.left", PrefFixed = "touch.fixed";
+        public const string PrefSens = "touch.sens", PrefHaptics = "touch.haptics", PrefPositions = "touch.pos";
+
+        // buttons the player has moved (right-handed positions; the rest sit at their defaults)
+        System.Collections.Generic.Dictionary<Core.TouchButtonId, Vector2> custom = new System.Collections.Generic.Dictionary<Core.TouchButtonId, Vector2>();
+        readonly System.Collections.Generic.Dictionary<Core.TouchButtonId, HoldButton> buttons = new System.Collections.Generic.Dictionary<Core.TouchButtonId, HoldButton>();
+        bool editing;
 
         Canvas canvas;
         Joystick joystick;
@@ -49,6 +60,7 @@ namespace FootballSim.Inputs
         public Joystick StickForTest => joystick;
         public HoldButton PassForTest => pass;
         public HoldButton ShootForTest => shoot;
+        public HoldButton ButtonFor(Core.TouchButtonId id) { return buttons.TryGetValue(id, out var b) ? b : null; }
 
         void Awake()
         {
@@ -58,6 +70,9 @@ namespace FootballSim.Inputs
                 controlOpacity = PlayerPrefs.GetFloat(PrefOpacity, controlOpacity);
                 leftHanded = PlayerPrefs.GetInt(PrefLeft, leftHanded ? 1 : 0) == 1;
                 fixedStick = PlayerPrefs.GetInt(PrefFixed, fixedStick ? 1 : 0) == 1;
+                stickSensitivity = Core.TouchTuning.ClampSensitivity(PlayerPrefs.GetFloat(PrefSens, stickSensitivity));
+                haptics = PlayerPrefs.GetInt(PrefHaptics, haptics ? 1 : 0) == 1;
+                custom = Core.TouchLayout.Parse(PlayerPrefs.GetString(PrefPositions, ""));
             }
             catch { /* prefs unavailable: use defaults */ }
             EnsureEventSystem();
@@ -70,7 +85,7 @@ namespace FootballSim.Inputs
             bool running = Time.timeScale > 0f;
             want &= running || preview; // hide during menus, except while previewing from the pause settings
             if (root.activeSelf != want) root.SetActive(want);
-            if (group != null) group.blocksRaycasts = running; // a preview must not swallow menu touches
+            if (group != null) group.blocksRaycasts = running || editing; // a preview must not swallow menu touches, but moving buttons needs them
             if (running && Time.unscaledTime >= nextContextCheck) { nextContextCheck = Time.unscaledTime + 0.2f; UpdateContext(); }
         }
 
@@ -142,8 +157,120 @@ namespace FootballSim.Inputs
         public void ResetToDefaults()
         {
             controlScale = 1f; controlOpacity = 0.6f; leftHanded = false; fixedStick = false;
-            try { PlayerPrefs.DeleteKey(PrefScale); PlayerPrefs.DeleteKey(PrefOpacity); PlayerPrefs.DeleteKey(PrefLeft); PlayerPrefs.DeleteKey(PrefFixed); PlayerPrefs.Save(); } catch { }
+            stickSensitivity = 1f; haptics = true; custom.Clear();
+            try
+            {
+                PlayerPrefs.DeleteKey(PrefScale); PlayerPrefs.DeleteKey(PrefOpacity); PlayerPrefs.DeleteKey(PrefLeft); PlayerPrefs.DeleteKey(PrefFixed);
+                PlayerPrefs.DeleteKey(PrefSens); PlayerPrefs.DeleteKey(PrefHaptics); PlayerPrefs.DeleteKey(PrefPositions); PlayerPrefs.Save();
+            }
+            catch { }
             Rebuild();
+        }
+
+        /// <summary>Persist and apply the stick sensitivity and the button buzz.</summary>
+        public void SetTuning(float sensitivity, bool buzz)
+        {
+            stickSensitivity = Core.TouchTuning.ClampSensitivity(sensitivity); haptics = buzz;
+            try { PlayerPrefs.SetFloat(PrefSens, stickSensitivity); PlayerPrefs.SetInt(PrefHaptics, buzz ? 1 : 0); PlayerPrefs.Save(); } catch { }
+            if (joystick != null) joystick.Sensitivity = stickSensitivity;
+        }
+
+        // ---- moving the buttons ----
+        public bool IsEditing => editing;
+
+        /// <summary>While editing, the buttons are dragged instead of pressed.</summary>
+        public void SetEditing(bool on)
+        {
+            editing = on;
+            foreach (var b in buttons.Values) if (b != null) b.Locked = on;
+            if (group != null) group.blocksRaycasts = Time.timeScale > 0f || on;
+        }
+
+        /// <summary>Where a button sits now, in right-handed terms (offset from the bottom-right corner of the safe area).</summary>
+        public Vector2 ButtonPosition(Core.TouchButtonId id)
+        {
+            return custom.TryGetValue(id, out var p) ? p : Core.TouchLayout.DefaultPosition(id);
+        }
+
+        public bool IsMoved(Core.TouchButtonId id) { return custom.ContainsKey(id); }
+        public int MovedCount => custom.Count;
+
+        /// <summary>Size of the usable area in canvas units.</summary>
+        Vector2 AreaSize() { return safeRect != null ? safeRect.rect.size : new Vector2(1920f, 1080f); }
+
+        /// <summary>
+        /// Puts a button at a position (right-handed terms), kept inside the screen and apart from the other buttons. Returns where it ended up.
+        /// <paramref name="save"/> writes the layout (done when a drag ends, not on every frame of it).
+        /// </summary>
+        public Vector2 MoveButton(Core.TouchButtonId id, Vector2 wanted, bool save = true)
+        {
+            float size = Core.TouchLayout.DefaultSize(id) * controlScale;
+            var pos = Core.TouchLayout.Clamp(wanted, size, AreaSize());
+            foreach (Core.TouchButtonId other in System.Enum.GetValues(typeof(Core.TouchButtonId)))
+            {
+                if (other == id) continue;
+                if (Core.TouchLayout.Overlaps(pos, size, ButtonPosition(other), Core.TouchLayout.DefaultSize(other) * controlScale)) { pos = ButtonPosition(id); break; }
+            }
+            if (pos == Core.TouchLayout.DefaultPosition(id)) custom.Remove(id); else custom[id] = pos;
+            ApplyPosition(id);
+            if (save) SaveLayout();
+            return pos;
+        }
+
+        /// <summary>Put every button back where it started (the rest of the settings stay).</summary>
+        public void ResetPositions()
+        {
+            custom.Clear();
+            SaveLayout();
+            foreach (Core.TouchButtonId id in System.Enum.GetValues(typeof(Core.TouchButtonId))) ApplyPosition(id);
+        }
+
+        public void SaveLayout()
+        {
+            try
+            {
+                if (custom.Count == 0) PlayerPrefs.DeleteKey(PrefPositions);
+                else PlayerPrefs.SetString(PrefPositions, Core.TouchLayout.Serialize(custom));
+                PlayerPrefs.Save();
+            }
+            catch { }
+        }
+
+        void ApplyPosition(Core.TouchButtonId id)
+        {
+            if (!buttons.TryGetValue(id, out var b) || b == null) return;
+            var p = ButtonPosition(id);
+            ((RectTransform)b.transform).anchoredPosition = new Vector2(leftHanded ? -p.x : p.x, p.y);
+        }
+
+        /// <summary>Called by a button while it is dragged: move it by a screen-pixel delta.</summary>
+        public void DragButton(Core.TouchButtonId id, Vector2 screenDelta)
+        {
+            if (!editing || !buttons.TryGetValue(id, out var b) || b == null) return;
+            float k = canvas != null && canvas.scaleFactor > 0f ? canvas.scaleFactor : 1f;
+            var rt = (RectTransform)b.transform;
+            Vector2 now = rt.anchoredPosition + screenDelta / k;
+            var wanted = new Vector2(leftHanded ? -now.x : now.x, now.y);
+            // follow the finger freely (inside the screen) and only settle apart from the others when it is let go
+            float size = Core.TouchLayout.DefaultSize(id) * controlScale;
+            var clamped = Core.TouchLayout.Clamp(wanted, size, AreaSize());
+            custom[id] = clamped;
+            ApplyPosition(id);
+        }
+
+        /// <summary>A drag ended: if the button was dropped on another one it goes back to where it was picked up.</summary>
+        public void DropButton(Core.TouchButtonId id, Vector2 pickedUpAt)
+        {
+            if (!editing) return;
+            float size = Core.TouchLayout.DefaultSize(id) * controlScale;
+            foreach (Core.TouchButtonId other in System.Enum.GetValues(typeof(Core.TouchButtonId)))
+            {
+                if (other == id) continue;
+                if (Core.TouchLayout.Overlaps(ButtonPosition(id), size, ButtonPosition(other), Core.TouchLayout.DefaultSize(other) * controlScale))
+                { custom[id] = pickedUpAt; ApplyPosition(id); break; }
+            }
+            if (custom.TryGetValue(id, out var p) && p == Core.TouchLayout.DefaultPosition(id)) custom.Remove(id);
+            SaveLayout();
         }
 
         void Rebuild()
@@ -200,6 +327,7 @@ namespace FootballSim.Inputs
             var safeGo = new GameObject("SafeArea", typeof(RectTransform));
             safeGo.transform.SetParent(canvasGo.transform, false);
             var rt = (RectTransform)safeGo.transform;
+            safeRect = rt;
             ApplySafeArea(rt, Screen.safeArea, Screen.width, Screen.height);
             var font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
 
@@ -212,14 +340,36 @@ namespace FootballSim.Inputs
             area.GetComponent<Image>().color = new Color(0, 0, 0, 0); // invisible but raycastable
             joystick = area.AddComponent<Joystick>();
             joystick.Init(rt, controlScale, controlOpacity, Circle(), fixedStick, leftHanded);
+            joystick.Sensitivity = stickSensitivity;
 
             float s = controlScale;
-            shoot = Button(rt, font, "SHOOT", new Vector2(-210, 210), 190 * s, new Color(0.9f, 0.25f, 0.2f));
-            pass = Button(rt, font, "PASS", new Vector2(-460, 140), 150 * s, new Color(0.2f, 0.6f, 0.9f));
-            tackle = Button(rt, font, "TACKLE", new Vector2(-120, 450), 150 * s, new Color(0.95f, 0.7f, 0.1f));
-            switchBtn = Button(rt, font, "SWITCH", new Vector2(-390, 380), 130 * s, new Color(0.5f, 0.5f, 0.55f));
-            sprint = Button(rt, font, "SPRINT", new Vector2(-640, 100), 130 * s, new Color(0.2f, 0.75f, 0.4f), anchorLeft: false);
+            buttons.Clear();
+            shoot = Button(rt, font, "SHOOT", Core.TouchButtonId.Shoot, s, new Color(0.9f, 0.25f, 0.2f));
+            pass = Button(rt, font, "PASS", Core.TouchButtonId.Pass, s, new Color(0.2f, 0.6f, 0.9f));
+            tackle = Button(rt, font, "TACKLE", Core.TouchButtonId.Tackle, s, new Color(0.95f, 0.7f, 0.1f));
+            switchBtn = Button(rt, font, "SWITCH", Core.TouchButtonId.Switch, s, new Color(0.5f, 0.5f, 0.55f));
+            sprint = Button(rt, font, "SPRINT", Core.TouchButtonId.Sprint, s, new Color(0.2f, 0.75f, 0.4f));
+            // a button saved on a bigger screen may no longer fit: pull it back inside (the saved value is kept as it was)
+            foreach (var id in new System.Collections.Generic.List<Core.TouchButtonId>(custom.Keys))
+            {
+                var fitted = Core.TouchLayout.Clamp(custom[id], Core.TouchLayout.DefaultSize(id) * s, AreaSize());
+                ((RectTransform)buttons[id].transform).anchoredPosition = new Vector2(leftHanded ? -fitted.x : fitted.x, fitted.y);
+            }
             if (contextApplied) SetContext(context); // a rebuild (new size or layout) keeps the current context look
+        }
+
+        RectTransform safeRect;
+
+        /// <summary>Number of buzzes asked for (phones actually vibrate; the editor only counts, which tests read).</summary>
+        public static int BuzzCount { get; private set; }
+
+        void Buzz()
+        {
+            if (!haptics || editing) return;
+            BuzzCount++;
+#if (UNITY_ANDROID || UNITY_IOS) && !UNITY_EDITOR
+            try { Handheld.Vibrate(); } catch { }
+#endif
         }
 
         /// <summary>Stretch a rect to the safe area, given in screen pixels.</summary>
@@ -238,14 +388,21 @@ namespace FootballSim.Inputs
             rt.offsetMin = rt.offsetMax = Vector2.zero;
         }
 
-        HoldButton Button(RectTransform parent, Font font, string label, Vector2 pos, float size, Color color, bool anchorLeft = false)
+        HoldButton Button(RectTransform parent, Font font, string label, Core.TouchButtonId id, float scale, Color color)
         {
-            var go = new GameObject(label + "Btn", typeof(RectTransform), typeof(Image), typeof(HoldButton));
+            float size = Core.TouchLayout.DefaultSize(id) * scale;
+            Vector2 pos = ButtonPosition(id);
+            var go = new GameObject(label + "Btn", typeof(RectTransform), typeof(Image), typeof(HoldButton), typeof(ButtonDragHandle));
             go.transform.SetParent(parent, false);
             var rt = (RectTransform)go.transform;
             rt.anchorMin = rt.anchorMax = new Vector2(leftHanded ? 0f : 1f, 0f); // bottom-right, or bottom-left when mirrored
             rt.pivot = new Vector2(0.5f, 0.5f);
             rt.anchoredPosition = new Vector2(leftHanded ? -pos.x : pos.x, pos.y);
+            var hb = go.GetComponent<HoldButton>();
+            hb.Locked = editing;
+            if (id != Core.TouchButtonId.Sprint) hb.OnPressed = Buzz; // sprint is held, so a buzz on it would only be noise
+            go.GetComponent<ButtonDragHandle>().Init(this, id);
+            buttons[id] = hb;
             rt.sizeDelta = new Vector2(size, size);
             var img = go.GetComponent<Image>();
             img.sprite = Circle();
@@ -270,8 +427,17 @@ namespace FootballSim.Inputs
         RectTransform canvasRect, baseRect, knobRect;
         float radius = 110f;
         bool fixedBase;
+        float sensitivity = 1f;
+
+        /// <summary>Scales the thumb travel (see TouchTuning.Shape).</summary>
+        public float Sensitivity { get { return sensitivity; } set { sensitivity = Core.TouchTuning.ClampSensitivity(value); } }
 
         public Vector2 Value { get; private set; }
+
+        void Set(Vector2 v)
+        {
+            Value = v.magnitude < 0.12f ? Vector2.zero : Core.TouchTuning.Shape(v, sensitivity); // dead zone first, then the response
+        }
 
         public bool IsFixed => fixedBase;
         public RectTransform BaseForTest => baseRect;
@@ -303,8 +469,7 @@ namespace FootballSim.Inputs
             RectTransformUtility.ScreenPointToLocalPointInRectangle(baseRect, e.position, null, out var d);
             Vector2 clamped = Vector2.ClampMagnitude(d, radius);
             knobRect.anchoredPosition = baseRect.anchoredPosition + clamped;
-            Vector2 v = clamped / radius;
-            Value = v.magnitude < 0.12f ? Vector2.zero : v;
+            Set(clamped / radius);
         }
 
         RectTransform MakeDisc(string n, Sprite sprite, float size, Color c)
@@ -342,8 +507,7 @@ namespace FootballSim.Inputs
             Vector2 delta = ToCanvas(e) - baseRect.anchoredPosition;
             Vector2 clamped = Vector2.ClampMagnitude(delta, radius);
             knobRect.anchoredPosition = baseRect.anchoredPosition + clamped;
-            Vector2 v = clamped / radius;
-            Value = v.magnitude < 0.12f ? Vector2.zero : v; // dead zone
+            Set(clamped / radius); // dead zone, then sensitivity
         }
 
         public void OnPointerUp(PointerEventData e)
@@ -369,16 +533,39 @@ namespace FootballSim.Inputs
     {
         bool pressLatch, releaseLatch;
         public bool Held { get; private set; }
+        /// <summary>While the buttons are being moved they must not act.</summary>
+        public bool Locked;
+        /// <summary>Called on a real press (the buzz).</summary>
+        public System.Action OnPressed;
 
         public void OnPointerDown(PointerEventData e) { Press(); }
         public void OnPointerUp(PointerEventData e) { Release(); }
         public void OnPointerExit(PointerEventData e) { if (Held) Release(); }
         void OnDisable() { Held = false; }
 
-        public void Press() { Held = true; pressLatch = true; }
+        public void Press()
+        {
+            if (Locked) return;
+            Held = true; pressLatch = true;
+            if (OnPressed != null) OnPressed();
+        }
         public void Release() { if (!Held) return; Held = false; releaseLatch = true; }
 
         public bool ConsumePress() { var v = pressLatch; pressLatch = false; return v; }
         public bool ConsumeRelease() { var v = releaseLatch; releaseLatch = false; return v; }
+    }
+
+    /// <summary>Lets a button be dragged to a new spot while the controls are in edit mode; does nothing otherwise.</summary>
+    public class ButtonDragHandle : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
+    {
+        TouchControls owner;
+        Core.TouchButtonId id;
+        Vector2 pickedUpAt;
+
+        public void Init(TouchControls o, Core.TouchButtonId buttonId) { owner = o; id = buttonId; }
+
+        public void OnBeginDrag(PointerEventData e) { if (owner != null && owner.IsEditing) pickedUpAt = owner.ButtonPosition(id); }
+        public void OnDrag(PointerEventData e) { if (owner != null) owner.DragButton(id, e.delta); }
+        public void OnEndDrag(PointerEventData e) { if (owner != null) owner.DropButton(id, pickedUpAt); }
     }
 }

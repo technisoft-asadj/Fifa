@@ -20,7 +20,8 @@ namespace FootballSim.UI
         GameObject mainMenu, settingsPanel, controlsPanel, careerPanel;
         TextMeshProUGUI settingsCamera, careerText;
         FootballSim.CameraSystem.BroadcastCamera cam;
-        TextMeshProUGUI ctlStyle, ctlHand, ctlSize, ctlOpacity;
+        TextMeshProUGUI ctlStyle, ctlHand, ctlSize, ctlOpacity, ctlSens, ctlBuzz;
+        GameObject moveBar;
         TextMeshProUGUI menuName, menuLevel,menuXp, menuCoins, dailySub, settingsSound, settingsSize, settingsOpacity, settingsQuality, settingsFps, settingsReset;
         RectTransform xpFill;
         Button dailyButton, adButton;
@@ -248,23 +249,63 @@ namespace FootballSim.UI
             controlsPanel = p.parent.gameObject;
             UIKit.TextAt(p, "Title", "CONTROLS", 64f, Color.white, UIKit.Center, new Vector2(0f, 350f), new Vector2(700f, 90f), TextAlignmentOptions.Center, true);
             UIKit.SmallButton(p, "< Back", UITheme.Slate, UIKit.TopLeft, new Vector2(30f, -30f), new Vector2(190f, 72f), CloseControls, 34f);
-            Row(p, "Stick", 210f, out ctlStyle, ToggleStick, "CHANGE");
-            Row(p, "Hand", 95f, out ctlHand, ToggleHand, "CHANGE");
-            RowPlusMinus(p, "Button size", -20f, out ctlSize, () => AdjustTouch(-0.1f, 0f), () => AdjustTouch(0.1f, 0f), UITheme.BlueDark);
-            RowPlusMinus(p, "Opacity", -135f, out ctlOpacity, () => AdjustTouch(0f, -0.1f), () => AdjustTouch(0f, 0.1f), UITheme.BlueDark);
-            UIKit.TextAt(p, "Note", "The real buttons show at the sides of the screen while you change them.", 28f, UITheme.Muted, UIKit.Center, new Vector2(0f, -240f), new Vector2(1000f, 40f));
-            UIKit.SmallButton(p, "Reset controls", UITheme.Red, UIKit.Center, new Vector2(0f, -365f), new Vector2(520f, 80f), ResetControls, 34f);
+            Row(p, "Stick", 245f, out ctlStyle, ToggleStick, "CHANGE");
+            Row(p, "Hand", 155f, out ctlHand, ToggleHand, "CHANGE");
+            RowPlusMinus(p, "Button size", 65f, out ctlSize, () => AdjustTouch(-0.1f, 0f), () => AdjustTouch(0.1f, 0f), UITheme.BlueDark);
+            RowPlusMinus(p, "Opacity", -25f, out ctlOpacity, () => AdjustTouch(0f, -0.1f), () => AdjustTouch(0f, 0.1f), UITheme.BlueDark);
+            RowPlusMinus(p, "Stick response", -115f, out ctlSens, () => AdjustSensitivity(-0.1f), () => AdjustSensitivity(0.1f), UITheme.BlueDark);
+            Row(p, "Vibration", -205f, out ctlBuzz, ToggleBuzz, "CHANGE");
+            UIKit.TextAt(p, "Note", "The real buttons show at the sides of the screen while you change them.", 28f, UITheme.Muted, UIKit.Center, new Vector2(0f, -275f), new Vector2(1000f, 40f));
+            UIKit.SmallButton(p, "Move buttons", UITheme.Blue, UIKit.Center, new Vector2(-280f, -365f), new Vector2(480f, 80f), StartMovingButtons, 34f);
+            UIKit.SmallButton(p, "Reset controls", UITheme.Red, UIKit.Center, new Vector2(280f, -365f), new Vector2(480f, 80f), ResetControls, 34f);
             controlsPanel.SetActive(false);
+
+            // while the buttons are being moved the big panel gets out of the way and only this bar stays
+            var bar = UIKit.GlassPanel(root, "MoveBar", UIKit.Center, new Vector2(0f, 400f), new Vector2(1000f, 150f), true, 0.9f);
+            moveBar = bar.parent.gameObject;
+            UIKit.TextAt(bar, "Hint", "Drag a button to where your thumb likes it", 36f, Color.white, UIKit.Center, new Vector2(0f, 38f), new Vector2(900f, 50f), TextAlignmentOptions.Center, true);
+            UIKit.SmallButton(bar, "Done", UITheme.Blue, UIKit.Center, new Vector2(-150f, -32f), new Vector2(260f, 64f), StopMovingButtons, 32f);
+            UIKit.SmallButton(bar, "Put back", UITheme.Slate, UIKit.Center, new Vector2(150f, -32f), new Vector2(260f, 64f), PutButtonsBack, 32f);
+            moveBar.SetActive(false);
         }
 
         public void OpenControls() { RefreshControls(); controlsPanel.SetActive(true); var tc = Touch(); if (tc != null) tc.SetPreview(true); }
 
         public void CloseControls()
         {
+            StopMovingButtons();
             if (controlsPanel == null || !controlsPanel.activeSelf) return;
             controlsPanel.SetActive(false);
             var tc = Touch(); if (tc != null) tc.SetPreview(false);
         }
+
+        public bool MovingButtons => moveBar != null && moveBar.activeSelf;
+
+        public void StartMovingButtons()
+        {
+            var tc = Touch(); if (tc == null) return;
+            controlsPanel.SetActive(false); moveBar.SetActive(true);
+            tc.SetPreview(true); tc.SetEditing(true);
+        }
+
+        public void StopMovingButtons()
+        {
+            if (moveBar == null || !moveBar.activeSelf) return;
+            moveBar.SetActive(false);
+            var tc = Touch(); if (tc != null) tc.SetEditing(false);
+            RefreshControls(); controlsPanel.SetActive(true);
+        }
+
+        void PutButtonsBack() { var tc = Touch(); if (tc != null) tc.ResetPositions(); }
+
+        void AdjustSensitivity(float d)
+        {
+            var tc = Touch(); if (tc == null) return;
+            tc.SetTuning(Mathf.Round((tc.stickSensitivity + d) * 10f) / 10f, tc.haptics);
+            RefreshControls();
+        }
+
+        public void ToggleBuzz() { var tc = Touch(); if (tc == null) return; tc.SetTuning(tc.stickSensitivity, !tc.haptics); RefreshControls(); }
 
         public void ToggleStick() { var tc = Touch(); if (tc == null) return; tc.SetLayout(tc.leftHanded, !tc.fixedStick); RefreshControls(); }
         public void ToggleHand() { var tc = Touch(); if (tc == null) return; tc.SetLayout(!tc.leftHanded, tc.fixedStick); RefreshControls(); }
@@ -278,6 +319,8 @@ namespace FootballSim.UI
             ctlHand.text = tc == null ? "-" : tc.leftHanded ? "Left-handed" : "Right-handed";
             ctlSize.text = tc == null ? "-" : $"{tc.controlScale * 100f:0}%";
             ctlOpacity.text = tc == null ? "-" : $"{tc.controlOpacity * 100f:0}%";
+            ctlSens.text = tc == null ? "-" : $"{tc.stickSensitivity * 100f:0}%";
+            ctlBuzz.text = tc == null ? "-" : tc.haptics ? "On" : "Off";
         }
 
         void Row(RectTransform parent, string label, float y, out TextMeshProUGUI value, UnityEngine.Events.UnityAction onClick, string button)
