@@ -82,6 +82,7 @@ namespace FootballSim.UI
         {
             UpdateSplash();
             FitSetupPanel();
+            UpdatePerf();
             // Keyboard hint is noise on a phone; show it only when there is no touchscreen.
             bool touchDevice = Application.isMobilePlatform || UnityEngine.InputSystem.Touchscreen.current != null;
             bool frontScreen = SplashOpen || NameOpen; // the splash and name screens cover the match entirely
@@ -520,6 +521,7 @@ namespace FootballSim.UI
             BuildMainMenu(root, btnCol);
             BuildOnlinePanel(root, btnCol);
             BuildSplashAndName(root);
+            BuildFpsReadout(root);
 
             // Full-time panel
             fullTimePanel = Glassify(Rect("FullTimePanel", root, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(900, 700), Panel).gameObject);

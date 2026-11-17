@@ -960,6 +960,27 @@ namespace FootballSim.Tests
             Assert.LessOrEqual(hud.SetupPanelScale, 1f);
         }
 
+        [UnityTest]
+        public IEnumerator TheFpsReadoutIsOffByDefaultTurnsOnFromSettingsAndIsRemembered()
+        {
+            PlayerPrefs.DeleteKey("show_fps");
+            yield return LoadScene();
+            var hud = Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>();
+            try
+            {
+                Assert.IsFalse(hud.FpsReadoutShown, "off by default");
+                hud.ToggleShowFps();
+                Assert.IsTrue(hud.FpsReadoutShown);
+                yield return new WaitForSecondsRealtime(1.2f);
+                StringAssert.Contains("fps", hud.FpsReadoutText);
+                Assert.AreEqual(1, PlayerPrefs.GetInt("show_fps"));
+                hud.ToggleShowFps();
+                Assert.IsFalse(hud.FpsReadoutShown);
+                Assert.AreEqual(0, PlayerPrefs.GetInt("show_fps"));
+            }
+            finally { PlayerPrefs.DeleteKey("show_fps"); }
+        }
+
         class TestAds : FootballSim.Core.IAdProvider
         {
             public bool ready = true, watchToEnd = true;

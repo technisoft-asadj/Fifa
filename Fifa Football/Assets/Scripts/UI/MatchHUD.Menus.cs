@@ -226,12 +226,13 @@ namespace FootballSim.UI
             UIKit.SmallButton(p, "< Back", UITheme.Slate, UIKit.TopLeft, new Vector2(30f, -30f), new Vector2(190f, 72f), CloseSettings, 34f);
 
             var blue = UITheme.BlueDark;
-            Row(p, "Sound", 250f, out settingsSound, () => { ToggleSound(); RefreshSettings(); }, "TOGGLE");
-            Row(p, "Camera", 150f, out settingsCamera, CycleCamera, "CHANGE");
-            RowPlusMinus(p, "Touch button size", 50f, out settingsSize, () => AdjustTouch(-0.1f, 0f), () => AdjustTouch(0.1f, 0f), blue);
-            RowPlusMinus(p, "Touch opacity", -50f, out settingsOpacity, () => AdjustTouch(0f, -0.1f), () => AdjustTouch(0f, 0.1f), blue);
-            Row(p, "Graphics", -150f, out settingsQuality, CycleQuality, "CHANGE");
-            Row(p, "Frame rate", -250f, out settingsFps, ToggleFps, "CHANGE");
+            Row(p, "Sound", 255f, out settingsSound, () => { ToggleSound(); RefreshSettings(); }, "TOGGLE");
+            Row(p, "Camera", 170f, out settingsCamera, CycleCamera, "CHANGE");
+            RowPlusMinus(p, "Touch button size", 85f, out settingsSize, () => AdjustTouch(-0.1f, 0f), () => AdjustTouch(0.1f, 0f), blue);
+            RowPlusMinus(p, "Touch opacity", 0f, out settingsOpacity, () => AdjustTouch(0f, -0.1f), () => AdjustTouch(0f, 0.1f), blue);
+            Row(p, "Graphics", -85f, out settingsQuality, CycleQuality, "CHANGE");
+            Row(p, "Frame rate", -170f, out settingsFps, ToggleFps, "CHANGE");
+            Row(p, "Show FPS", -255f, out settingsShowFps, ToggleShowFps, "TOGGLE");
             UIKit.SmallButton(p, "Controls", UITheme.Blue, UIKit.Center, new Vector2(-280f, -365f), new Vector2(480f, 80f), OpenControls, 34f);
             var reset = UIKit.SmallButton(p, "Reset progress", UITheme.Red, UIKit.Center, new Vector2(280f, -365f), new Vector2(480f, 80f), TapSettingsReset, 34f);
             settingsReset = reset.GetComponentInChildren<TextMeshProUGUI>();
@@ -302,6 +303,7 @@ namespace FootballSim.UI
             var names = QualitySettings.names;
             settingsQuality.text = names.Length == 0 ? "-" : names[Mathf.Clamp(QualitySettings.GetQualityLevel(), 0, names.Length - 1)];
             settingsFps.text = Application.targetFrameRate > 0 ? Application.targetFrameRate + " FPS" : "Max";
+            if (settingsShowFps != null) settingsShowFps.text = showFps ? "ON" : "OFF";
             var bc = Cam(); settingsCamera.text = bc == null ? "-" : FootballSim.CameraSystem.BroadcastCamera.PresetNames[bc.Preset];
             if (!ResetArmed) settingsReset.text = "Reset progress";
         }
