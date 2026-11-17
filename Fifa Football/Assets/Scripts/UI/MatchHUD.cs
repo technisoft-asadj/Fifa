@@ -407,6 +407,8 @@ namespace FootballSim.UI
 
             // Scoreboard (top centre)
             var board = Rect("Scoreboard", root, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0, -20), new Vector2(760, 110), Panel);
+            { var bi = board.GetComponent<Image>(); bi.sprite = UITheme.Rounded; bi.type = Image.Type.Sliced; bi.color = new Color(UITheme.Navy.r, UITheme.Navy.g, UITheme.Navy.b, 0.85f); }
+            var boardRim = board.gameObject.AddComponent<Outline>(); boardRim.effectColor = new Color(UITheme.Blue.r, UITheme.Blue.g, UITheme.Blue.b, 0.8f); boardRim.effectDistance = new Vector2(2f, -2f);
             scoreText = Label("Score", board, 44, TextAnchor.MiddleCenter, new Vector2(0, 14), new Vector2(740, 60));
             clockText = Label("Clock", board, 30, TextAnchor.MiddleCenter, new Vector2(0, -32), new Vector2(740, 40));
             clockText.color = new Color(1f, 0.9f, 0.4f);
@@ -426,6 +428,8 @@ namespace FootballSim.UI
             staminaFill.offsetMin = new Vector2(2, 2); staminaFill.offsetMax = new Vector2(-2, -2);
             staminaImage = fillGo.GetComponent<Image>();
             staminaImage.raycastTarget = false;
+            { var sb = staminaBg.GetComponent<Image>(); sb.sprite = UITheme.Rounded; sb.type = Image.Type.Sliced; }
+            staminaImage.sprite = UITheme.Rounded; staminaImage.type = Image.Type.Sliced;
 
             // Controls hint (bottom)
             var hint = Label("Hint", root, 22, TextAnchor.LowerCenter, new Vector2(0, 16), new Vector2(1700, 40));
