@@ -81,6 +81,7 @@ namespace FootballSim.UI
         void Update()
         {
             UpdateSplash();
+            FitSetupPanel();
             // Keyboard hint is noise on a phone; show it only when there is no touchscreen.
             bool touchDevice = Application.isMobilePlatform || UnityEngine.InputSystem.Touchscreen.current != null;
             bool frontScreen = SplashOpen || NameOpen; // the splash and name screens cover the match entirely
@@ -558,6 +559,19 @@ namespace FootballSim.UI
             Button(pp, "RESTART", new Vector2(0, -230), new Vector2(420, 80), Rematch, btnCol);
             pausePanel.SetActive(false);
         }
+
+        /// <summary>The setup panel is laid out 1000 high, but a wide phone shows less canvas height than that (about 960 on 2436x1080), which cut off the PLAY button. Shrinks it to fit; never enlarges it.</summary>
+        void FitSetupPanel()
+        {
+            if (startPanel == null) return;
+            var canvasRect = startPanel.transform.parent as RectTransform;
+            if (canvasRect == null) return;
+            float scale = Mathf.Clamp(canvasRect.rect.height * 0.97f / 1000f, 0.5f, 1f);
+            if (!Mathf.Approximately(startPanel.transform.localScale.x, scale)) startPanel.transform.localScale = new Vector3(scale, scale, 1f);
+        }
+
+        /// <summary>The scale the setup panel is currently shown at (test hook).</summary>
+        public float SetupPanelScale => startPanel != null ? startPanel.transform.localScale.x : 1f;
 
         // ---- pause ----
         public bool IsPaused => pausePanel != null && pausePanel.activeSelf;

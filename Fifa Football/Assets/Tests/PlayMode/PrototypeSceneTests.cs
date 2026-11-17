@@ -947,6 +947,19 @@ namespace FootballSim.Tests
             StringAssert.Contains("Sam", hud.CareerShown);
         }
 
+        [UnityTest]
+        public IEnumerator TheSetupPanelAlwaysFitsInsideTheScreenHeight()
+        {
+            FootballSim.UI.MatchHUD.OpenSetupDirectly = true;
+            yield return LoadScene();
+            yield return null;
+            var hud = Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>();
+            var panel = (RectTransform)GameObject.Find("StartPanel").transform;
+            var canvasRect = (RectTransform)panel.parent;
+            Assert.LessOrEqual(panel.rect.height * panel.localScale.y, canvasRect.rect.height + 0.5f, "the PLAY button must not be cut off");
+            Assert.LessOrEqual(hud.SetupPanelScale, 1f);
+        }
+
         class TestAds : FootballSim.Core.IAdProvider
         {
             public bool ready = true, watchToEnd = true;

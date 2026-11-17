@@ -207,7 +207,7 @@ namespace FootballSim.UI
             int played = CareerRecord.Played;
             string rate = played == 0 ? "-" : $"{100f * CareerRecord.Won / played:0}%";
             string gd = (CareerRecord.GoalsFor - CareerRecord.GoalsAgainst).ToString("+0;-0;0");
-            return $"<b>{PlayerProfile.Name}</b>\n<color=#FFC71F>Level {PlayerProfile.Level}</color>{PlayerProfile.XpInLevel} / {PlayerProfile.XpPerLevel} XP   <color=#FFC71F>{PlayerProfile.Coins:N0} coins</color>\n\n"
+            return $"<b>{PlayerProfile.Name}</b>\n<color=#FFC71F>Level {PlayerProfile.Level}</color>   {PlayerProfile.XpInLevel} / {PlayerProfile.XpPerLevel} XP   <color=#FFC71F>{PlayerProfile.Coins:N0} coins</color>\n\n"
                  + $"Matches played: {played}\nWon {CareerRecord.Won}   Drawn {CareerRecord.Drawn}   Lost {CareerRecord.Lost}\nWin rate: {rate}\n"
                  + $"Goals for {CareerRecord.GoalsFor}   against {CareerRecord.GoalsAgainst}   difference {gd}\n\n"
                  + "<size=28><color=#B0B8C8>Saved on this phone only. Training matches are not counted.</color></size>";

@@ -624,3 +624,9 @@ Limits: this is a season ladder, not a career: no transfers, squads, player grow
 
 ## UI redesign, step 8: Online icon (2026-11-17)
 - The Online button now uses a new globe icon (`UIIcon.Globe`: ring, equator, two latitudes, meridians) instead of the two-people icon that read as a face. Checked in an editor screenshot of the Main Menu only, not on the phone.
+
+## Phone check of the new UI (2026-11-17, Infinix X6881, APK of commit e4589b2)
+- Seen on the phone: Welcome screen (soft keyboard opens, typed name appears in the keyboard bar, Done closes it and the name is in the field, Continue saves it), Main Menu (name, globe icon, coins, daily reward claimed, ad button correctly hidden), Career screen, Settings with Camera row, Controls screen (preview buttons, Left-handed mirrors the layout), match HUD (scoreboard pill, stamina bar, touch buttons).
+- Bugs found and fixed after this build (need a rebuild to see): (1) the setup panel was 1000 high but this 2436x1080 screen shows only about 960 canvas units, so the PLAY button was cut off at the bottom: the panel now scales down to fit (`FitSetupPanel`, test added); (2) Career showed "Level 10 / 100 XP" because the level and the XP had no gap between them.
+- Known, not fixed: in landscape the soft keyboard covers the name field and its buttons while typing (the text is still readable in the keyboard bar). Controls screen: the Sprint preview button overlaps the panel edge slightly.
+- Still not seen on the phone: fixed stick, camera views in play, online host/guest, real Back gesture, frame rate.
