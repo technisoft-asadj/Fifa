@@ -17,7 +17,7 @@ namespace FootballSim.Tests
         PlayerVisual.ModelMode savedMode;
 
         [SetUp] public void Save() { savedMode = PlayerVisual.Mode; }
-        [TearDown] public void Restore() { PlayerVisual.Mode = savedMode; }
+        [TearDown] public void Restore() { PlayerVisual.Mode = savedMode; Time.timeScale = 1f; } // some tests freeze the simulation to step the Animator by hand
 
         IEnumerator LoadScene()
         {
@@ -182,6 +182,43 @@ namespace FootballSim.Tests
             for (int i = 0; i < 180; i++) animator.Update(1f / 60f);
             Assert.IsTrue(animator.GetCurrentAnimatorStateInfo(0).IsName("Locomotion") && !animator.IsInTransition(0), "back to locomotion after the kick");
             Debug.Log("[anim] kicks\n" + report);
+        }
+
+        [UnityTest]
+        public IEnumerator SlideFallAndGetUpStayWithThePlayerAndNeverSnapBack()
+        {
+            if (!AnimatedPlayerVisual.PrefabAvailable || AnimatedClipInfo.Load() == null) Assert.Inconclusive("Assets/Resources/Animated is not built (Mixamo files missing)");
+            PlayerVisual.Mode = PlayerVisual.ModelMode.Off;
+            yield return LoadScene();
+            PlayerVisual.SetMode(PlayerVisual.ModelMode.All);
+            yield return null; yield return null;
+            Time.timeScale = 0f;
+            var pv = HomeOutfielder(); var av = pv.Animated; var animator = av.Animator;
+            animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+            var hips = animator.GetBoneTransform(HumanBodyBones.Hips);
+            var report = new System.Text.StringBuilder();
+            foreach (var action in new[] { AnimatedPlayerVisual.Action.Tackle, AnimatedPlayerVisual.Action.Fall, AnimatedPlayerVisual.Action.Pass, AnimatedPlayerVisual.Action.Shot, AnimatedPlayerVisual.Action.Receive })
+            {
+                animator.Rebind(); animator.Update(0f);
+                for (int i = 0; i < 30; i++) animator.Update(1f / 60f);
+                Assert.IsTrue(av.PlayAction(action, true));
+                float maxOffset = 0f, maxStep = 0f, minY = 9f; Vector3 last = animator.transform.InverseTransformPoint(hips.position);
+                bool leftAction = false;
+                for (int i = 0; i < 60 * 6; i++)
+                {
+                    animator.Update(1f / 60f);
+                    var h = animator.transform.InverseTransformPoint(hips.position);
+                    maxOffset = Mathf.Max(maxOffset, new Vector2(h.x, h.z).magnitude);
+                    maxStep = Mathf.Max(maxStep, (h - last).magnitude); minY = Mathf.Min(minY, h.y); last = h;
+                    if (!animator.GetCurrentAnimatorStateInfo(0).IsName("Locomotion")) leftAction = true;
+                }
+                report.AppendLine($"{action} ({av.LastActionState}): hips stay within {maxOffset:0.00} m of the player, lowest {minY:0.00} m, max step {maxStep * 100f:0.0} cm/frame");
+                Assert.Less(maxOffset, 1.0f, $"{action}: the body must stay with the player");
+                Assert.Less(maxStep, 0.25f, $"{action}: no snap");
+                Assert.IsTrue(leftAction, "the action state was entered");
+                Assert.IsTrue(animator.GetCurrentAnimatorStateInfo(0).IsName("Locomotion"), $"{action}: back to locomotion within 6 s");
+            }
+            Debug.Log("[anim] actions\n" + report);
         }
 
         [UnityTest]

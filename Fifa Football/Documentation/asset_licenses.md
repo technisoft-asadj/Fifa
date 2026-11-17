@@ -48,3 +48,6 @@ Everything in animation_spec.md section 2 is currently missing as real animation
 
 ### Mixamo clips added for animation Phase 3 (2026-11-18)
 Same source, character (Y Bot), settings (FBX for Unity, Without Skin, 30 fps, no keyframe reduction) and licence terms as the clips above; downloaded with the owner's Mixamo sign-in and kept git-ignored in `Assets/Art/Mixamo/`: `SoccerPass` (Soccer Pass), `Shot` (Soccer Penalty Kick), `StrikeJog` (Strike Foward Jog), `Dribble` (Dribble), `Receive` (Receive, soccer idle chest receive). Lengths 1.60 / 1.50 / 1.30 / 1.73 / 1.40 s.
+
+### Mixamo clips added for animation Phase 4 (2026-11-18)
+Same source, character and settings as above, git-ignored in `Assets/Art/Mixamo/`: `SlideTackle` (Soccer Tackle: "Soccer Slide Tackle", 1.77 s), `FallOver` (Soccer Tackle: "Standing Fall Over A Soccer Slide Tackle", 2.30 s), `GetUp` (Standing Up: "Standing Up From A Soccer Fall", 1.67 s).

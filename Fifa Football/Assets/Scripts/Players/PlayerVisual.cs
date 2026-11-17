@@ -206,7 +206,17 @@ namespace FootballSim.Players
         {
             if (animatedActive && animated != null) animated.PlayAction(AnimatedPlayerVisual.Action.Receive, rightFoot);
         }
-        public void PlayTackle() { tackleT = 0f; kickRight = true; }
+        public void PlayTackle()
+        {
+            tackleT = 0f; kickRight = true;
+            if (animatedActive && animated != null) animated.PlayAction(AnimatedPlayerVisual.Action.Tackle, true);
+        }
+
+        /// <summary>The victim of a foul goes down and gets back up (animated body only).</summary>
+        public void PlayFall()
+        {
+            if (animatedActive && animated != null) animated.PlayAction(AnimatedPlayerVisual.Action.Fall, true);
+        }
 
         void Update()
         {

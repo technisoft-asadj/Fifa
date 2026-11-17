@@ -294,7 +294,12 @@ namespace FootballSim.Players
                 if (other == null || other == this || other.TeamId == TeamId || other.isGoalkeeper) continue;
                 bool fromBehind = Vector3.Dot(other.transform.forward, transform.forward) > 0.5f;
                 float chance = fromBehind ? 0.85f : 0.45f;
-                if (SimRandom.Value < chance) Fouled?.Invoke(this, other);
+                if (SimRandom.Value < chance)
+                {
+                    Fouled?.Invoke(this, other);
+                    var v = other.GetComponent<PlayerVisual>();
+                    if (v != null) v.PlayFall();
+                }
                 return;
             }
         }

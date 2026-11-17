@@ -76,7 +76,7 @@ namespace FootballSim.EditorTools
         }
 
         /// <summary>One-shot action clips: file name, which action it serves.</summary>
-        public static readonly string[] ActionClips = { "SoccerPass", "Shot", "StrikeJog", "Receive" };
+        public static readonly string[] ActionClips = { "SoccerPass", "Shot", "StrikeJog", "Receive", "SlideTackle", "FallOver", "GetUp" };
 
         /// <summary>
         /// When the ball is struck in a kick clip: the moment a toe moves fastest (the foot is at full swing as it meets the ball) and which
@@ -189,13 +189,24 @@ namespace FootballSim.EditorTools
             AnimatorState loco = null;
             foreach (var cs in sm.states) if (cs.state.name == "Locomotion") loco = cs.state;
             sm.defaultState = loco;
+            var actionStates = new Dictionary<string, AnimatorState>();
             foreach (var an in ActionClips)
             {
                 var clip = LoadClip(an);
                 if (clip == null) continue;
                 var st = sm.AddState(an);
                 st.motion = clip; st.mirrorParameterActive = true; st.mirrorParameter = "Mirror"; st.writeDefaultValues = true;
-                var back = st.AddTransition(loco);
+                // the simulation does not hold a tackler or a fouled player down, so these play faster than the raw clip to be over about when
+                // the player is free to move again (the sim's tackle cool-down is 0.9 s)
+                st.speed = an == "SlideTackle" ? 1.9f : an == "FallOver" || an == "GetUp" ? 1.25f : 1f;
+                actionStates[an] = st;
+            }
+            foreach (var kv in actionStates)
+            {
+                var st = kv.Value; var clip = (AnimationClip)st.motion;
+                // a fall flows into the get-up, everything else back into locomotion
+                var next = kv.Key == "FallOver" && actionStates.ContainsKey("GetUp") ? actionStates["GetUp"] : loco;
+                var back = st.AddTransition(next);
                 back.hasExitTime = true; back.exitTime = Mathf.Clamp01(1f - 0.18f / clip.length); back.hasFixedDuration = true; back.duration = 0.18f;
             }
             EditorUtility.SetDirty(ctrl);

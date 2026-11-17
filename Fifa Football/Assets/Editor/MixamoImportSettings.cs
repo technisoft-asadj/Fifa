@@ -49,7 +49,10 @@ namespace FootballSim.EditorTools
                 clip.loopTime = loop;
                 clip.loopPose = loop;
                 // keep the motion in place: the game moves the player, the animation only plays on top of it (no root motion)
-                clip.lockRootRotation = true; clip.lockRootHeightY = true; clip.lockRootPositionXZ = true;
+                clip.lockRootRotation = true; clip.lockRootHeightY = true;
+                // cycles are in place already (baked into the pose); a one-shot such as a slide travels metres, and the game owns where the player
+                // is, so its horizontal travel goes to the (unused) root motion instead of moving the body away from the player
+                clip.lockRootPositionXZ = loop;
                 clip.keepOriginalOrientation = true; clip.keepOriginalPositionY = true; clip.keepOriginalPositionXZ = true;
             }
             importer.clipAnimations = clips;

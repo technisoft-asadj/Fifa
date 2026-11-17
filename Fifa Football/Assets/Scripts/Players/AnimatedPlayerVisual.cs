@@ -58,7 +58,7 @@ namespace FootballSim.Players
         /// <summary>The speed fed to the Animator, in metres per second (test hook; normally the player's own speed).</summary>
         public float SpeedOverride = -1f;
 
-        public enum Action { Pass, Shot, Receive }
+        public enum Action { Pass, Shot, Receive, Tackle, Fall }
 
         /// <summary>Seconds the clip is started before its contact moment, so the foot meets the ball right after the simulation kicked it.</summary>
         public const float ContactLead = 0.04f;
@@ -79,9 +79,18 @@ namespace FootballSim.Players
             if (clipInfo == null) clipInfo = AnimatedClipInfo.Load();
             if (clipInfo == null) return false;
             bool moving = pc != null && pc.Velocity.magnitude > 2.5f;
-            string state = action == Action.Receive ? "Receive" : moving ? "StrikeJog" : action == Action.Shot ? "Shot" : "SoccerPass";
+            string state = action == Action.Receive ? "Receive" : action == Action.Tackle ? "SlideTackle" : action == Action.Fall ? "FallOver"
+                : moving ? "StrikeJog" : action == Action.Shot ? "Shot" : "SoccerPass";
             var e = clipInfo.Find(state);
             if (e == null) return false;
+            if (action == Action.Tackle || action == Action.Fall)
+            {
+                // whole-body moves play from their start: the slide is the player's own lunge, the fall follows a foul
+                animator.SetBool(MirrorId, false);
+                animator.CrossFadeInFixedTime(state, 0.08f, 0, 0f);
+                LastActionState = state; LastActionMirrored = false; LastActionContactTime = e.contact;
+                return true;
+            }
             animator.SetBool(MirrorId, rightFoot != e.rightFoot); // the clip's own foot, or its mirror image
             float offset = Mathf.Max(0f, e.contact - ContactLead);
             animator.CrossFadeInFixedTime(state, ContactLead, 0, offset);
