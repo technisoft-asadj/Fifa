@@ -276,6 +276,7 @@ namespace FootballSim.UI
             Recolour(homeTeam, KitPalette.Colors[selectedKit]);
             Recolour(awayTeam, KitPalette.Colors[away]);
             if (kitLabel != null) kitLabel.text = $"Your kit: {KitPalette.Names[selectedKit]}";
+            if (kitRings != null) for (int i = 0; i < kitRings.Length; i++) kitRings[i].color = i == selectedKit ? Color.white : new Color(1f, 1f, 1f, 0.12f);
             if (subtitleLabel != null) subtitleLabel.text = $"Kick-Off  -  Home ({KitPalette.Names[selectedKit].ToLower()}) vs Away ({KitPalette.Names[away].ToLower()})";
             if (save) KitPalette.Save(selectedKit);
         }
@@ -318,6 +319,7 @@ namespace FootballSim.UI
         }
 
         Text modeLabel, leagueText, earnedText;
+        Image[] kitRings, modeCards;
         /// <summary>The "+coins +XP" line on the full-time panel (test hook).</summary>
         public string EarnedText => earnedText != null ? earnedText.text : "";
         Text rematchLabel;
@@ -374,6 +376,15 @@ namespace FootballSim.UI
                     : !MiniLeague.Active ? "Mode: Single match"
                     : MiniLeague.Finished ? "Mode: League finished" : $"Mode: League {MiniLeague.Round + 1}/{MiniLeague.Matches}";
             CycleDifficulty(0, false);
+            RefreshModeCards();
+        }
+
+        /// <summary>Gold for the current mode card, blue for the others.</summary>
+        void RefreshModeCards()
+        {
+            if (modeCards == null) return;
+            var cur = CurrentMode; var modes = new[] { PlayMode.Single, PlayMode.League, PlayMode.Tournament, PlayMode.Season, PlayMode.Training };
+            for (int i = 0; i < modeCards.Length; i++) modeCards[i].color = modes[i] == cur ? UITheme.Gold : UITheme.BlueDark;
         }
 
         void SetMinutes(float m, bool save = true)
@@ -439,7 +450,7 @@ namespace FootballSim.UI
             hint.color = new Color(1, 1, 1, 0.75f);
 
             // Start panel
-            startPanel = Glassify(Rect("StartPanel", root, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(900, 900), Panel).gameObject);
+            startPanel = Glassify(Rect("StartPanel", root, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(900, 1000), Panel).gameObject);
             var st = startPanel.transform;
             var title = Label("Title", st, 72, TextAnchor.MiddleCenter, new Vector2(0, 320), new Vector2(860, 100)); title.text = "FOOTBALL SIMULATOR"; title.fontStyle = FontStyle.Bold;
             var sub = Label("Sub", st, 30, TextAnchor.MiddleCenter, new Vector2(0, 245), new Vector2(860, 50)); sub.text = "Kick-Off  -  Home vs Away";
@@ -455,19 +466,39 @@ namespace FootballSim.UI
             difficultyLabel = Label("Difficulty", st, 34, TextAnchor.MiddleCenter, new Vector2(0, -90), new Vector2(560, 50));
             Button(st, "<", new Vector2(-370, -90), new Vector2(90, 70), () => CycleDifficulty(-1), btnCol);
             Button(st, ">", new Vector2(370, -90), new Vector2(90, 70), () => CycleDifficulty(1), btnCol);
-            kitLabel = Label("Kit", st, 34, TextAnchor.MiddleCenter, new Vector2(0, -190), new Vector2(560, 50));
-            Button(st, "<", new Vector2(-370, -190), new Vector2(90, 70), () => SetHomeKit(selectedKit - 1), btnCol);
-            Button(st, ">", new Vector2(370, -190), new Vector2(90, 70), () => SetHomeKit(selectedKit + 1), btnCol);
-            modeLabel = Label("Mode", st, 34, TextAnchor.MiddleCenter, new Vector2(0, -290), new Vector2(560, 50));
-            Button(st, "<", new Vector2(-370, -290), new Vector2(90, 70), ToggleLeagueMode, btnCol);
-            Button(st, ">", new Vector2(370, -290), new Vector2(90, 70), ToggleLeagueMode, btnCol);
-            Button(st, "PLAY", new Vector2(0, -385), new Vector2(420, 110), BeginMatch, Accent);
-            var resetButton = Button(st, "Reset progress", new Vector2(-345, -385), new Vector2(180, 60), TapResetProgress, btnCol);
+            // kit: one colour swatch per shirt colour (the chosen one is ringed); mode: one card per mode (the current one is gold)
+            kitLabel = Label("Kit", st, 30, TextAnchor.MiddleCenter, new Vector2(0, -185), new Vector2(560, 44));
+            kitRings = new Image[KitPalette.Count];
+            float swatchGap = 76f, swatchX0 = -swatchGap * (KitPalette.Count - 1) * 0.5f;
+            for (int k = 0; k < KitPalette.Count; k++)
+            {
+                int kit = k;
+                var ringImg = UIKit.Image(st, "KitRing" + k, UITheme.Circle, Color.white, false, false);
+                ringImg.rectTransform.anchorMin = ringImg.rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
+                ringImg.rectTransform.anchoredPosition = new Vector2(swatchX0 + k * swatchGap, -235f); ringImg.rectTransform.sizeDelta = new Vector2(64f, 64f);
+                kitRings[k] = ringImg;
+                var sw = UIKit.Image(ringImg.transform, "Swatch", UITheme.Circle, KitPalette.Colors[k], false, true);
+                sw.rectTransform.anchorMin = Vector2.zero; sw.rectTransform.anchorMax = Vector2.one; sw.rectTransform.offsetMin = new Vector2(6f, 6f); sw.rectTransform.offsetMax = new Vector2(-6f, -6f);
+                var swBtn = sw.gameObject.AddComponent<UnityEngine.UI.Button>(); swBtn.targetGraphic = sw; swBtn.onClick.AddListener(() => SetHomeKit(kit));
+            }
+            modeLabel = Label("Mode", st, 30, TextAnchor.MiddleCenter, new Vector2(0, -290), new Vector2(700, 44));
+            string[] modeNames = { "Single", "League", "Cup", "Season", "Training" };
+            PlayMode[] modes = { PlayMode.Single, PlayMode.League, PlayMode.Tournament, PlayMode.Season, PlayMode.Training };
+            modeCards = new Image[modes.Length];
+            for (int m = 0; m < modes.Length; m++)
+            {
+                var mode = modes[m];
+                var card = Button(st, modeNames[m], new Vector2(-348 + m * 174, -350), new Vector2(162, 64), () => { SelectMode(mode); RefreshModeCards(); }, btnCol);
+                card.GetComponentInChildren<Text>().fontSize = 26;
+                modeCards[m] = card.GetComponent<Image>();
+            }
+            Button(st, "PLAY", new Vector2(0, -435), new Vector2(420, 100), BeginMatch, Accent);
+            var resetButton = Button(st, "Reset progress", new Vector2(-345, -435), new Vector2(180, 60), TapResetProgress, btnCol);
             resetLabel = resetButton.GetComponentInChildren<Text>();
             resetLabel.fontSize = 22; // the default 40 is wider than this small button
             var onlineButton = Button(st, "Online", new Vector2(370, 245), new Vector2(150, 50), OpenOnline, btnCol);
             onlineButton.GetComponentInChildren<Text>().fontSize = 26;
-            recordLabel = Label("Record", st, 20, TextAnchor.MiddleCenter, new Vector2(345, -385), new Vector2(180, 84));
+            recordLabel = Label("Record", st, 20, TextAnchor.MiddleCenter, new Vector2(345, -435), new Vector2(180, 84));
             recordLabel.color = new Color(1f, 0.9f, 0.4f);
             recordLabel.text = CareerRecord.Summary() + (TeamGrowth.CurrentLevel > 0 ? $"\nSquad lv {TeamGrowth.CurrentLevel}" : "");
             var saved = MatchSettingsStore.Load(selectedMinutes, FormationData.PresetNames.Length, (int)AiTuning.CurrentDifficulty, System.Enum.GetValues(typeof(Difficulty)).Length);
