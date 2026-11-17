@@ -619,6 +619,8 @@ namespace FootballSim.Tests
                 FootballSim.Core.PlayerProfile.Reward(match.HomeScore, match.AwayScore, out int coins, out int xp);
                 Assert.AreEqual(coins, FootballSim.Core.PlayerProfile.Coins, "the match paid its coins once");
                 Assert.AreEqual(xp, FootballSim.Core.PlayerProfile.Xp);
+                var shownHud = Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>();
+                Assert.IsTrue(shownHud.EarnedText.Contains($"+{coins} coins") && shownHud.EarnedText.Contains($"+{xp} XP"), "the result screen says what was earned: " + shownHud.EarnedText);
             }
             finally { Time.timeScale = 1f; Time.captureFramerate = 0; FootballSim.Core.CareerRecord.Clear(); FootballSim.Core.PlayerProfile.Clear(); }
         }

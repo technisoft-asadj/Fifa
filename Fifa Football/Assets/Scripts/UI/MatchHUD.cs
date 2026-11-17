@@ -140,7 +140,15 @@ namespace FootballSim.UI
                 : $"DRAW  {match.HomeScore} - {match.AwayScore}";
             goalsText.text = GoalsSummary(match);
             statsText.text = StatLines(match);
-            if (!TrainingMode.Active) { CareerRecord.Record(match.HomeScore, match.AwayScore); PlayerProfile.AwardMatch(match.HomeScore, match.AwayScore); }
+            if (!TrainingMode.Active)
+            {
+                CareerRecord.Record(match.HomeScore, match.AwayScore);
+                int levelBefore = PlayerProfile.Level;
+                PlayerProfile.AwardMatch(match.HomeScore, match.AwayScore);
+                PlayerProfile.Reward(match.HomeScore, match.AwayScore, out int earnedCoins, out int earnedXp);
+                earnedText.text = $"+{earnedCoins} coins   +{earnedXp} XP" + (PlayerProfile.Level > levelBefore ? $"   LEVEL UP!  Level {PlayerProfile.Level}" : "");
+            }
+            else earnedText.text = "Training: no rewards";
             if (MiniLeague.Active && !MiniLeague.Finished) MiniLeague.RecordResult(match.HomeScore, match.AwayScore); // the human is home
             if (Tournament.Active && !Tournament.Over)
             {
@@ -309,7 +317,9 @@ namespace FootballSim.UI
             if (save) SaveSettings();
         }
 
-        Text modeLabel, leagueText;
+        Text modeLabel, leagueText, earnedText;
+        /// <summary>The "+coins +XP" line on the full-time panel (test hook).</summary>
+        public string EarnedText => earnedText != null ? earnedText.text : "";
         Text rematchLabel;
 
         /// <summary>Switch between a single match and the three-match mini-league (see MiniLeague).</summary>
@@ -483,6 +493,8 @@ namespace FootballSim.UI
             statsText.verticalOverflow = VerticalWrapMode.Truncate; statsText.lineSpacing = 1.1f;
             leagueText = Label("League", ft, 24, TextAnchor.MiddleCenter, new Vector2(0, -175), new Vector2(860, 40));
             leagueText.color = new Color(1f, 0.9f, 0.4f);
+            earnedText = Label("Earned", ft, 28, TextAnchor.MiddleCenter, new Vector2(0, -322), new Vector2(860, 40));
+            earnedText.color = UITheme.Gold; earnedText.fontStyle = FontStyle.Bold;
             var rematchButton = Button(ft, "REMATCH", new Vector2(0, -250), new Vector2(420, 110), Rematch, Accent);
             rematchLabel = rematchButton.GetComponentInChildren<Text>();
             fullTimePanel.SetActive(false);
