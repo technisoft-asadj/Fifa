@@ -197,7 +197,7 @@ namespace FootballSim.Tests
             animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
             var hips = animator.GetBoneTransform(HumanBodyBones.Hips);
             var report = new System.Text.StringBuilder();
-            foreach (var action in new[] { AnimatedPlayerVisual.Action.Tackle, AnimatedPlayerVisual.Action.Fall, AnimatedPlayerVisual.Action.Pass, AnimatedPlayerVisual.Action.Shot, AnimatedPlayerVisual.Action.Receive })
+            foreach (var action in new[] { AnimatedPlayerVisual.Action.Tackle, AnimatedPlayerVisual.Action.Fall, AnimatedPlayerVisual.Action.Pass, AnimatedPlayerVisual.Action.Shot, AnimatedPlayerVisual.Action.Receive, AnimatedPlayerVisual.Action.Dive, AnimatedPlayerVisual.Action.Catch, AnimatedPlayerVisual.Action.JumpCatch })
             {
                 animator.Rebind(); animator.Update(0f);
                 for (int i = 0; i < 30; i++) animator.Update(1f / 60f);

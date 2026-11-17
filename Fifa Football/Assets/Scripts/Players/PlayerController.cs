@@ -113,7 +113,7 @@ namespace FootballSim.Players
             if (dir.sqrMagnitude < 0.04f) dir = transform.right; // no direction given: dive to the keeper's right
             lungeDir = dir.normalized;
             lungeTimer = 0.45f;
-            if (visual != null) visual.PlayTackle();
+            if (visual != null) visual.PlayDive(Vector3.Dot(lungeDir, transform.right) >= 0f);
         }
 
         /// <summary>A fast ball arriving within the keeper's reach is held or parried (see GoalkeeperModel); one attempt per shot.</summary>
@@ -153,7 +153,7 @@ namespace FootballSim.Players
                 ball.Kick(dir, Mathf.Clamp(speed * 0.35f, 4f, 9f), Vector3.zero);
                 Saved?.Invoke(this, false);
             }
-            if (visual != null) visual.PlayKick(true);
+            if (visual != null) visual.PlaySave(outcome == SaveOutcome.Catch, ball.Position.y > 1.5f);
         }
 
         void Locomotion()

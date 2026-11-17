@@ -76,7 +76,7 @@ namespace FootballSim.EditorTools
         }
 
         /// <summary>One-shot action clips: file name, which action it serves.</summary>
-        public static readonly string[] ActionClips = { "SoccerPass", "Shot", "StrikeJog", "Receive", "SlideTackle", "FallOver", "GetUp" };
+        public static readonly string[] ActionClips = { "SoccerPass", "Shot", "StrikeJog", "Receive", "SlideTackle", "FallOver", "GetUp", "KeeperDive", "KeeperCatch", "KeeperJumpCatch" };
 
         /// <summary>
         /// When the ball is struck in a kick clip: the moment a toe moves fastest (the foot is at full swing as it meets the ball) and which
@@ -198,7 +198,7 @@ namespace FootballSim.EditorTools
                 st.motion = clip; st.mirrorParameterActive = true; st.mirrorParameter = "Mirror"; st.writeDefaultValues = true;
                 // the simulation does not hold a tackler or a fouled player down, so these play faster than the raw clip to be over about when
                 // the player is free to move again (the sim's tackle cool-down is 0.9 s)
-                st.speed = an == "SlideTackle" ? 1.9f : an == "FallOver" || an == "GetUp" ? 1.25f : 1f;
+                st.speed = an == "KeeperDive" ? 2f : an == "SlideTackle" ? 1.9f : an == "FallOver" || an == "GetUp" ? 1.25f : 1f;
                 actionStates[an] = st;
             }
             foreach (var kv in actionStates)

@@ -212,6 +212,22 @@ namespace FootballSim.Players
             if (animatedActive && animated != null) animated.PlayAction(AnimatedPlayerVisual.Action.Tackle, true);
         }
 
+        /// <summary>A keeper dives: sideways to the right or left of his own body.</summary>
+        public void PlayDive(bool right)
+        {
+            if (animatedActive && animated != null) animated.PlayAction(AnimatedPlayerVisual.Action.Dive, right);
+        }
+
+        /// <summary>A keeper stops a shot: the primitive body swings a leg, the animated one plays a catch (high balls jump) when he held it.</summary>
+        public void PlaySave(bool held, bool high)
+        {
+            if (animatedActive && animated != null)
+            {
+                if (held) animated.PlayAction(high ? AnimatedPlayerVisual.Action.JumpCatch : AnimatedPlayerVisual.Action.Catch, true);
+            }
+            else PlayKick(true);
+        }
+
         /// <summary>The victim of a foul goes down and gets back up (animated body only).</summary>
         public void PlayFall()
         {

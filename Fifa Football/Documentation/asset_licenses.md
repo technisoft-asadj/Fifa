@@ -51,3 +51,6 @@ Same source, character (Y Bot), settings (FBX for Unity, Without Skin, 30 fps, n
 
 ### Mixamo clips added for animation Phase 4 (2026-11-18)
 Same source, character and settings as above, git-ignored in `Assets/Art/Mixamo/`: `SlideTackle` (Soccer Tackle: "Soccer Slide Tackle", 1.77 s), `FallOver` (Soccer Tackle: "Standing Fall Over A Soccer Slide Tackle", 2.30 s), `GetUp` (Standing Up: "Standing Up From A Soccer Fall", 1.67 s).
+
+### Mixamo clips added for animation Phase 5 (2026-11-18)
+Same source, character and settings as above, git-ignored in `Assets/Art/Mixamo/`: `KeeperDive` (Goalkeeper Diving Save: "Goalkeeper Right Diving Save", 3.23 s), `KeeperCatch` (Goalkeeper Catch: "Catching Ball Medium Height", 1.27 s), `KeeperJumpCatch` (Goalkeeper Catch: "Jump Catching Ball High Height", 2.73 s).
