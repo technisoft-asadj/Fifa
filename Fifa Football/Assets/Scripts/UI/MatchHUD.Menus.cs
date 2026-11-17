@@ -23,7 +23,7 @@ namespace FootballSim.UI
         TextMeshProUGUI ctlStyle, ctlHand, ctlSize, ctlOpacity;
         TextMeshProUGUI menuName, menuLevel,menuXp, menuCoins, dailySub, settingsSound, settingsSize, settingsOpacity, settingsQuality, settingsFps, settingsReset;
         RectTransform xpFill;
-        Button dailyButton;
+        Button dailyButton, adButton;
         TextMeshProUGUI dailyButtonLabel;
         const string FpsKey = "fps_cap", QualityKey = "quality_level";
 
@@ -92,6 +92,20 @@ namespace FootballSim.UI
         /// <summary>One step back, as Escape or the Android Back button does. Returns true if it handled the press.</summary>
         public bool GoBack() { return NavigateBack(); }
 
+        /// <summary>Claims today's reward doubled, but only after an ad was watched to the end. Nothing is paid if the ad is unavailable, skipped or fails.</summary>
+        public void WatchDailyAd()
+        {
+            if (!PlayerProfile.DailyAvailable) return;
+            Ads.ShowRewarded(watched =>
+            {
+                if (!watched || !PlayerProfile.DailyAvailable) return;
+                if (PlayerProfile.ClaimDaily() > 0) PlayerProfile.AddBonusCoins(PlayerProfile.DailyRewardCoins);
+                RefreshMainMenu();
+            });
+        }
+
+        public bool AdButtonShown => adButton != null && adButton.gameObject.activeSelf;
+
         public void ClaimDailyReward()
         {
             PlayerProfile.ClaimDaily();
@@ -110,6 +124,7 @@ namespace FootballSim.UI
             dailySub.text = ready ? $"+{PlayerProfile.DailyRewardCoins} coins" : "Back tomorrow";
             dailyButton.interactable = ready;
             dailyButtonLabel.text = ready ? "CLAIM" : "CLAIMED";
+            if (adButton != null) adButton.gameObject.SetActive(ready && Ads.RewardedReady); // ads are optional and only ever behind this button
         }
 
         // ---- construction ----
@@ -164,6 +179,9 @@ namespace FootballSim.UI
             dailyButton = UIKit.SmallButton(card, "CLAIM", UITheme.Gold, UIKit.Center, new Vector2(215f, 0f), new Vector2(200f, 86f), ClaimDailyReward, 34f);
             dailyButtonLabel = dailyButton.GetComponentInChildren<TextMeshProUGUI>();
             dailyButtonLabel.color = UITheme.GoldText;
+            // optional: with an ad service, a button beside the card claims the reward doubled (hidden while there is none, which is always for now)
+            adButton = UIKit.SmallButton(menu, "Watch ad: 2x", UITheme.Purple, UIKit.BottomLeft, new Vector2(710f, 64f), new Vector2(330f, 86f), WatchDailyAd, 30f);
+            adButton.gameObject.SetActive(false);
 
             UIKit.TextAt(menu, "Version", "v" + Application.version, 22f, new Color(1f, 1f, 1f, 0.45f), UIKit.BottomRight, new Vector2(-30f, 20f), new Vector2(200f, 30f), TextAlignmentOptions.Right);
             BuildSettingsPanel(root);

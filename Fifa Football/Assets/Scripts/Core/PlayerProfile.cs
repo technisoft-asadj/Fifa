@@ -71,6 +71,15 @@ namespace FootballSim.Core
             xpEarned = win ? 50 : draw ? 25 : 15;
         }
 
+        /// <summary>Adds coins on top of what was already earned (the rewarded-ad bonus).</summary>
+        public static void AddBonusCoins(int amount)
+        {
+            if (amount <= 0) return;
+            EnsureRestored();
+            coins = Mathf.Min(MaxValue, coins + amount);
+            Save();
+        }
+
         public static void AwardMatch(int homeGoals, int awayGoals)
         {
             EnsureRestored();

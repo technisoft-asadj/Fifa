@@ -14,7 +14,7 @@ namespace FootballSim.UI
     {
         /// <summary>True once the splash has been shown in this app run. Tests set it so the scene opens straight on the main menu.</summary>
         public static bool SplashShown;
-        public const float SplashSeconds = 1.8f;
+        public static float SplashSeconds = 1.8f; // static only so tests can hold the splash open on a slow machine
 
         GameObject splashPanel, namePanel;
         RectTransform splashFill;

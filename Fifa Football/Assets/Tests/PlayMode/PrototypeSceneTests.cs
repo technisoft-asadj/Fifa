@@ -906,6 +906,7 @@ namespace FootballSim.Tests
         [UnityTest]
         public IEnumerator FirstLaunchShowsSplashThenNameScreenAndLaterLaunchesGoStraightToTheMenu()
         {
+            FootballSim.UI.MatchHUD.SplashSeconds = 60f; // a slow editor must not let the splash expire mid-test
             FootballSim.UI.MatchHUD.SplashShown = false; // as at a fresh app start
             yield return LoadScene();
             var hud = Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>();
@@ -926,6 +927,7 @@ namespace FootballSim.Tests
             Assert.IsTrue(hud.SplashOpen);
             hud.FinishSplash();
             Assert.IsTrue(hud.MainMenuOpen); Assert.IsFalse(hud.NameOpen, "no second name prompt");
+            FootballSim.UI.MatchHUD.SplashSeconds = 1.8f;
         }
 
         [UnityTest]
@@ -943,6 +945,54 @@ namespace FootballSim.Tests
             hud.ConfirmName("Sam");
             Assert.IsTrue(hud.CareerOpen, "still on Career after renaming");
             StringAssert.Contains("Sam", hud.CareerShown);
+        }
+
+        class TestAds : FootballSim.Core.IAdProvider
+        {
+            public bool ready = true, watchToEnd = true;
+            public bool RewardedReady => ready;
+            public void ShowRewarded(System.Action<bool> done) { done(watchToEnd); }
+        }
+
+        [UnityTest]
+        public IEnumerator TheAdButtonIsHiddenWithoutAnAdServiceAndDoublesTheDailyRewardOnlyAfterAWatchedAd()
+        {
+            yield return LoadScene();
+            var hud = Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>();
+            var oldProvider = FootballSim.Core.Ads.Provider;
+            var oldToday = FootballSim.Core.PlayerProfile.Today;
+            long day = 21000;
+            FootballSim.Core.PlayerProfile.Today = () => day;
+            try
+            {
+                FootballSim.Core.PlayerProfile.Clear();
+                FootballSim.Core.Ads.Provider = null;
+                hud.ShowMainMenu();
+                Assert.IsFalse(hud.AdButtonShown, "no ad service: no ad button");
+                hud.WatchDailyAd();
+                Assert.AreEqual(0, FootballSim.Core.PlayerProfile.Coins, "nothing is paid without an ad");
+                Assert.IsTrue(FootballSim.Core.PlayerProfile.DailyAvailable, "and the plain claim is still there");
+
+                var ads = new TestAds { watchToEnd = false };
+                FootballSim.Core.Ads.Provider = ads;
+                hud.ShowMainMenu();
+                Assert.IsTrue(hud.AdButtonShown, "an ad is ready and the reward is unclaimed");
+                hud.WatchDailyAd();
+                Assert.AreEqual(0, FootballSim.Core.PlayerProfile.Coins, "a skipped ad earns nothing");
+                Assert.IsTrue(FootballSim.Core.PlayerProfile.DailyAvailable);
+
+                ads.watchToEnd = true;
+                hud.WatchDailyAd();
+                Assert.AreEqual(2 * FootballSim.Core.PlayerProfile.DailyRewardCoins, FootballSim.Core.PlayerProfile.Coins, "a watched ad pays the reward twice");
+                Assert.IsFalse(FootballSim.Core.PlayerProfile.DailyAvailable);
+                Assert.IsFalse(hud.AdButtonShown, "nothing left to claim today");
+                hud.WatchDailyAd();
+                Assert.AreEqual(2 * FootballSim.Core.PlayerProfile.DailyRewardCoins, FootballSim.Core.PlayerProfile.Coins, "once a day only");
+                day++;
+                hud.ShowMainMenu();
+                Assert.IsTrue(hud.AdButtonShown, "back the next day");
+            }
+            finally { FootballSim.Core.Ads.Provider = oldProvider; FootballSim.Core.PlayerProfile.Today = oldToday; FootballSim.Core.PlayerProfile.Clear(); }
         }
 
         [UnityTest]
