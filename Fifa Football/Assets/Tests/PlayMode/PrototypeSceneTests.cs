@@ -25,10 +25,10 @@ namespace FootballSim.Tests
         // Every test that plays a match to full time records it in the player's saved career record; the tests must neither start
         // from a leftover record (it changes the squad level) nor leave theirs behind in the real saved data.
         [SetUp]
-        public void SetUp() { FootballSim.Core.CareerRecord.Clear(); FootballSim.Core.PlayerProfile.Clear(); ForgetOnlineAddress(); FootballSim.UI.MatchHUD.OpenSetupDirectly = false; }
+        public void SetUp() { FootballSim.Core.CareerRecord.Clear(); FootballSim.Core.PlayerProfile.Clear(); ForgetOnlineAddress(); FootballSim.UI.MatchHUD.OpenSetupDirectly = false; FootballSim.UI.MatchHUD.SplashShown = true; }
 
         [TearDown]
-        public void TearDown() { Time.timeScale = 1f; FootballSim.Core.CareerRecord.Clear(); FootballSim.Core.PlayerProfile.Clear(); ForgetOnlineAddress(); FootballSim.UI.MatchHUD.OpenSetupDirectly = false; }
+        public void TearDown() { Time.timeScale = 1f; FootballSim.Core.CareerRecord.Clear(); FootballSim.Core.PlayerProfile.Clear(); ForgetOnlineAddress(); FootballSim.UI.MatchHUD.OpenSetupDirectly = false; FootballSim.UI.MatchHUD.SplashShown = true; }
 
         // joining remembers the typed address; a test must not leave its fake one in the real saved data
         static void ForgetOnlineAddress() { PlayerPrefs.DeleteKey(FootballSim.UI.MatchHUD.LastAddressKey); }
@@ -847,6 +847,48 @@ namespace FootballSim.Tests
             StringAssert.Contains("Win rate: 50%", hud.CareerShown);
             StringAssert.Contains("difference +2", hud.CareerShown);
             Assert.IsTrue(hud.GoBack()); Assert.IsFalse(hud.CareerOpen); Assert.IsTrue(hud.MainMenuOpen, "back to the main menu");
+        }
+
+        [UnityTest]
+        public IEnumerator FirstLaunchShowsSplashThenNameScreenAndLaterLaunchesGoStraightToTheMenu()
+        {
+            FootballSim.UI.MatchHUD.SplashShown = false; // as at a fresh app start
+            yield return LoadScene();
+            var hud = Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>();
+            Assert.IsTrue(hud.SplashOpen, "the splash comes first");
+            Assert.IsFalse(hud.MainMenuOpen);
+            Assert.IsTrue(hud.GoBack(), "Back skips the splash");
+            Assert.IsFalse(hud.SplashOpen);
+            Assert.IsTrue(hud.NameOpen, "first time: ask for a name");
+            Assert.IsFalse(FootballSim.Core.PlayerProfile.HasName);
+            Assert.AreEqual("Ali_9", hud.ConfirmName("  Ali_9!! "), "symbols are dropped and spaces trimmed");
+            Assert.IsFalse(hud.NameOpen); Assert.IsTrue(hud.MainMenuOpen);
+            Assert.AreEqual("Ali_9", FootballSim.Core.PlayerProfile.Name);
+
+            // the next launch: splash, then straight to the menu
+            FootballSim.UI.MatchHUD.SplashShown = false;
+            yield return LoadScene();
+            hud = Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>();
+            Assert.IsTrue(hud.SplashOpen);
+            hud.FinishSplash();
+            Assert.IsTrue(hud.MainMenuOpen); Assert.IsFalse(hud.NameOpen, "no second name prompt");
+        }
+
+        [UnityTest]
+        public IEnumerator PlayingAsGuestIsRememberedAndTheNameCanBeChangedFromCareer()
+        {
+            yield return LoadScene();
+            var hud = Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>();
+            hud.OpenName();
+            Assert.AreEqual("Guest", hud.ConfirmName(""));
+            Assert.IsTrue(FootballSim.Core.PlayerProfile.HasName, "choosing guest is remembered");
+            hud.OpenCareer(); hud.OpenName();
+            Assert.IsTrue(hud.NameOpen);
+            Assert.IsTrue(hud.GoBack()); Assert.IsFalse(hud.NameOpen); Assert.IsTrue(hud.CareerOpen, "Back returns to Career");
+            hud.OpenName();
+            hud.ConfirmName("Sam");
+            Assert.IsTrue(hud.CareerOpen, "still on Career after renaming");
+            StringAssert.Contains("Sam", hud.CareerShown);
         }
 
         [UnityTest]

@@ -73,18 +73,21 @@ namespace FootballSim.UI
             SetHomeKit(selectedKit, false); // players are built by now (Awake order is undefined), so colour them
             ApplySavedGraphics();
             if (OpenSetupDirectly) { OpenSetupDirectly = false; ShowStart(); } // rematch / restart / next match: straight to match setup
+            else if (!SplashShown) ShowSplash();
             else ShowMainMenu();
         }
         void OnDestroy() { Time.timeScale = 1f; }
 
         void Update()
         {
+            UpdateSplash();
             // Keyboard hint is noise on a phone; show it only when there is no touchscreen.
             bool touchDevice = Application.isMobilePlatform || UnityEngine.InputSystem.Touchscreen.current != null;
-            bool showHint = !touchDevice && !MainMenuOpen;
+            bool frontScreen = SplashOpen || NameOpen; // the splash and name screens cover the match entirely
+            bool showHint = !touchDevice && !MainMenuOpen && !frontScreen;
             if (hintText.gameObject.activeSelf != showHint) hintText.gameObject.SetActive(showHint);
             // the match scoreboard and stamina bar do not belong behind the main menu
-            bool showHud = !MainMenuOpen && !startPanel.activeSelf;
+            bool showHud = !MainMenuOpen && !startPanel.activeSelf && !frontScreen;
             if (scoreText.transform.parent.gameObject.activeSelf != showHud) { scoreText.transform.parent.gameObject.SetActive(showHud); staminaFill.parent.gameObject.SetActive(showHud); }
             ExpireResetLabel();
             UpdateOnlineLabels();
@@ -515,6 +518,7 @@ namespace FootballSim.UI
             setupBack.GetComponentInChildren<Text>().fontSize = 26;
             BuildMainMenu(root, btnCol);
             BuildOnlinePanel(root, btnCol);
+            BuildSplashAndName(root);
 
             // Full-time panel
             fullTimePanel = Glassify(Rect("FullTimePanel", root, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(900, 700), Panel).gameObject);

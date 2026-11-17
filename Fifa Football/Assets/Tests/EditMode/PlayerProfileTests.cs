@@ -76,6 +76,24 @@ namespace FootballSim.Tests
         }
 
         [Test]
+        public void NamesAreCleanedCutAndSaved()
+        {
+            Assert.IsFalse(PlayerProfile.HasName);
+            Assert.AreEqual("Guest", PlayerProfile.Name, "no name yet reads as Guest");
+            Assert.AreEqual("Guest", PlayerProfile.CleanName(null));
+            Assert.AreEqual("Guest", PlayerProfile.CleanName("  <>!! "), "nothing usable left");
+            Assert.AreEqual("Ali Khan-9_x", PlayerProfile.CleanName("  Ali Khan-9_x  "));
+            Assert.AreEqual("Bob", PlayerProfile.CleanName("B<o>b"));
+            Assert.AreEqual(16, PlayerProfile.CleanName("abcdefghijklmnopqrstuvwxyz").Length);
+            PlayerProfile.SetName("Zed");
+            Assert.IsTrue(PlayerProfile.HasName);
+            PlayerProfile.ForgetInMemory();
+            Assert.AreEqual("Zed", PlayerProfile.Name, "the name survives a restart");
+            PlayerProfile.Clear();
+            Assert.IsFalse(PlayerProfile.HasName, "clearing forgets the name");
+        }
+
+        [Test]
         public void ResetAllClearsTheProfile()
         {
             PlayerProfile.AwardMatch(2, 0);

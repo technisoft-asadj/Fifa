@@ -9,15 +9,43 @@ namespace FootballSim.Core
     /// </summary>
     public static class PlayerProfile
     {
-        public const string CoinsKey = "pf_coins", XpKey = "pf_xp", DailyKey = "pf_daily_day";
+        public const string CoinsKey = "pf_coins", XpKey = "pf_xp", DailyKey = "pf_daily_day", NameKey = "pf_name";
+        public const int MaxNameLength = 16;
         public const int XpPerLevel = 100, DailyRewardCoins = 250, MaxValue = 100000000;
 
         static bool restored;
         static int coins, xp;
         static long lastClaimDay = -1;
+        static string name = "";
 
         /// <summary>The current day number (days since 1970, UTC). Tests replace it to move time forward.</summary>
         public static System.Func<long> Today = () => (long)(System.DateTime.UtcNow - new System.DateTime(1970, 1, 1, 0, 0, 0, System.DateTimeKind.Utc)).TotalDays;
+
+        /// <summary>The name shown on the menu ("Guest" until the player picks one). There is no account behind it.</summary>
+        public static string Name { get { EnsureRestored(); return name.Length == 0 ? "Guest" : name; } }
+        /// <summary>True once the player has chosen a name or chosen to play as a guest.</summary>
+        public static bool HasName { get { EnsureRestored(); return name.Length > 0; } }
+
+        /// <summary>Letters, digits, space, underscore and hyphen only, trimmed and cut to 16 characters; an empty result means "Guest".</summary>
+        public static string CleanName(string raw)
+        {
+            if (string.IsNullOrEmpty(raw)) return "Guest";
+            var sb = new System.Text.StringBuilder();
+            foreach (char c in raw)
+                if (char.IsLetterOrDigit(c) || c == ' ' || c == '_' || c == '-') sb.Append(c);
+            string cleaned = sb.ToString().Trim();
+            if (cleaned.Length > MaxNameLength) cleaned = cleaned.Substring(0, MaxNameLength).Trim();
+            return cleaned.Length == 0 ? "Guest" : cleaned;
+        }
+
+        /// <summary>Saves the cleaned name and returns it.</summary>
+        public static string SetName(string raw)
+        {
+            EnsureRestored();
+            name = CleanName(raw);
+            Save();
+            return name;
+        }
 
         public static int Coins { get { EnsureRestored(); return coins; } }
         public static int Xp { get { EnsureRestored(); return xp; } }
@@ -54,12 +82,12 @@ namespace FootballSim.Core
 
         public static void Clear()
         {
-            restored = true; coins = 0; xp = 0; lastClaimDay = -1;
-            try { PlayerPrefs.DeleteKey(CoinsKey); PlayerPrefs.DeleteKey(XpKey); PlayerPrefs.DeleteKey(DailyKey); PlayerPrefs.Save(); } catch { }
+            restored = true; coins = 0; xp = 0; lastClaimDay = -1; name = "";
+            try { PlayerPrefs.DeleteKey(CoinsKey); PlayerPrefs.DeleteKey(XpKey); PlayerPrefs.DeleteKey(DailyKey); PlayerPrefs.DeleteKey(NameKey); PlayerPrefs.Save(); } catch { }
         }
 
         /// <summary>Forgets the in-memory values so the next read loads from storage, as after a fresh launch. For tests.</summary>
-        public static void ForgetInMemory() { restored = false; coins = 0; xp = 0; lastClaimDay = -1; }
+        public static void ForgetInMemory() { restored = false; coins = 0; xp = 0; lastClaimDay = -1; name = ""; }
 
         static void EnsureRestored()
         {
@@ -76,6 +104,8 @@ namespace FootballSim.Core
                     return;
                 }
                 coins = c; xp = x; lastClaimDay = d;
+                string saved = PlayerPrefs.GetString(NameKey, "");
+                name = saved.Length == 0 ? "" : CleanName(saved);
             }
             catch { }
         }
@@ -85,6 +115,7 @@ namespace FootballSim.Core
             try
             {
                 PlayerPrefs.SetInt(CoinsKey, coins); PlayerPrefs.SetInt(XpKey, xp); PlayerPrefs.SetString(DailyKey, lastClaimDay.ToString());
+                if (name.Length > 0) PlayerPrefs.SetString(NameKey, name);
                 PlayerPrefs.Save();
             }
             catch { }

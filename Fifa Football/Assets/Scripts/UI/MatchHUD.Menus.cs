@@ -21,7 +21,7 @@ namespace FootballSim.UI
         TextMeshProUGUI settingsCamera, careerText;
         FootballSim.CameraSystem.BroadcastCamera cam;
         TextMeshProUGUI ctlStyle, ctlHand, ctlSize, ctlOpacity;
-        TextMeshProUGUI menuLevel, menuXp, menuCoins, dailySub, settingsSound, settingsSize, settingsOpacity, settingsQuality, settingsFps, settingsReset;
+        TextMeshProUGUI menuName, menuLevel,menuXp, menuCoins, dailySub, settingsSound, settingsSize, settingsOpacity, settingsQuality, settingsFps, settingsReset;
         RectTransform xpFill;
         Button dailyButton;
         TextMeshProUGUI dailyButtonLabel;
@@ -33,7 +33,7 @@ namespace FootballSim.UI
         public bool ControlsOpen => controlsPanel != null && controlsPanel.activeSelf;
         public bool OnlineOpen => onlinePanel != null && onlinePanel.activeSelf;
         public bool SetupOpen => startPanel != null && startPanel.activeSelf;
-        bool MenuOpen => startPanel.activeSelf || fullTimePanel.activeSelf || MainMenuOpen;
+        bool MenuOpen => startPanel.activeSelf || fullTimePanel.activeSelf || MainMenuOpen || SplashOpen || NameOpen;
 
         public PlayMode CurrentMode => TrainingMode.Active ? PlayMode.Training : Season.Active ? PlayMode.Season : Tournament.Active ? PlayMode.Tournament : MiniLeague.Active ? PlayMode.League : PlayMode.Single;
 
@@ -74,6 +74,8 @@ namespace FootballSim.UI
         /// <summary>One step back for Escape / the Android Back button. Returns true if it did something.</summary>
         bool NavigateBack()
         {
+            if (SplashOpen) { FinishSplash(); return true; }
+            if (NameOpen) { if (PlayerProfile.HasName) CloseName(); else ConfirmName(""); return true; }
             if (CareerOpen) { CloseCareer(); return true; }
             if (ControlsOpen) { CloseControls(); return true; }
             if (SettingsOpen) { CloseSettings(); return true; }
@@ -99,6 +101,7 @@ namespace FootballSim.UI
         void RefreshMainMenu()
         {
             if (menuLevel == null) return;
+            menuName.text = PlayerProfile.Name;
             menuLevel.text = $"Level {PlayerProfile.Level}";
             menuXp.text = $"{PlayerProfile.XpInLevel} / {PlayerProfile.XpPerLevel} XP";
             UIKit.SetBar(xpFill, PlayerProfile.XpInLevel / (float)PlayerProfile.XpPerLevel);
@@ -124,7 +127,7 @@ namespace FootballSim.UI
             var face = UIKit.Image(avatar.transform, "Face", UITheme.Icon(UIIcon.Person), new Color(1f, 1f, 1f, 0.9f), false, false);
             face.rectTransform.anchorMin = new Vector2(0.18f, 0.18f); face.rectTransform.anchorMax = new Vector2(0.82f, 0.82f); face.rectTransform.offsetMin = face.rectTransform.offsetMax = Vector2.zero;
             var profileBtn = avatar.gameObject.AddComponent<Button>(); profileBtn.targetGraphic = avatar; profileBtn.onClick.AddListener(OpenCareer); avatar.raycastTarget = true;
-            UIKit.TextAt(menu, "Name", "Player", 38f, Color.white, UIKit.TopLeft, new Vector2(166f, -30f), new Vector2(360f, 46f), TextAlignmentOptions.Left, true);
+            menuName = UIKit.TextAt(menu, "Name", "Player", 38f, Color.white, UIKit.TopLeft, new Vector2(166f, -30f), new Vector2(360f, 46f), TextAlignmentOptions.Left, true);
             menuLevel = UIKit.TextAt(menu, "Level", "Level 1", 26f, UITheme.Gold, UIKit.TopLeft, new Vector2(166f, -76f), new Vector2(200f, 34f), TextAlignmentOptions.Left, true);
             xpFill = UIKit.Bar(menu, "XpBar", UITheme.Gold, UIKit.TopLeft, new Vector2(166f, -118f), new Vector2(300f, 16f));
             menuXp = UIKit.TextAt(menu, "Xp", "0 / 100 XP", 22f, UITheme.Muted, UIKit.TopLeft, new Vector2(480f, -112f), new Vector2(200f, 28f), TextAlignmentOptions.Left);
@@ -174,8 +177,9 @@ namespace FootballSim.UI
             careerPanel = p.parent.gameObject;
             UIKit.TextAt(p, "Title", "CAREER", 64f, Color.white, UIKit.Center, new Vector2(0f, 320f), new Vector2(700f, 90f), TextAlignmentOptions.Center, true);
             UIKit.SmallButton(p, "< Back", UITheme.Slate, UIKit.TopLeft, new Vector2(30f, -30f), new Vector2(190f, 72f), CloseCareer, 34f);
-            careerText = UIKit.TextAt(p, "Stats", "", 40f, Color.white, UIKit.Center, new Vector2(0f, -30f), new Vector2(880f, 560f), TextAlignmentOptions.Center, false);
+            careerText = UIKit.TextAt(p, "Stats", "", 40f, Color.white, UIKit.Center, new Vector2(0f, 10f), new Vector2(880f, 540f), TextAlignmentOptions.Center, false);
             careerText.textWrappingMode = TextWrappingModes.Normal; careerText.lineSpacing = 18f;
+            UIKit.SmallButton(p, "Change name", UITheme.Blue, UIKit.Center, new Vector2(0f, -330f), new Vector2(460f, 80f), OpenName, 34f);
             careerPanel.SetActive(false);
         }
 
@@ -185,7 +189,7 @@ namespace FootballSim.UI
             int played = CareerRecord.Played;
             string rate = played == 0 ? "-" : $"{100f * CareerRecord.Won / played:0}%";
             string gd = (CareerRecord.GoalsFor - CareerRecord.GoalsAgainst).ToString("+0;-0;0");
-            return $"<color=#FFC71F>Level {PlayerProfile.Level}</color>   {PlayerProfile.XpInLevel} / {PlayerProfile.XpPerLevel} XP   <color=#FFC71F>{PlayerProfile.Coins:N0} coins</color>\n\n"
+            return $"<b>{PlayerProfile.Name}</b>\n<color=#FFC71F>Level {PlayerProfile.Level}</color>{PlayerProfile.XpInLevel} / {PlayerProfile.XpPerLevel} XP   <color=#FFC71F>{PlayerProfile.Coins:N0} coins</color>\n\n"
                  + $"Matches played: {played}\nWon {CareerRecord.Won}   Drawn {CareerRecord.Drawn}   Lost {CareerRecord.Lost}\nWin rate: {rate}\n"
                  + $"Goals for {CareerRecord.GoalsFor}   against {CareerRecord.GoalsAgainst}   difference {gd}\n\n"
                  + "<size=28><color=#B0B8C8>Saved on this phone only. Training matches are not counted.</color></size>";
