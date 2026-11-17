@@ -46,3 +46,6 @@ Source: `My Plan/FOOTBALL SIMULATOR.docx` (v1.0). This file refines it; the docx
 - Thermal throttling and memory on low-end phones.
 - Character/animation quality on zero budget.
 - Network feel for 22 players.
+
+## LOCKED PRODUCT REQUIREMENT (2026-11-17): elite realistic player movement and individual animation
+The owner's two documents (master task + amendment, status "finalized and locked") are restated as numbered requirements in `animation_spec.md`. The audit of the current state and the phased implementation plan are in `animation_audit_and_plan.md`; licences go in `asset_licenses.md`; results in `testing.md`. This programme replaces the "Characters & animation -> procedural placeholder" row above once started. Order: one polished player prototype -> animation profiles (5+) -> all 22 players. It cannot proceed past phase 1 without the owner downloading free clips by hand (section 6 of the plan) and answering the decisions in its section 9.
