@@ -1,0 +1,7 @@
+<linker>
+  <!-- GameObject.CreatePrimitive(Capsule) adds a CapsuleCollider that nothing else references, so IL2CPP stripping removed the class
+       and every player body part logged "Can't add component because class 'CapsuleCollider' doesn't exist!" on the phone. -->
+  <assembly fullname="UnityEngine.PhysicsModule">
+    <type fullname="UnityEngine.CapsuleCollider" preserve="all"/>
+  </assembly>
+</linker>

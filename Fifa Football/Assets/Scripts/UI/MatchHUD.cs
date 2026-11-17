@@ -85,7 +85,13 @@ namespace FootballSim.UI
             bool inMenu = startPanel.activeSelf || fullTimePanel.activeSelf;
             if (pauseButton.activeSelf == inMenu) pauseButton.SetActive(!inMenu);
             var kb = UnityEngine.InputSystem.Keyboard.current;
-            if (kb != null && kb.escapeKey.wasPressedThisFrame) TogglePause();
+            bool escape = kb != null && kb.escapeKey.wasPressedThisFrame;
+#if ENABLE_LEGACY_INPUT_MANAGER
+            // The Input System never receives the Android Back key as Escape (KB-015); Unity's legacy Input maps Back to Escape.
+            // Android only, and only when the Input System did not already see Escape, so one press cannot toggle twice.
+            if (!escape && Application.platform == RuntimePlatform.Android) escape = Input.GetKeyDown(KeyCode.Escape);
+#endif
+            if (escape) TogglePause();
             if (match == null) return;
             scoreText.text = $"HOME  {match.HomeScore}  -  {match.AwayScore}  AWAY";
             clockText.text = $"{Mathf.FloorToInt(match.GameMinute):00}:00";

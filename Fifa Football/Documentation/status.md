@@ -13,7 +13,7 @@ Written 2026-11-17. This is the short version; `progress.md` has the detail for 
 EditMode 154/154. PlayMode 72/72, plus 5 gated probe tests that show as Inconclusive unless a file named `run_balance.flag` exists in the project root (expected). Android IL2CPP build succeeds (0 errors).
 
 ## Never checked by a person or on a device
-- Anything on a phone: touch feel, frame rate with the newer code, the Android back key (KB-015).
+- Anything on a phone: touch feel, frame rate with the newer code, the real Android Back gesture (adb Back works, KB-015).
 - Seen in the editor's wide view and a tall narrow view (not a true landscape phone shape): the start screen, all five mode labels, the pause and full-time panels. Not seen: touch controls (they need a touchscreen), the "Squad lv" line, the in-match HUD on a phone.
 - Whether the five modes and the squad growth feel right when played.
 - Real networking: nothing has run between two machines. Tokens travel unencrypted and there is no join approval or rate limit, so a server open to the internet is not safe.
