@@ -222,6 +222,42 @@ namespace FootballSim.Tests
         }
 
         [UnityTest]
+        public IEnumerator AGoalMakesTheScorerAndNeighboursCelebrateAndTheConcedingSideDroopOnlyWithAnimatedBodies()
+        {
+            if (!AnimatedPlayerVisual.PrefabAvailable || AnimatedClipInfo.Load() == null) Assert.Inconclusive("Assets/Resources/Animated is not built (Mixamo files missing)");
+            // simple bodies: nobody reacts, nobody is held
+            PlayerVisual.Mode = PlayerVisual.ModelMode.Off;
+            yield return LoadScene();
+            var match = Object.FindFirstObjectByType<FootballSim.Match.MatchManager>();
+            var ball = Object.FindFirstObjectByType<FootballSim.Ball.BallController>();
+            var scorerVisual = HomeOutfielder(); var scorer = scorerVisual.GetComponent<PlayerController>();
+            ball.LastToucher = scorer;
+            match.OnGoal(0);
+            Assert.AreEqual(0, GoalReactions.LastReactors.Count, "simple bodies do not react");
+            Assert.AreEqual(0f, scorer.HoldStill);
+
+            // animated bodies: scorer + 2 team-mates celebrate, 3 conceding players droop, all are held still, then released
+            yield return LoadScene();
+            PlayerVisual.SetMode(PlayerVisual.ModelMode.All);
+            yield return null; yield return null;
+            match = Object.FindFirstObjectByType<FootballSim.Match.MatchManager>();
+            ball = Object.FindFirstObjectByType<FootballSim.Ball.BallController>();
+            scorerVisual = HomeOutfielder(); scorer = scorerVisual.GetComponent<PlayerController>();
+            ball.LastToucher = scorer;
+            match.OnGoal(0);
+            int a = 0, b = 0, d = 0;
+            foreach (var r in GoalReactions.LastReactors) { if (r.EndsWith(":CelebrateA")) a++; else if (r.EndsWith(":CelebrateB")) b++; else if (r.EndsWith(":Defeated")) d++; }
+            Assert.AreEqual(1, a, "the scorer"); Assert.AreEqual(2, b, "two team-mates"); Assert.AreEqual(3, d, "three on the conceding side");
+            Assert.IsTrue(GoalReactions.LastReactors[0].StartsWith(scorer.name + ":"), "the scorer is first");
+            Assert.Greater(scorer.HoldStill, 2f);
+            Assert.AreEqual("CelebrateA", scorerVisual.Animated.LastActionState);
+            // held still for the pause, then free again and back in locomotion
+            yield return new WaitForSeconds(3.3f);
+            Assert.LessOrEqual(scorer.HoldStill, 0f);
+            Assert.IsTrue(scorerVisual.Animated.Animator.GetCurrentAnimatorStateInfo(0).IsName("Locomotion") || scorerVisual.Animated.Animator.IsInTransition(0), "blended back out of the celebration");
+        }
+
+        [UnityTest]
         public IEnumerator FirstTouchPlaysTheReceiveClipAndThePrimitiveBodyIsNotAffected()
         {
             if (!AnimatedPlayerVisual.PrefabAvailable || AnimatedClipInfo.Load() == null) Assert.Inconclusive("Assets/Resources/Animated is not built (Mixamo files missing)");

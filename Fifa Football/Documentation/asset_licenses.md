@@ -54,3 +54,6 @@ Same source, character and settings as above, git-ignored in `Assets/Art/Mixamo/
 
 ### Mixamo clips added for animation Phase 5 (2026-11-18)
 Same source, character and settings as above, git-ignored in `Assets/Art/Mixamo/`: `KeeperDive` (Goalkeeper Diving Save: "Goalkeeper Right Diving Save", 3.23 s), `KeeperCatch` (Goalkeeper Catch: "Catching Ball Medium Height", 1.27 s), `KeeperJumpCatch` (Goalkeeper Catch: "Jump Catching Ball High Height", 2.73 s).
+
+### Mixamo clips added for animation Phase 6 (2026-11-18)
+Same source, character and settings as above, git-ignored in `Assets/Art/Mixamo/`: `CelebrateA` (Victory, 8.53 s), `CelebrateB` (Victory, 4.50 s), `Defeated` (Defeated: "Showing Frustration After A Loss", 6.73 s). Which of the two "Victory" entries is which was not checked by name; they are different files.

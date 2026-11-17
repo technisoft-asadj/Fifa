@@ -76,7 +76,7 @@ namespace FootballSim.EditorTools
         }
 
         /// <summary>One-shot action clips: file name, which action it serves.</summary>
-        public static readonly string[] ActionClips = { "SoccerPass", "Shot", "StrikeJog", "Receive", "SlideTackle", "FallOver", "GetUp", "KeeperDive", "KeeperCatch", "KeeperJumpCatch" };
+        public static readonly string[] ActionClips = { "SoccerPass", "Shot", "StrikeJog", "Receive", "SlideTackle", "FallOver", "GetUp", "KeeperDive", "KeeperCatch", "KeeperJumpCatch", "CelebrateA", "CelebrateB", "Defeated" };
 
         /// <summary>
         /// When the ball is struck in a kick clip: the moment a toe moves fastest (the foot is at full swing as it meets the ball) and which

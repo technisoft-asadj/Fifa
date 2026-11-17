@@ -360,6 +360,7 @@ namespace FootballSim.Match
             resetTimer = 3f;
             KickoffTeam = 1 - scoringTeam; // the conceding team restarts
             GoalScored?.Invoke(scoringTeam);
+            GoalReactions.Run(toucher, scoringTeam);
         }
 
         void CheckOutOfBounds()

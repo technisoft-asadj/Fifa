@@ -228,6 +228,18 @@ namespace FootballSim.Players
             else PlayKick(true);
         }
 
+        /// <summary>
+        /// Plays a goal reaction (the animated body only) and returns how many seconds the clip lasts, or 0 when this player has no animated
+        /// body: the caller holds the player still for that long so the body is not carried away from its pose.
+        /// </summary>
+        public float PlayReaction(AnimatedPlayerVisual.Action reaction)
+        {
+            if (!animatedActive || animated == null) return 0f;
+            return animated.PlayAction(reaction, true) ? animated.LastActionLength : 0f;
+        }
+
+        public void EndReaction() { if (animatedActive && animated != null) animated.EndAction(); }
+
         /// <summary>The victim of a foul goes down and gets back up (animated body only).</summary>
         public void PlayFall()
         {

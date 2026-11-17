@@ -58,7 +58,7 @@ namespace FootballSim.Players
         /// <summary>The speed fed to the Animator, in metres per second (test hook; normally the player's own speed).</summary>
         public float SpeedOverride = -1f;
 
-        public enum Action { Pass, Shot, Receive, Tackle, Fall, Dive, Catch, JumpCatch }
+        public enum Action { Pass, Shot, Receive, Tackle, Fall, Dive, Catch, JumpCatch, CelebrateA, CelebrateB, Defeated }
 
         /// <summary>Seconds the clip is started before its contact moment, so the foot meets the ball right after the simulation kicked it.</summary>
         public const float ContactLead = 0.04f;
@@ -67,6 +67,8 @@ namespace FootballSim.Players
         public string LastActionState { get; private set; }
         public bool LastActionMirrored { get; private set; }
         public float LastActionContactTime { get; private set; }
+        /// <summary>Length in seconds of the clip last started by <see cref="PlayAction"/> (at its own speed 1).</summary>
+        public float LastActionLength { get; private set; }
 
         /// <summary>
         /// Plays a kick or a first touch. The simulation has already acted (the ball is struck this frame), so the clip starts just before its
@@ -80,6 +82,7 @@ namespace FootballSim.Players
             if (clipInfo == null) return false;
             bool moving = pc != null && pc.Velocity.magnitude > 2.5f;
             string state = action == Action.Receive ? "Receive" : action == Action.Tackle ? "SlideTackle" : action == Action.Fall ? "FallOver"
+                : action == Action.CelebrateA ? "CelebrateA" : action == Action.CelebrateB ? "CelebrateB" : action == Action.Defeated ? "Defeated"
                 : action == Action.Dive ? "KeeperDive" : action == Action.Catch ? "KeeperCatch" : action == Action.JumpCatch ? "KeeperJumpCatch"
                 : moving ? "StrikeJog" : action == Action.Shot ? "Shot" : "SoccerPass";
             var e = clipInfo.Find(state);
@@ -92,12 +95,13 @@ namespace FootballSim.Players
                 LastActionState = state; LastActionMirrored = !rightFoot; LastActionContactTime = e.contact;
                 return true;
             }
-            if (action == Action.Tackle || action == Action.Fall || action == Action.Catch || action == Action.JumpCatch)
+            if (action == Action.Tackle || action == Action.Fall || action == Action.Catch || action == Action.JumpCatch
+                || action == Action.CelebrateA || action == Action.CelebrateB || action == Action.Defeated)
             {
                 // whole-body moves play from their start: the slide is the player's own lunge, the fall follows a foul
                 animator.SetBool(MirrorId, false);
                 animator.CrossFadeInFixedTime(state, 0.08f, 0, 0f);
-                LastActionState = state; LastActionMirrored = false; LastActionContactTime = e.contact;
+                LastActionState = state; LastActionMirrored = false; LastActionContactTime = e.contact; LastActionLength = e.length;
                 return true;
             }
             animator.SetBool(MirrorId, rightFoot != e.rightFoot); // the clip's own foot, or its mirror image
@@ -105,6 +109,14 @@ namespace FootballSim.Players
             animator.CrossFadeInFixedTime(state, ContactLead, 0, offset);
             LastActionState = state; LastActionMirrored = rightFoot != e.rightFoot; LastActionContactTime = e.contact;
             return true;
+        }
+
+        /// <summary>Leaves a long clip early (a goal reaction cut at the end of the goal pause) with a short blend back into locomotion.</summary>
+        public void EndAction()
+        {
+            if (animator == null || !animator.isActiveAndEnabled) return;
+            var st = animator.GetCurrentAnimatorStateInfo(0);
+            if (!st.IsName("Locomotion")) animator.CrossFadeInFixedTime("Locomotion", 0.25f, 0, 0f);
         }
 
         static readonly int MirrorId = Animator.StringToHash("Mirror");

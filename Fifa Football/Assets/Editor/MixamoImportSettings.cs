@@ -13,7 +13,7 @@ namespace FootballSim.EditorTools
         const string Folder = "Assets/Art/Mixamo/";
         static readonly string[] CycleWords = { "idle", "walk", "jog", "run", "sprint", "strafe", "dribble", "backward" };
 
-        static readonly string[] OneShotWords = { "strike", "shot", "pass", "receive", "turn", "tackle", "header" };
+        static readonly string[] OneShotWords = { "strike", "shot", "pass", "receive", "turn", "tackle", "header", "celebrate", "defeated", "keeper" };
 
         /// <summary>True when a clip name describes a repeating motion (for example "Jog Forward" or "soccer_idle").</summary>
         public static bool IsCycle(string clipName)

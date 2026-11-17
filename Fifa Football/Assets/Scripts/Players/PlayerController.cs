@@ -36,6 +36,8 @@ namespace FootballSim.Players
         float shootCharge, touchCooldown, tackleCooldown, lungeTimer;
         Vector3 lungeDir;
         bool ballWasInRange;
+        /// <summary>Seconds this player is held still for a goal reaction (set only when the animated body plays one).</summary>
+        public float HoldStill { get; set; }
         IPlayerInput input;
 
         /// <summary>0..1; sprinting drains it. When it hits 0 the player jogs until it recovers to 25%.</summary>
@@ -167,6 +169,11 @@ namespace FootballSim.Players
                 dir = fwd * m.y + Vector3.Cross(Vector3.up, fwd) * m.x;
             }
             if (dir.sqrMagnitude > 1f) dir.Normalize();
+            if (HoldStill > 0f)
+            {
+                HoldStill -= Time.deltaTime; dir = Vector3.zero; lungeTimer = 0f;
+                if (HoldStill <= 0f && visual != null) visual.EndReaction(); // the reaction clip is longer than the goal pause: blend out of it
+            }
 
             if (lungeTimer > 0f)
             {
