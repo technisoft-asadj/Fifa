@@ -642,3 +642,8 @@ Limits: this is a season ladder, not a career: no transfers, squads, player grow
 ## Animation Phase 2 preparation (2026-11-17)
 - Owner chose a free Mixamo base character. Prepared: `Assets/Art/Mixamo/` (git-ignored), `Assets/Editor/MixamoImportSettings.cs` (files dropped there import as Humanoid with own avatar, no root motion, cycle clips looped), and `mixamo_download_guide.md` with the exact downloads and settings.
 - Not tested: the import rules have no file to run on yet (compiles with no errors; checked only once the first FBX is imported). Nothing downloaded by me; no assets added.
+
+## Animation Phase 2: assets in (2026-11-17)
+- The Mixamo files (character + 11 clips) are downloaded and imported; see `asset_licenses.md` for source, settings and the licence text I read. All 12 import as valid Humanoid avatars; cycle clips loop, turns do not. Clip lengths: Idle 8.33 s, Walk 1.03, Jog 0.83, Run 0.73, Sprint 0.50, strafes 0.67, JogBackward 0.80, Turn90 0.93, Turn180 1.30.
+- Mixamo also has a "Soccer Game Pack" (24 clips) and a "Dribble" clip; not downloaded yet (needed for Phase 3).
+- Next: build the speed-matched locomotion Animator on one player behind a switch, then measure foot sliding and fps.
