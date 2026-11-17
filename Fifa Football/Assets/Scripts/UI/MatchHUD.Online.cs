@@ -4,6 +4,7 @@ using UnityEngine.UI;
 using FootballSim.Core;
 using FootballSim.Net;
 using FootballSim.Players;
+using TMPro;
 
 namespace FootballSim.UI
 {
@@ -23,6 +24,8 @@ namespace FootballSim.UI
         GuestMode guest;
         NetSession.HostHandle hosting;
         float guestStartedAt;
+        GameObject pingPill; Image pingDot; TextMeshProUGUI pingText;
+        int lastGuestHome = -1, lastGuestAway = -1;
         string guestAddress = "";
 
         public bool OnlineGuestActive => guest != null && guest.Active;
@@ -57,7 +60,23 @@ namespace FootballSim.UI
             onlineBanner.color = new Color(1f, 0.9f, 0.4f);
             onlineBanner.gameObject.AddComponent<Outline>().effectDistance = new Vector2(2, -2);
             onlinePanel.SetActive(false);
+
+            // a small ping pill under the banner while playing as a guest
+            var pill = UIKit.Image(root, "PingPill", UITheme.Rounded, new Color(0f, 0.02f, 0.08f, 0.75f), true, false);
+            pill.rectTransform.anchorMin = pill.rectTransform.anchorMax = pill.rectTransform.pivot = UIKit.TopLeft;
+            pill.rectTransform.anchoredPosition = new Vector2(20f, -66f); pill.rectTransform.sizeDelta = new Vector2(250f, 54f);
+            pingDot = UIKit.Image(pill.transform, "Dot", UITheme.Circle, UITheme.Green, false, false);
+            pingDot.rectTransform.anchorMin = pingDot.rectTransform.anchorMax = new Vector2(0f, 0.5f); pingDot.rectTransform.pivot = new Vector2(0f, 0.5f);
+            pingDot.rectTransform.anchoredPosition = new Vector2(16f, 0f); pingDot.rectTransform.sizeDelta = new Vector2(22f, 22f);
+            pingText = UIKit.Text(pill.transform, "Text", "Ping ...", 28f, Color.white, TextAlignmentOptions.Center, true);
+            pingText.rectTransform.offsetMin = new Vector2(48f, 0f); pingText.rectTransform.offsetMax = new Vector2(-10f, 0f);
+            pingPill = pill.gameObject; pingPill.SetActive(false);
         }
+
+        /// <summary>Green below 60 ms, gold below 120, red above; the words say the same for anyone who cannot tell the colours apart.</summary>
+        public static string PingQuality(float rttMs) { return rttMs < 60f ? "good" : rttMs < 120f ? "fair" : "poor"; }
+        public string OnlinePingText => pingText != null ? pingText.text : "";
+        public bool OnlinePingShown => pingPill != null && pingPill.activeSelf;
 
         InputField BuildAddressField(Transform parent, Vector2 pos, Vector2 size)
         {
@@ -158,14 +177,40 @@ namespace FootballSim.UI
                 else if (client.Joined) onlineBanner.text = $"ONLINE GUEST  -  you play as player {client.PlayerIndex + 1}  -  Back to leave";
                 else if (Time.unscaledTime - guestStartedAt > 8f) onlineBanner.text = $"No answer from {guestAddress}. Same Wi-Fi? Host pressed HOST?  -  Back to leave";
                 else onlineBanner.text = $"ONLINE: connecting to {guestAddress}...";
-                scoreText.text = "ONLINE GUEST"; clockText.text = "";
+                bool receiving = client.Received > 0;
+                if (client.Joined && receiving && client.SecondsSinceSnapshot > 2.5f)
+                    onlineBanner.text = $"No data from the host for {client.SecondsSinceSnapshot:0} s  -  Back to leave";
+                if (client.HasMatchInfo)
+                {
+                    int h = client.LatestHomeScore, a = client.LatestAwayScore, mins = Mathf.FloorToInt(client.LatestGameMinute);
+                    scoreText.text = $"HOME  {h} - {a}  AWAY";
+                    clockText.text = $"{mins:00}:00";
+                    if (lastGuestHome >= 0 && (h != lastGuestHome || a != lastGuestAway)) Banner("GOAL!", 3f);
+                    lastGuestHome = h; lastGuestAway = a;
+                }
+                else { scoreText.text = "ONLINE GUEST"; clockText.text = ""; }
+                pingPill.SetActive(client.Joined);
+                bool stalled = client.Joined && receiving && client.SecondsSinceSnapshot > 2.5f;
+                if (stalled) { pingText.text = "No signal"; pingDot.color = UITheme.Red; }
+                else if (client.HasRtt)
+                {
+                    float rtt = client.RttMs;
+                    pingText.text = $"Ping {rtt:0} ms";
+                    pingDot.color = rtt < 60f ? UITheme.Green : rtt < 120f ? UITheme.Gold : UITheme.Red;
+                }
+                else { pingText.text = "Ping ..."; pingDot.color = UITheme.Slate; }
             }
             else if (OnlineHosting)
             {
+                lastGuestHome = lastGuestAway = -1; pingPill.SetActive(false);
                 int n = hosting.server.ClientCount;
                 onlineBanner.text = n == 0 ? $"HOSTING at {AddressOfHost()}  -  waiting for a friend" : $"HOSTING at {AddressOfHost()}  -  friend connected";
             }
-            else if (onlineBanner.text.Length > 0) onlineBanner.text = "";
+            else
+            {
+                lastGuestHome = lastGuestAway = -1; pingPill.SetActive(false);
+                if (onlineBanner.text.Length > 0) onlineBanner.text = "";
+            }
         }
     }
 }

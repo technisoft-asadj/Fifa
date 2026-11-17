@@ -134,6 +134,60 @@ namespace FootballSim.Tests
         }
 
         [UnityTest]
+        public IEnumerator ClientMeasuresPingFromInputAcksAndReadsTheHostScoreAndMinuteFromSnapshots()
+        {
+            yield return LoadScene();
+            var match = Object.FindFirstObjectByType<MatchManager>();
+            var ball = Object.FindFirstObjectByType<BallController>();
+            var teams = new System.Collections.Generic.List<TeamController>(Object.FindObjectsByType<TeamController>(FindObjectsSortMode.None));
+            teams.Sort((x, y) => x.teamId.CompareTo(y.teamId));
+            var players = new System.Collections.Generic.List<PlayerController>();
+            foreach (var t in teams) { t.ReleaseHumanControl(); players.AddRange(t.players); }
+
+            var server = new GameObject("NetServer").AddComponent<NetServer>();
+            server.Init(match, ball, players, 3);
+            server.OfferRemoteSlots(5);
+            var client = new GameObject("NetClient").AddComponent<NetClient>();
+            client.Connect(server.LocalEndPoint);
+            client.Join(); // the real handshake: only a joined client is sent acks
+            Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>().BeginMatch();
+            Assert.IsFalse(client.HasRtt); Assert.IsFalse(client.HasMatchInfo);
+            Assert.IsTrue(float.IsPositiveInfinity(client.SecondsSinceSnapshot), "nothing received yet");
+
+            var idle = new FootballSim.Inputs.InputFrame();
+            Time.captureFramerate = 60;
+            for (int i = 0; i < 120; i++) { client.SendInput(idle); yield return null; }
+            Time.captureFramerate = 0;
+
+            Assert.IsTrue(client.Joined, "the host seated us");
+            Assert.IsTrue(client.HasRtt, "an ack of one of our inputs came back");
+            Assert.That(client.RttMs, Is.InRange(0f, 500f), "loopback ping is small; got " + client.RttMs);
+            Assert.IsTrue(client.HasMatchInfo, "snapshots carry the score and clock");
+            Assert.AreEqual(match.HomeScore, client.LatestHomeScore);
+            Assert.AreEqual(match.AwayScore, client.LatestAwayScore);
+            Assert.AreEqual(match.GameMinute, client.LatestGameMinute, 1f, "the game minute is the host's");
+            Assert.Less(client.SecondsSinceSnapshot, 1f, "snapshots are still arriving");
+        }
+
+        [UnityTest]
+        public IEnumerator PingPillIsHiddenUnlessPlayingAsAGuestAndQualityWordsMatchTheThresholds()
+        {
+            yield return LoadScene();
+            var hud = Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>();
+            yield return null; yield return null;
+            Assert.IsFalse(hud.OnlinePingShown, "no ping pill offline");
+            Assert.AreEqual("good", FootballSim.UI.MatchHUD.PingQuality(20f));
+            Assert.AreEqual("fair", FootballSim.UI.MatchHUD.PingQuality(60f));
+            Assert.AreEqual("fair", FootballSim.UI.MatchHUD.PingQuality(119f));
+            Assert.AreEqual("poor", FootballSim.UI.MatchHUD.PingQuality(120f));
+            hud.JoinOnline("127.0.0.1:9"); // nobody answers: joined never becomes true, so there is nothing to show yet
+            yield return null; yield return null;
+            Assert.IsFalse(hud.OnlinePingShown, "no ping pill until the host has answered");
+            hud.TogglePause();
+            Assert.IsFalse(hud.OnlinePingShown);
+        }
+
+        [UnityTest]
         public IEnumerator InputWithTheWrongTokenOrAReplayedSequenceChangesNothing()
         {
             yield return LoadScene();

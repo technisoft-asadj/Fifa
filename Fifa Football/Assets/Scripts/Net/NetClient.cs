@@ -30,6 +30,24 @@ namespace FootballSim.Net
         public ushort AckedSequence { get; private set; }
         public uint AckedTick { get; private set; }
 
+        // ---- ping: how long an input takes to be acknowledged (send time of each sequence number is remembered) ----
+        readonly double[] sentAt = new double[256];
+        readonly ushort[] sentSeq = new ushort[256];
+        readonly bool[] sentOpen = new bool[256];
+        /// <summary>Smoothed round-trip time in milliseconds, measured from an input to the server's ack of it. Includes up to one server tick.</summary>
+        public float RttMs { get; private set; }
+        public bool HasRtt { get; private set; }
+
+        /// <summary>The score and game minute in the newest snapshot (the host's match), so a guest can show them.</summary>
+        public bool HasMatchInfo { get; private set; }
+        public int LatestHomeScore { get; private set; }
+        public int LatestAwayScore { get; private set; }
+        /// <summary>The match clock in game minutes, as the host shows it.</summary>
+        public float LatestGameMinute { get; private set; }
+        double lastSnapshotAt;
+        /// <summary>Seconds since a snapshot last arrived; infinity before the first one.</summary>
+        public float SecondsSinceSnapshot => Received == 0 ? float.PositiveInfinity : (float)(Time.unscaledTimeAsDouble - lastSnapshotAt);
+
         /// <summary>Asks the server for a player slot; repeats once a second until it answers.</summary>
         public void Join() { wantsJoin = true; nextJoin = 0f; }
 
@@ -62,6 +80,7 @@ namespace FootballSim.Net
             nextSequence.TryGetValue(playerIndex, out ushort seq);
             seq++;
             nextSequence[playerIndex] = seq;
+            sentSeq[seq & 255] = seq; sentAt[seq & 255] = Time.unscaledTimeAsDouble; sentOpen[seq & 255] = true;
             NetCodec.WriteInputPacket(inputPacket, playerIndex, token, seq, frame);
             endpoint.Send(inputPacket, inputPacket.Length, server);
         }
@@ -107,11 +126,25 @@ namespace FootballSim.Net
             {
                 // ignore a late, reordered ack that would move the confirmed point backwards
                 if (!HasAck || NetCodec.IsNewer(ackSeq, AckedSequence)) { AckedSequence = ackSeq; AckedTick = ackTick; HasAck = true; }
+                int slot = ackSeq & 255;
+                if (sentOpen[slot] && sentSeq[slot] == ackSeq)
+                {
+                    sentOpen[slot] = false; // one sample per input
+                    float sample = (float)((Time.unscaledTimeAsDouble - sentAt[slot]) * 1000.0);
+                    RttMs = HasRtt ? RttMs + (sample - RttMs) * 0.2f : sample;
+                    HasRtt = true;
+                }
                 return;
             }
             if (n != NetCodec.SnapshotBytes) return; // not a snapshot
             NetCodec.Read(data, 0, incoming);
-            if (Buffer.Add(incoming)) { Received++; Delay.OnArrival(Time.unscaledTimeAsDouble, incoming.tick); } else Dropped++;
+            if (Buffer.Add(incoming))
+            {
+                Received++; Delay.OnArrival(Time.unscaledTimeAsDouble, incoming.tick);
+                lastSnapshotAt = Time.unscaledTimeAsDouble;
+                HasMatchInfo = true; LatestHomeScore = incoming.homeScore; LatestAwayScore = incoming.awayScore; LatestGameMinute = incoming.clockTenths / 10f;
+            }
+            else Dropped++;
         }
 
         void OnDestroy()

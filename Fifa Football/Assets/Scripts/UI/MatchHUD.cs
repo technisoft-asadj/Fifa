@@ -102,7 +102,12 @@ namespace FootballSim.UI
             if (!escape && Application.platform == RuntimePlatform.Android) escape = Input.GetKeyDown(KeyCode.Escape);
 #endif
             if (escape && !NavigateBack()) TogglePause();
-            if (match == null || OnlineGuestActive) return; // a guest's scoreboard is not driven by the server yet: keep the online label instead
+            if (bannerTimer > 0f)
+            {
+                bannerTimer -= Time.unscaledDeltaTime;
+                if (bannerTimer <= 0f) bannerText.text = "";
+            }
+            if (match == null || OnlineGuestActive) return; // a guest's scoreboard is driven by the host's snapshots (see UpdateOnlineLabels)
             scoreText.text = $"HOME  {match.HomeScore}  -  {match.AwayScore}  AWAY";
             clockText.text = $"{Mathf.FloorToInt(match.GameMinute):00}:00";
             var me = homeTeam != null ? homeTeam.Controlled : null;
@@ -110,11 +115,6 @@ namespace FootballSim.UI
             {
                 staminaFill.anchorMax = new Vector2(Mathf.Clamp01(me.Stamina), 1f);
                 staminaImage.color = me.Exhausted ? new Color(0.9f, 0.25f, 0.2f) : Color.Lerp(new Color(0.95f, 0.75f, 0.2f), new Color(0.25f, 0.85f, 0.35f), me.Stamina);
-            }
-            if (bannerTimer > 0f)
-            {
-                bannerTimer -= Time.unscaledDeltaTime;
-                if (bannerTimer <= 0f) bannerText.text = "";
             }
         }
 
