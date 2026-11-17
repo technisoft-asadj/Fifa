@@ -13,11 +13,14 @@ namespace FootballSim.EditorTools
         const string Folder = "Assets/Art/Mixamo/";
         static readonly string[] CycleWords = { "idle", "walk", "jog", "run", "sprint", "strafe", "dribble", "backward" };
 
+        static readonly string[] OneShotWords = { "strike", "shot", "pass", "receive", "turn", "tackle", "header" };
+
         /// <summary>True when a clip name describes a repeating motion (for example "Jog Forward" or "soccer_idle").</summary>
         public static bool IsCycle(string clipName)
         {
             if (string.IsNullOrEmpty(clipName)) return false;
             string n = clipName.ToLowerInvariant();
+            foreach (var w in OneShotWords) if (n.Contains(w)) return false; // "Strike Jog" is a kick, not a jog cycle
             foreach (var w in CycleWords) if (n.Contains(w)) return true;
             return false;
         }

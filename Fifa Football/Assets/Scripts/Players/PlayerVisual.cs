@@ -195,7 +195,17 @@ namespace FootballSim.Players
             return sh;
         }
 
-        public void PlayKick(bool rightFoot = true) { kickT = 0f; kickRight = rightFoot; }
+        public void PlayKick(bool rightFoot = true, bool shot = false)
+        {
+            kickT = 0f; kickRight = rightFoot;
+            if (animatedActive && animated != null) animated.PlayAction(shot ? AnimatedPlayerVisual.Action.Shot : AnimatedPlayerVisual.Action.Pass, rightFoot);
+        }
+
+        /// <summary>A fast ball arriving at a player who is about to take it down: the animated body plays its first-touch clip.</summary>
+        public void PlayFirstTouch(bool rightFoot = true)
+        {
+            if (animatedActive && animated != null) animated.PlayAction(AnimatedPlayerVisual.Action.Receive, rightFoot);
+        }
         public void PlayTackle() { tackleT = 0f; kickRight = true; }
 
         void Update()

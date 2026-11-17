@@ -35,6 +35,7 @@ namespace FootballSim.Players
         Vector3 planarVelocity;
         float shootCharge, touchCooldown, tackleCooldown, lungeTimer;
         Vector3 lungeDir;
+        bool ballWasInRange;
         IPlayerInput input;
 
         /// <summary>0..1; sprinting drains it. When it hits 0 the player jogs until it recovers to 25%.</summary>
@@ -207,6 +208,11 @@ namespace FootballSim.Players
             bool inRange = BallInRange(out Vector3 toBall);
             bool inFront = Vector3.Dot(transform.forward, toBall.normalized) > 0.2f;
 
+            // a pass arriving at a (nearly) standing player: the animated body takes it down with its first-touch clip (visual only)
+            if (inRange && !ballWasInRange && visual != null && !isGoalkeeper && planarVelocity.magnitude < 2.5f && ball.LastToucher != this && ball.Velocity.magnitude > 5f)
+                visual.PlayFirstTouch(toBall.x * transform.right.x + toBall.z * transform.right.z > 0f);
+            ballWasInRange = inRange;
+
             // Dribble touch (not for goalkeepers: they catch/clear instead)
             if (!isGoalkeeper && inRange && inFront && planarVelocity.magnitude > 0.5f && touchCooldown <= 0f && ball.IsGrounded)
             {
@@ -221,7 +227,7 @@ namespace FootballSim.Players
             if (input.ShootReleased)
             {
                 float p = input.ActionPower > 0f ? input.ActionPower : Mathf.Max(0.25f, shootCharge);
-                if (inRange && !ball.Body.isKinematic) { Strike(p, data.MaxShotSpeed, data.ShotInaccuracyDeg, 0.18f); Struck?.Invoke(this, true, lastStrikeDir); }
+                if (inRange && !ball.Body.isKinematic) { Strike(p, data.MaxShotSpeed, data.ShotInaccuracyDeg, 0.18f, true); Struck?.Invoke(this, true, lastStrikeDir); }
                 shootCharge = 0f;
             }
             else if (input.PassPressed && inRange && !ball.Body.isKinematic)
@@ -236,7 +242,7 @@ namespace FootballSim.Players
         public static event System.Action<PlayerController, bool, Vector3> Struck;
         Vector3 lastStrikeDir;
 
-        void Strike(float power, float maxSpeed, float inaccuracyDeg, float loft)
+        void Strike(float power, float maxSpeed, float inaccuracyDeg, float loft, bool shot = false)
         {
             Vector3 aim = input.AimWorld;
             aim.y = 0f;
@@ -247,7 +253,7 @@ namespace FootballSim.Players
             Vector3 spin = Vector3.Cross(Vector3.up, aim) * SimRandom.Range(-4f, 4f) * power;
             lastStrikeDir = dir;
             KickBall(dir, maxSpeed * Mathf.Clamp01(power), spin);
-            if (visual != null) visual.PlayKick(Random.value > 0.25f);
+            if (visual != null) visual.PlayKick(Random.value > 0.25f, shot);
             touchCooldown = 0.4f;
         }
 

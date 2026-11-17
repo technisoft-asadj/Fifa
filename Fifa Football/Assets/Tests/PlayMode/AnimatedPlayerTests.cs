@@ -135,6 +135,70 @@ namespace FootballSim.Tests
             Debug.Log("[anim] foot slide\n" + report);
         }
 
+        /// <summary>Speed of a toe (model space, m/s) over one small step of the hand-driven Animator.</summary>
+        static float ToeSpeed(Animator a, Transform toe, float dt)
+        {
+            var m = a.transform;
+            var p0 = m.InverseTransformPoint(toe.position);
+            a.Update(dt);
+            return (m.InverseTransformPoint(toe.position) - p0).magnitude / dt;
+        }
+
+        [UnityTest]
+        public IEnumerator AKickPutsTheKickingFootAtFullSwingWhenTheBallIsStruckAndTheLeftFootIsTheMirror()
+        {
+            if (!AnimatedPlayerVisual.PrefabAvailable || AnimatedClipInfo.Load() == null) Assert.Inconclusive("Assets/Resources/Animated is not built (Mixamo files missing)");
+            PlayerVisual.Mode = PlayerVisual.ModelMode.Off;
+            yield return LoadScene();
+            PlayerVisual.SetMode(PlayerVisual.ModelMode.All);
+            yield return null; yield return null;
+            Time.timeScale = 0f; // the simulation stands still; the Animator is stepped by hand
+            var pv = HomeOutfielder();
+            var av = pv.Animated; var animator = av.Animator;
+            animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+            var toeR = animator.GetBoneTransform(HumanBodyBones.RightToes); var toeL = animator.GetBoneTransform(HumanBodyBones.LeftToes);
+            var info = AnimatedClipInfo.Load();
+            var report = new System.Text.StringBuilder();
+
+            foreach (bool shot in new[] { false, true })
+                foreach (bool right in new[] { true, false })
+                {
+                    animator.Rebind(); animator.Update(0f);
+                    animator.SetFloat("Speed", 0f);
+                    for (int i = 0; i < 30; i++) animator.Update(1f / 60f);       // settle into idle
+                    pv.PlayKick(right, shot);
+                    Assert.AreEqual(shot ? "Shot" : "SoccerPass", av.LastActionState, "a standing player gets the standing clip");
+                    Assert.AreEqual(right != info.Find(av.LastActionState).rightFoot, av.LastActionMirrored);
+                    animator.Update(AnimatedPlayerVisual.ContactLead);            // the contact moment
+                    float kicking = ToeSpeed(animator, right ? toeR : toeL, 1f / 120f);
+                    animator.Rebind(); animator.Update(0f);
+                    report.AppendLine($"{(shot ? "shot" : "pass")} {(right ? "right" : "left")} foot: toe speed at contact {kicking:0.0} m/s (clip {av.LastActionState}, mirrored {av.LastActionMirrored})");
+                    Assert.Greater(kicking, 4f, "the kicking foot is at full swing at the contact moment");
+                }
+
+            // after the clip it is back in locomotion
+            animator.Rebind(); animator.Update(0f);
+            pv.PlayKick(true, false);
+            for (int i = 0; i < 180; i++) animator.Update(1f / 60f);
+            Assert.IsTrue(animator.GetCurrentAnimatorStateInfo(0).IsName("Locomotion") && !animator.IsInTransition(0), "back to locomotion after the kick");
+            Debug.Log("[anim] kicks\n" + report);
+        }
+
+        [UnityTest]
+        public IEnumerator FirstTouchPlaysTheReceiveClipAndThePrimitiveBodyIsNotAffected()
+        {
+            if (!AnimatedPlayerVisual.PrefabAvailable || AnimatedClipInfo.Load() == null) Assert.Inconclusive("Assets/Resources/Animated is not built (Mixamo files missing)");
+            PlayerVisual.Mode = PlayerVisual.ModelMode.Off;
+            yield return LoadScene();
+            var pv = HomeOutfielder();
+            pv.PlayFirstTouch(true); pv.PlayKick(true, true);   // primitive body: no animated body, so nothing happens and nothing throws
+            Assert.IsFalse(pv.AnimatedActive);
+            PlayerVisual.SetMode(PlayerVisual.ModelMode.All);
+            yield return null;
+            pv.PlayFirstTouch(false);
+            Assert.AreEqual("Receive", pv.Animated.LastActionState);
+        }
+
         [UnityTest]
         public IEnumerator RampingTheSpeedFromStandingToSprintHasNoPops()
         {

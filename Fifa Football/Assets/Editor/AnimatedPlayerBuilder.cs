@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 using UnityEditor;
 using UnityEditor.Animations;
@@ -74,6 +75,41 @@ namespace FootballSim.EditorTools
             return Mathf.Max(0f, speeds[speeds.Count / 2]);
         }
 
+        /// <summary>One-shot action clips: file name, which action it serves.</summary>
+        public static readonly string[] ActionClips = { "SoccerPass", "Shot", "StrikeJog", "Receive" };
+
+        /// <summary>
+        /// When the ball is struck in a kick clip: the moment a toe moves fastest (the foot is at full swing as it meets the ball) and which
+        /// foot it is. Sampled at 120 Hz in the model's own space, so body travel in the clip does not matter.
+        /// </summary>
+        public static void MeasureContact(GameObject model, AnimationClip clip, out float time, out bool rightFoot, out float peakSpeed)
+        {
+            time = 0f; rightFoot = true; peakSpeed = 0f;
+            var animator = model.GetComponent<Animator>();
+            var toes = new[] { animator.GetBoneTransform(HumanBodyBones.LeftToes), animator.GetBoneTransform(HumanBodyBones.RightToes) };
+            if (toes[0] == null || toes[1] == null) return;
+            int n = Mathf.Max(8, Mathf.RoundToInt(clip.length * 120f));
+            float dt = clip.length / n;
+            var pos = new Vector3[2][]; pos[0] = new Vector3[n + 1]; pos[1] = new Vector3[n + 1];
+            AnimationMode.StartAnimationMode();
+            try
+            {
+                for (int i = 0; i <= n; i++)
+                {
+                    AnimationMode.SampleAnimationClip(model, clip, i * dt);
+                    for (int f = 0; f < 2; f++) pos[f][i] = model.transform.InverseTransformPoint(toes[f].position);
+                }
+            }
+            finally { AnimationMode.StopAnimationMode(); }
+            for (int f = 0; f < 2; f++)
+                for (int i = 1; i < n; i++)
+                {
+                    float v = (pos[f][i + 1] - pos[f][i - 1]).magnitude / (2f * dt);
+                    if (v > 40f) continue; // a sampling glitch, not a foot (no foot moves at 144 km/h)
+                    if (v > peakSpeed) { peakSpeed = v; time = i * dt; rightFoot = f == 1; }
+                }
+        }
+
         static Material MakeMaterial(string name, Color c)
         {
             string path = Out + name + ".mat";
@@ -110,6 +146,17 @@ namespace FootballSim.EditorTools
                 thresholds[i] = i == 0 ? 0f : MeasureNaturalSpeed(temp, clip);
                 report.AppendLine($"{CycleClips[i]}: length {clip.length:0.00} s, natural ground speed {thresholds[i]:0.00} m/s ({LastDetail})");
             }
+            var info = new FootballSim.Players.AnimatedClipInfo();
+            foreach (var an in ActionClips)
+            {
+                var clip = LoadClip(an);
+                if (clip == null) { report.AppendLine(an + ": clip missing"); continue; }
+                MeasureContact(temp, clip, out float ct, out bool right, out float peak);
+                if (an == "Receive") { ct = clip.length * 0.3f; right = true; } // a chest take-down has no kicking foot: the ball arrives about a third of the way in (judged by eye, not measured)
+                info.clips.Add(new FootballSim.Players.AnimatedClipInfo.Entry { name = an, length = clip.length, contact = ct, rightFoot = right });
+                report.AppendLine($"{an}: length {clip.length:0.00} s, contact at {ct:0.00} s with the {(right ? "right" : "left")} foot (toe peak {peak:0.0} m/s)");
+            }
+            File.WriteAllText(Out + "ClipInfo.json", JsonUtility.ToJson(info, true));
             Object.DestroyImmediate(temp);
 
             // controller with one 1D blend tree on "Speed"; the thresholds are the measured speeds, so each clip plays at its own pace
@@ -135,6 +182,22 @@ namespace FootballSim.EditorTools
             }
             children.Sort((a, b) => a.threshold.CompareTo(b.threshold));
             tree.children = children.ToArray();
+            // action states (kicks, first touch): entered by code with a cross-fade at the moment the simulation acts, mirrored for the other
+            // foot, and left by exit time back into locomotion
+            ctrl.AddParameter("Mirror", AnimatorControllerParameterType.Bool);
+            var sm = ctrl.layers[0].stateMachine;
+            AnimatorState loco = null;
+            foreach (var cs in sm.states) if (cs.state.name == "Locomotion") loco = cs.state;
+            sm.defaultState = loco;
+            foreach (var an in ActionClips)
+            {
+                var clip = LoadClip(an);
+                if (clip == null) continue;
+                var st = sm.AddState(an);
+                st.motion = clip; st.mirrorParameterActive = true; st.mirrorParameter = "Mirror"; st.writeDefaultValues = true;
+                var back = st.AddTransition(loco);
+                back.hasExitTime = true; back.exitTime = Mathf.Clamp01(1f - 0.18f / clip.length); back.hasFixedDuration = true; back.duration = 0.18f;
+            }
             EditorUtility.SetDirty(ctrl);
 
             // prefab: the character, an Animator on the controller (no root motion; the game moves the player), URP materials
