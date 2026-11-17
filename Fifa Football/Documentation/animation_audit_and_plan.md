@@ -145,3 +145,5 @@ Licence notes gathered so far (secondary sources, **to be re-checked at the prim
 3. Import the base character as Humanoid, build the Animator and the speed-matched locomotion tree, add `PlayerAnimationController` behind a switch on one player, test no-slide numerically (compare measured foot speed to body speed in a PlayMode test where possible) and visually.
 
 **Baseline recorded (2026-11-17):** 22 primitive players, Infinix X6881, Mobile quality, cap 60: 59.6 fps average, 1% low about 59, worst 17 ms (see progress.md). Phase 2 compares against this.
+
+**Decisions (2026-11-17):** UI first (done); base character = a free Mixamo one (suggested first prototype: Y Bot); raw files git-ignored until the owner says the repository is private; animation rigging package deferred to Phase 3; architecture assumed as written unless the owner objects. Phase 2 is now waiting only for the downloads listed in `mixamo_download_guide.md`.

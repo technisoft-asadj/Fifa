@@ -43,3 +43,7 @@ Thumbs.db
 /Assets/Resources/PerformanceTestRun*.json
 /Assets/Resources/PerformanceTestRun*.json.meta
 /.utmp/
+
+# Adobe Mixamo downloads: licence forbids redistributing the raw files, so they stay out of git (the owner can lift this if the repository is private)
+/Assets/Art/Mixamo/
+/Assets/Art/Mixamo.meta

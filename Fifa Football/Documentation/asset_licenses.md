@@ -39,3 +39,5 @@ Everything in animation_spec.md section 2 is currently missing as real animation
 | Date | Event |
 |---|---|
 | 2026-11-17 | File created. Candidate sources researched via web search only. No downloads. TMP essentials imported from the built-in Unity package. |
+
+- Decision 2026-11-17: the owner chose a free Mixamo character as the base. Raw Mixamo files are kept out of git (`/Assets/Art/Mixamo/` in `.gitignore`) until the owner confirms the repository is private. Download steps: `mixamo_download_guide.md`. The licence text is still to be read at the primary source (helpx.adobe.com Mixamo FAQ) once the files are imported.

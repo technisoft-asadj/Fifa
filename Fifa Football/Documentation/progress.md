@@ -638,3 +638,7 @@ Limits: this is a season ladder, not a career: no transfers, squads, player grow
 - Baseline, Infinix X6881 (the only device), release-style Android build of commit 038ac5b, quality "Mobile", frame cap 60, a Single match in progress with 22 primitive-body players (the current visuals, no Animator): average 59.6 fps, 1% low 58.8-59.6 fps, worst frame 16.8-17.0 ms, over 30 s (6 log lines). So the current game sits at the 60 fps cap with no visible spikes.
 - What this does NOT say: how much headroom there is below the cap (the cap hides it), whether it holds through long play, thermal throttling after minutes, or other phones. Phase 2 must repeat this exact measurement with the Animator-driven characters; the budget to beat is the numbers above.
 - Tests: EditMode 169/169 (new FrameStats tests), PlayMode 92/92 (+5 gated probes Inconclusive; new test: readout off by default, toggles, remembered).
+
+## Animation Phase 2 preparation (2026-11-17)
+- Owner chose a free Mixamo base character. Prepared: `Assets/Art/Mixamo/` (git-ignored), `Assets/Editor/MixamoImportSettings.cs` (files dropped there import as Humanoid with own avatar, no root motion, cycle clips looped), and `mixamo_download_guide.md` with the exact downloads and settings.
+- Not tested: the import rules have no file to run on yet (compiles with no errors; checked only once the first FBX is imported). Nothing downloaded by me; no assets added.
