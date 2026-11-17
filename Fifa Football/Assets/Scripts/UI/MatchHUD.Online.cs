@@ -34,7 +34,7 @@ namespace FootballSim.UI
 
         void BuildOnlinePanel(RectTransform root, Color btnCol)
         {
-            onlinePanel = Rect("OnlinePanel", root, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(900, 900), new Color(0.05f, 0.08f, 0.12f, 1f)).gameObject;
+            onlinePanel = MatchHUD.Glassify(Rect("OnlinePanel", root, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(900, 900), new Color(0.05f, 0.08f, 0.12f, 1f)).gameObject);
             var op = onlinePanel.transform;
             var title = Label("OnlineTitle", op, 64, TextAnchor.MiddleCenter, new Vector2(0, 340), new Vector2(860, 90)); title.text = "PLAY ONLINE"; title.fontStyle = FontStyle.Bold;
             var note = Label("OnlineNote", op, 26, TextAnchor.MiddleCenter, new Vector2(0, 270), new Vector2(860, 40));

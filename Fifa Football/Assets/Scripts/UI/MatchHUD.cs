@@ -84,7 +84,7 @@ namespace FootballSim.UI
             bool showHint = !touchDevice && !MainMenuOpen;
             if (hintText.gameObject.activeSelf != showHint) hintText.gameObject.SetActive(showHint);
             // the match scoreboard and stamina bar do not belong behind the main menu
-            bool showHud = !MainMenuOpen;
+            bool showHud = !MainMenuOpen && !startPanel.activeSelf;
             if (scoreText.transform.parent.gameObject.activeSelf != showHud) { scoreText.transform.parent.gameObject.SetActive(showHud); staminaFill.parent.gameObject.SetActive(showHud); }
             ExpireResetLabel();
             UpdateOnlineLabels();
@@ -425,7 +425,7 @@ namespace FootballSim.UI
             hint.color = new Color(1, 1, 1, 0.75f);
 
             // Start panel
-            startPanel = Rect("StartPanel", root, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(900, 900), Panel).gameObject;
+            startPanel = Glassify(Rect("StartPanel", root, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(900, 900), Panel).gameObject);
             var st = startPanel.transform;
             var title = Label("Title", st, 72, TextAnchor.MiddleCenter, new Vector2(0, 320), new Vector2(860, 100)); title.text = "FOOTBALL SIMULATOR"; title.fontStyle = FontStyle.Bold;
             var sub = Label("Sub", st, 30, TextAnchor.MiddleCenter, new Vector2(0, 245), new Vector2(860, 50)); sub.text = "Kick-Off  -  Home vs Away";
@@ -472,7 +472,7 @@ namespace FootballSim.UI
             BuildOnlinePanel(root, btnCol);
 
             // Full-time panel
-            fullTimePanel = Rect("FullTimePanel", root, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(900, 700), Panel).gameObject;
+            fullTimePanel = Glassify(Rect("FullTimePanel", root, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(900, 700), Panel).gameObject);
             var ft = fullTimePanel.transform;
             var ftTitle = Label("FT", ft, 72, TextAnchor.MiddleCenter, new Vector2(0, 270), new Vector2(860, 100)); ftTitle.text = "FULL TIME"; ftTitle.fontStyle = FontStyle.Bold;
             // Vertical budget (panel is 700 high): title, result, goal lines (<=5 lines), five stat lines, button. Nothing overlaps.
@@ -491,7 +491,7 @@ namespace FootballSim.UI
             var pb = Button(root, "II", new Vector2(-150, -70), new Vector2(100, 90), TogglePause, new Color(0.05f, 0.08f, 0.12f, 0.7f));
             pb.anchorMin = pb.anchorMax = new Vector2(1f, 1f);
             pauseButton = pb.gameObject;
-            pausePanel = Rect("PausePanel", root, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 40), new Vector2(820, 600), Panel).gameObject;
+            pausePanel = Glassify(Rect("PausePanel", root, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 40), new Vector2(820, 600), Panel).gameObject);
             var pp = pausePanel.transform;
             var pTitle = Label("Paused", pp, 64, TextAnchor.MiddleCenter, new Vector2(0, 230), new Vector2(780, 90)); pTitle.text = "PAUSED"; pTitle.fontStyle = FontStyle.Bold;
             touchScaleLabel = Label("TouchScale", pp, 32, TextAnchor.MiddleCenter, new Vector2(0, 130), new Vector2(520, 50));
@@ -583,6 +583,10 @@ namespace FootballSim.UI
             rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
             rt.anchoredPosition = pos; rt.sizeDelta = size;
             var img = go.GetComponent<Image>(); img.color = color;
+            img.sprite = UITheme.Rounded; img.type = Image.Type.Sliced;
+            bool primary = color == Accent;
+            if (primary) img.color = UITheme.Gold;
+            else if (Mathf.Approximately(color.r, 0.2f) && Mathf.Approximately(color.g, 0.3f)) img.color = UITheme.BlueDark; // the standard setup button
             var btn = go.GetComponent<UnityEngine.UI.Button>();
             btn.targetGraphic = img;
             var colors = btn.colors; colors.highlightedColor = new Color(1.2f, 1.2f, 1.2f); colors.pressedColor = new Color(0.8f, 0.8f, 0.8f);
@@ -590,7 +594,18 @@ namespace FootballSim.UI
             btn.onClick.AddListener(onClick);
             var t = Label("Text", go.transform, 40, TextAnchor.MiddleCenter, Vector2.zero, size);
             t.text = label; t.fontStyle = FontStyle.Bold;
+            if (primary) t.color = UITheme.GoldText;
             return rt;
+        }
+
+        /// <summary>Gives a big old-style panel the glass look: rounded dark-navy card with an electric-blue rim.</summary>
+        static GameObject Glassify(GameObject panel)
+        {
+            var img = panel.GetComponent<Image>();
+            img.sprite = UITheme.Rounded; img.type = Image.Type.Sliced; img.color = UITheme.Glass;
+            var rim = panel.AddComponent<Outline>();
+            rim.effectColor = new Color(UITheme.Blue.r, UITheme.Blue.g, UITheme.Blue.b, 0.9f); rim.effectDistance = new Vector2(3f, -3f);
+            return panel;
         }
     }
 }
