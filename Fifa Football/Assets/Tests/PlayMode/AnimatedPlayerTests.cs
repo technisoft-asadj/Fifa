@@ -17,7 +17,21 @@ namespace FootballSim.Tests
         PlayerVisual.ModelMode savedMode;
 
         [SetUp] public void Save() { savedMode = PlayerVisual.Mode; }
-        [TearDown] public void Restore() { PlayerVisual.Mode = savedMode; Time.timeScale = 1f; } // some tests freeze the simulation to step the Animator by hand
+        // some tests freeze the simulation to step the Animator by hand; and the match scene must not stay loaded for the next test class
+        // (DroppedBallBouncesAndComesToRest builds its own pitch and bounced differently on top of the loaded one)
+        [UnityTearDown]
+        public IEnumerator Restore()
+        {
+            PlayerVisual.Mode = savedMode; Time.timeScale = 1f;
+            var keep = SceneManager.CreateScene("AnimatedPlayerTestsEmpty");
+            SceneManager.SetActiveScene(keep);
+            for (int i = SceneManager.sceneCount - 1; i >= 0; i--)
+            {
+                var s = SceneManager.GetSceneAt(i);
+                if (s != keep && s.isLoaded && s.name == "FootballPrototype") yield return SceneManager.UnloadSceneAsync(s);
+            }
+            yield return SceneManager.UnloadSceneAsync(keep);
+        }
 
         IEnumerator LoadScene()
         {
