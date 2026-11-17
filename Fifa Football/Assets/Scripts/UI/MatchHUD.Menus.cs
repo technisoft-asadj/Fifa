@@ -165,7 +165,7 @@ namespace FootballSim.UI
             var x = new Vector2(500f, 0f);
             UIKit.MenuButton(menu, "Play", UIIcon.Ball, UITheme.Gold, UIKit.Center, x + new Vector2(0f, 300f), new Vector2(700f, 124f), MenuPlay, true, 56f);
             UIKit.MenuButton(menu, "Tournaments", UIIcon.Trophy, UITheme.Blue, UIKit.Center, x + new Vector2(0f, 150f), new Vector2(700f, 124f), MenuTournaments, false, 52f);
-            UIKit.MenuButton(menu, "Online", UIIcon.People, UITheme.Purple, UIKit.Center, x + new Vector2(0f, 0f), new Vector2(700f, 124f), MenuOnline, false, 52f);
+            UIKit.MenuButton(menu, "Online", UIIcon.Globe, UITheme.Purple, UIKit.Center, x + new Vector2(0f, 0f), new Vector2(700f, 124f), MenuOnline, false, 52f);
             UIKit.MenuButton(menu, "Teams", UIIcon.Shirt, UITheme.Green, UIKit.Center, x + new Vector2(0f, -150f), new Vector2(700f, 124f), MenuTeams, false, 52f);
             UIKit.MenuButton(menu, "Settings", UIIcon.Gear, UITheme.Slate, UIKit.Center, x + new Vector2(0f, -300f), new Vector2(700f, 124f), MenuSettings, false, 52f);
 

@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace FootballSim.UI
 {
-    public enum UIIcon { Ball, Trophy, People, Shirt, Gear, Coin, Gem, Gift, Back, Home, Check, Person }
+    public enum UIIcon { Ball, Trophy, People, Shirt, Gear, Coin, Gem, Gift, Back, Home, Check, Person, Globe }
 
     /// <summary>
     /// The look shared by every screen: palette, plus sprites generated in code (rounded rectangle with a baked highlight, circle, vertical
@@ -176,6 +176,16 @@ namespace FootballSim.UI
                     // two people side by side
                     on = Head(-0.42f, 0.32f, 0.27f) || Body(-0.42f, -0.5f, 0.5f, 0.5f)
                        || Head(0.42f, 0.32f, 0.27f) || Body(0.42f, -0.5f, 0.5f, 0.5f);
+                    break;
+                }
+                case UIIcon.Globe:
+                {
+                    // a globe: outer ring, equator, two latitude lines, centre meridian and a curved meridian
+                    float e = Mathf.Sqrt((u / 0.45f) * (u / 0.45f) + v * v);
+                    bool ring = r < 0.92f && r > 0.8f;
+                    bool inside = r <= 0.86f;
+                    bool lines = Mathf.Abs(v) < 0.06f || Mathf.Abs(Mathf.Abs(v) - 0.5f) < 0.05f || Mathf.Abs(u) < 0.06f || Mathf.Abs(e - 0.9f) < 0.07f;
+                    on = ring || (inside && lines);
                     break;
                 }
                 case UIIcon.Person:
