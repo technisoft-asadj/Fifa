@@ -12,9 +12,27 @@ namespace FootballSim.UI
     {
         const string ShowFpsKey = "show_fps";
         readonly FrameStats frameStats = new FrameStats();
-        TextMeshProUGUI fpsText, settingsShowFps;
+        TextMeshProUGUI fpsText, settingsShowFps, settingsModels;
         bool showFps;
         float nextFpsRefresh, nextFpsLog;
+
+        /// <summary>Player models: Simple (primitive bodies), Animated: 1 (the player you control) or Animated: all 22.</summary>
+        static string ModelsLabel(FootballSim.Players.PlayerVisual.ModelMode m)
+        {
+            switch (m)
+            {
+                case FootballSim.Players.PlayerVisual.ModelMode.One: return FootballSim.Players.AnimatedPlayerVisual.PrefabAvailable ? "Animated: 1" : "Animated: 1 (n/a)";
+                case FootballSim.Players.PlayerVisual.ModelMode.All: return FootballSim.Players.AnimatedPlayerVisual.PrefabAvailable ? "Animated: all" : "Animated: all (n/a)";
+                default: return "Simple";
+            }
+        }
+
+        public void CycleModels()
+        {
+            int next = ((int)FootballSim.Players.PlayerVisual.Mode + 1) % 3;
+            FootballSim.Players.PlayerVisual.SetMode((FootballSim.Players.PlayerVisual.ModelMode)next);
+            RefreshSettings();
+        }
 
         public bool FpsReadoutShown => showFps && fpsText != null && fpsText.gameObject.activeSelf;
         public string FpsReadoutText => fpsText != null ? fpsText.text : "";

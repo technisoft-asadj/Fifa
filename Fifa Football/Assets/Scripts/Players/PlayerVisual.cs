@@ -21,7 +21,40 @@ namespace FootballSim.Players
             new Color(0.08f, 0.06f, 0.05f), new Color(0.25f, 0.16f, 0.09f), new Color(0.55f, 0.38f, 0.16f), new Color(0.75f, 0.62f, 0.3f)
         };
 
+        /// <summary>Which players wear the rigged, animated body instead of the primitive one. Saved; Off by default.</summary>
+        public enum ModelMode { Off = 0, One = 1, All = 2 }
+        const string ModelModeKey = "player_models";
+        static ModelMode cachedMode = (ModelMode)(-1);
+
+        public static ModelMode Mode
+        {
+            get
+            {
+                if ((int)cachedMode < 0)
+                {
+                    try { cachedMode = (ModelMode)Mathf.Clamp(PlayerPrefs.GetInt(ModelModeKey, 0), 0, 2); } catch { cachedMode = ModelMode.Off; }
+                }
+                return cachedMode;
+            }
+            set
+            {
+                cachedMode = value;
+                try { PlayerPrefs.SetInt(ModelModeKey, (int)value); PlayerPrefs.Save(); } catch { }
+            }
+        }
+
+        /// <summary>Sets the mode and applies it to every player in the scene.</summary>
+        public static void SetMode(ModelMode mode)
+        {
+            Mode = mode;
+            foreach (var v in FindObjectsByType<PlayerVisual>(FindObjectsSortMode.None)) v.ApplyMode();
+        }
+
         PlayerController pc;
+        Transform visualRoot;
+        AnimatedPlayerVisual animated;
+        bool controlled, animatedActive, animatedFailed;
+        Color shirtColor = Color.red;
         Transform body, hipL, hipR, kneeL, kneeR, shoulderL, shoulderR;
         float phase, amp, kickT = -1f, tackleT = -1f;
         bool kickRight = true;
@@ -31,9 +64,32 @@ namespace FootballSim.Players
         /// <summary>Change the team kit (shirt, shorts and socks) after the player has been built.</summary>
         public void SetKit(Color shirt)
         {
+            shirtColor = shirt;
             Tint(shirtMaterial, shirt);
             Tint(shortsMaterial, Color.Lerp(shirt, Color.white, 0.75f));
             Tint(sockMaterial, Color.Lerp(shirt, Color.black, 0.15f));
+            if (animated != null) animated.SetKit(shirt);
+        }
+
+        /// <summary>Tells the visual whether the human controls this player (in <see cref="ModelMode.One"/> only that player is animated).</summary>
+        public void SetControlled(bool humanControlled) { controlled = humanControlled; ApplyMode(); }
+
+        public bool AnimatedActive => animatedActive;
+        public AnimatedPlayerVisual Animated => animated;
+
+        /// <summary>Shows the animated body or the primitive one according to <see cref="Mode"/>; builds the animated body the first time it is needed.</summary>
+        public void ApplyMode()
+        {
+            bool want = Mode == ModelMode.All || (Mode == ModelMode.One && controlled);
+            if (want && animated == null && !animatedFailed)
+            {
+                var a = gameObject.AddComponent<AnimatedPlayerVisual>();
+                if (a.Build(pc != null ? pc : GetComponent<PlayerController>(), shirtColor)) animated = a;
+                else { Destroy(a); animatedFailed = true; } // no prefab (files not downloaded): the primitive body stays
+            }
+            animatedActive = want && animated != null && animated.IsBuilt;
+            if (animated != null && animated.Model != null) animated.Model.SetActive(animatedActive);
+            if (visualRoot != null) visualRoot.gameObject.SetActive(!animatedActive);
         }
 
         static void Tint(Material m, Color c)
@@ -50,6 +106,7 @@ namespace FootballSim.Players
         {
             pc = GetComponent<PlayerController>();
             Build();
+            ApplyMode();
         }
 
         void Build()
@@ -87,7 +144,9 @@ namespace FootballSim.Players
             var mSock = M(Color.Lerp(shirt, Color.black, 0.15f));
             shirtMaterial = mShirt; shortsMaterial = mShorts; sockMaterial = mSock;
 
+            shirtColor = shirt;
             var visual = new GameObject("Visual").transform;
+            visualRoot = visual;
             visual.SetParent(transform, false);
             visual.localPosition = new Vector3(0f, 0.09f, 0f); // put boots on the ground (capsule feet are at -0.9)
             body = new GameObject("Body").transform;
@@ -141,7 +200,7 @@ namespace FootballSim.Players
 
         void Update()
         {
-            if (body == null || pc == null) return;
+            if (body == null || pc == null || animatedActive) return;
             float speed = pc.Velocity.magnitude;
             float targetAmp = speed > 0.25f ? Mathf.Clamp01(speed / 8f) * 50f + 8f : 0f;
             amp = Mathf.Lerp(amp, targetAmp, 1f - Mathf.Exp(-10f * Time.deltaTime));

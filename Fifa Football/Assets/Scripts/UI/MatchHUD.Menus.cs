@@ -226,13 +226,14 @@ namespace FootballSim.UI
             UIKit.SmallButton(p, "< Back", UITheme.Slate, UIKit.TopLeft, new Vector2(30f, -30f), new Vector2(190f, 72f), CloseSettings, 34f);
 
             var blue = UITheme.BlueDark;
-            Row(p, "Sound", 255f, out settingsSound, () => { ToggleSound(); RefreshSettings(); }, "TOGGLE");
-            Row(p, "Camera", 170f, out settingsCamera, CycleCamera, "CHANGE");
-            RowPlusMinus(p, "Touch button size", 85f, out settingsSize, () => AdjustTouch(-0.1f, 0f), () => AdjustTouch(0.1f, 0f), blue);
-            RowPlusMinus(p, "Touch opacity", 0f, out settingsOpacity, () => AdjustTouch(0f, -0.1f), () => AdjustTouch(0f, 0.1f), blue);
-            Row(p, "Graphics", -85f, out settingsQuality, CycleQuality, "CHANGE");
-            Row(p, "Frame rate", -170f, out settingsFps, ToggleFps, "CHANGE");
-            Row(p, "Show FPS", -255f, out settingsShowFps, ToggleShowFps, "TOGGLE");
+            Row(p, "Sound", 262f, out settingsSound, () => { ToggleSound(); RefreshSettings(); }, "TOGGLE");
+            Row(p, "Camera", 185f, out settingsCamera, CycleCamera, "CHANGE");
+            RowPlusMinus(p, "Touch button size", 108f, out settingsSize, () => AdjustTouch(-0.1f, 0f), () => AdjustTouch(0.1f, 0f), blue);
+            RowPlusMinus(p, "Touch opacity", 31f, out settingsOpacity, () => AdjustTouch(0f, -0.1f), () => AdjustTouch(0f, 0.1f), blue);
+            Row(p, "Graphics", -46f, out settingsQuality, CycleQuality, "CHANGE");
+            Row(p, "Frame rate", -123f, out settingsFps, ToggleFps, "CHANGE");
+            Row(p, "Show FPS", -200f, out settingsShowFps, ToggleShowFps, "TOGGLE");
+            Row(p, "Player models", -277f, out settingsModels, CycleModels, "CHANGE");
             UIKit.SmallButton(p, "Controls", UITheme.Blue, UIKit.Center, new Vector2(-280f, -365f), new Vector2(480f, 80f), OpenControls, 34f);
             var reset = UIKit.SmallButton(p, "Reset progress", UITheme.Red, UIKit.Center, new Vector2(280f, -365f), new Vector2(480f, 80f), TapSettingsReset, 34f);
             settingsReset = reset.GetComponentInChildren<TextMeshProUGUI>();
@@ -282,16 +283,16 @@ namespace FootballSim.UI
         void Row(RectTransform parent, string label, float y, out TextMeshProUGUI value, UnityEngine.Events.UnityAction onClick, string button)
         {
             UIKit.TextAt(parent, label + "Label", label, 38f, Color.white, UIKit.Center, new Vector2(-250f, y), new Vector2(480f, 50f), TextAlignmentOptions.Left, true);
-            var b = UIKit.SmallButton(parent, "", UITheme.BlueDark, UIKit.Center, new Vector2(250f, y), new Vector2(420f, 80f), onClick, 34f);
+            var b = UIKit.SmallButton(parent, "", UITheme.BlueDark, UIKit.Center, new Vector2(250f, y), new Vector2(420f, 70f), onClick, 34f);
             value = b.GetComponentInChildren<TextMeshProUGUI>();
         }
 
         void RowPlusMinus(RectTransform parent, string label, float y, out TextMeshProUGUI value, UnityEngine.Events.UnityAction minus, UnityEngine.Events.UnityAction plus, Color c)
         {
             UIKit.TextAt(parent, label + "Label", label, 38f, Color.white, UIKit.Center, new Vector2(-250f, y), new Vector2(480f, 50f), TextAlignmentOptions.Left, true);
-            UIKit.SmallButton(parent, "-", c, UIKit.Center, new Vector2(100f, y), new Vector2(90f, 80f), minus, 46f);
+            UIKit.SmallButton(parent, "-", c, UIKit.Center, new Vector2(100f, y), new Vector2(90f, 70f), minus, 46f);
             value = UIKit.TextAt(parent, label + "Value", "", 36f, Color.white, UIKit.Center, new Vector2(250f, y), new Vector2(200f, 50f), TextAlignmentOptions.Center, true);
-            UIKit.SmallButton(parent, "+", c, UIKit.Center, new Vector2(400f, y), new Vector2(90f, 80f), plus, 46f);
+            UIKit.SmallButton(parent, "+", c, UIKit.Center, new Vector2(400f, y), new Vector2(90f, 70f), plus, 46f);
         }
 
         void RefreshSettings()
@@ -304,6 +305,7 @@ namespace FootballSim.UI
             settingsQuality.text = names.Length == 0 ? "-" : names[Mathf.Clamp(QualitySettings.GetQualityLevel(), 0, names.Length - 1)];
             settingsFps.text = Application.targetFrameRate > 0 ? Application.targetFrameRate + " FPS" : "Max";
             if (settingsShowFps != null) settingsShowFps.text = showFps ? "ON" : "OFF";
+            if (settingsModels != null) settingsModels.text = ModelsLabel(FootballSim.Players.PlayerVisual.Mode);
             var bc = Cam(); settingsCamera.text = bc == null ? "-" : FootballSim.CameraSystem.BroadcastCamera.PresetNames[bc.Preset];
             if (!ResetArmed) settingsReset.text = "Reset progress";
         }

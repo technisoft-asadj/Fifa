@@ -74,6 +74,7 @@ namespace FootballSim.Players
             input = newInput;
             shootCharge = 0f;
             if (controlMarker) controlMarker.SetActive(humanControlled);
+            if (visual != null) visual.SetControlled(humanControlled);
         }
 
         /// <summary>Teleport (kick-off reset). CharacterController must be disabled while moving it.</summary>
