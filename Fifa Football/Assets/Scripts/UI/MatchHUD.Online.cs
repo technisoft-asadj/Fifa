@@ -135,8 +135,7 @@ namespace FootballSim.UI
             FootballSim.Inputs.IPlayerInput source = homeTeam != null && homeTeam.humanInput != null ? (FootballSim.Inputs.IPlayerInput)homeTeam.humanInput : Touch();
             guest = GuestMode.Enter(endPoint, source);
             guestStartedAt = Time.unscaledTime; guestAddress = endPoint.ToString();
-            onlinePanel.SetActive(false);
-            startPanel.SetActive(false);
+            HideAllMenus();
             Time.timeScale = 1f;
         }
 
@@ -145,7 +144,7 @@ namespace FootballSim.UI
         {
             if (guest != null) guest.Leave();
             guest = null;
-            ShowStart();
+            ShowMainMenu();
             onlineBanner.text = OnlineHosting ? onlineBanner.text : "";
         }
 

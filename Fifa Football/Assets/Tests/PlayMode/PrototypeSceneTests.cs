@@ -25,10 +25,10 @@ namespace FootballSim.Tests
         // Every test that plays a match to full time records it in the player's saved career record; the tests must neither start
         // from a leftover record (it changes the squad level) nor leave theirs behind in the real saved data.
         [SetUp]
-        public void SetUp() { FootballSim.Core.CareerRecord.Clear(); ForgetOnlineAddress(); }
+        public void SetUp() { FootballSim.Core.CareerRecord.Clear(); FootballSim.Core.PlayerProfile.Clear(); ForgetOnlineAddress(); FootballSim.UI.MatchHUD.OpenSetupDirectly = false; }
 
         [TearDown]
-        public void TearDown() { Time.timeScale = 1f; FootballSim.Core.CareerRecord.Clear(); ForgetOnlineAddress(); }
+        public void TearDown() { Time.timeScale = 1f; FootballSim.Core.CareerRecord.Clear(); FootballSim.Core.PlayerProfile.Clear(); ForgetOnlineAddress(); FootballSim.UI.MatchHUD.OpenSetupDirectly = false; }
 
         // joining remembers the typed address; a test must not leave its fake one in the real saved data
         static void ForgetOnlineAddress() { PlayerPrefs.DeleteKey(FootballSim.UI.MatchHUD.LastAddressKey); }
@@ -616,8 +616,11 @@ namespace FootballSim.Tests
                 Assert.AreEqual(1, FootballSim.Core.CareerRecord.Played);
                 Assert.AreEqual(match.HomeScore, FootballSim.Core.CareerRecord.GoalsFor);
                 Assert.AreEqual(match.AwayScore, FootballSim.Core.CareerRecord.GoalsAgainst);
+                FootballSim.Core.PlayerProfile.Reward(match.HomeScore, match.AwayScore, out int coins, out int xp);
+                Assert.AreEqual(coins, FootballSim.Core.PlayerProfile.Coins, "the match paid its coins once");
+                Assert.AreEqual(xp, FootballSim.Core.PlayerProfile.Xp);
             }
-            finally { Time.timeScale = 1f; Time.captureFramerate = 0; FootballSim.Core.CareerRecord.Clear(); }
+            finally { Time.timeScale = 1f; Time.captureFramerate = 0; FootballSim.Core.CareerRecord.Clear(); FootballSim.Core.PlayerProfile.Clear(); }
         }
 
         [UnityTest]
@@ -1400,6 +1403,85 @@ namespace FootballSim.Tests
             yield return new WaitForSeconds(0.5f);
             Assert.AreEqual(1, match.AwayScore);
             Assert.AreEqual(0, match.HomeScore);
+        }
+
+        // ---- the Main Menu and its navigation ----
+
+        [UnityTest]
+        public IEnumerator TheGameOpensOnTheMainMenuAndMatchSetupIsOneStepIn()
+        {
+            yield return LoadScene();
+            var hud = Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>();
+            Assert.IsTrue(hud.MainMenuOpen, "the main menu is the first screen");
+            Assert.IsFalse(hud.SetupOpen);
+
+            hud.MenuPlay();
+            Assert.IsTrue(hud.SetupOpen); Assert.IsFalse(hud.MainMenuOpen);
+            Assert.IsTrue(hud.GoBack(), "Back from match setup goes to the main menu");
+            Assert.IsTrue(hud.MainMenuOpen); Assert.IsFalse(hud.SetupOpen);
+            Assert.AreEqual(0f, Time.timeScale, "the match waits behind the menu");
+        }
+
+        [UnityTest]
+        public IEnumerator MainMenuButtonsOpenSettingsAndOnlineAndBackClosesThem()
+        {
+            yield return LoadScene();
+            var hud = Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>();
+            hud.MenuSettings();
+            Assert.IsTrue(hud.SettingsOpen);
+            Assert.IsTrue(hud.GoBack()); Assert.IsFalse(hud.SettingsOpen); Assert.IsTrue(hud.MainMenuOpen, "still on the main menu underneath");
+
+            hud.MenuOnline();
+            Assert.IsTrue(hud.OnlineOpen);
+            Assert.IsTrue(hud.GoBack()); Assert.IsFalse(hud.OnlineOpen); Assert.IsTrue(hud.MainMenuOpen);
+        }
+
+        [UnityTest]
+        public IEnumerator TournamentsSelectsTheCupModeAndOpensMatchSetup()
+        {
+            yield return LoadScene();
+            FootballSim.Core.SaveData.ResetProgress();
+            var hud = Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>();
+            try
+            {
+                hud.MenuTournaments();
+                Assert.AreEqual(FootballSim.UI.PlayMode.Tournament, hud.CurrentMode);
+                Assert.IsTrue(hud.SetupOpen);
+            }
+            finally { FootballSim.Core.SaveData.ResetProgress(); }
+        }
+
+        [UnityTest]
+        public IEnumerator PlayingHidesEveryMenuAndStartsTheClock()
+        {
+            yield return LoadScene();
+            var hud = Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>();
+            hud.MenuPlay();
+            hud.BeginMatch();
+            Assert.IsFalse(hud.MainMenuOpen); Assert.IsFalse(hud.SetupOpen); Assert.IsFalse(hud.SettingsOpen); Assert.IsFalse(hud.OnlineOpen);
+            Assert.AreEqual(1f, Time.timeScale);
+        }
+
+        [UnityTest]
+        public IEnumerator TheDailyRewardPaysOncePerDayThroughTheMenu()
+        {
+            yield return LoadScene();
+            var hud = Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>();
+            var oldToday = FootballSim.Core.PlayerProfile.Today;
+            long day = 20000;
+            FootballSim.Core.PlayerProfile.Today = () => day;
+            try
+            {
+                FootballSim.Core.PlayerProfile.Clear();
+                hud.ClaimDailyReward();
+                Assert.AreEqual(FootballSim.Core.PlayerProfile.DailyRewardCoins, FootballSim.Core.PlayerProfile.Coins);
+                hud.ClaimDailyReward();
+                Assert.AreEqual(FootballSim.Core.PlayerProfile.DailyRewardCoins, FootballSim.Core.PlayerProfile.Coins, "a second claim the same day pays nothing");
+                day++;
+                hud.ClaimDailyReward();
+                Assert.AreEqual(2 * FootballSim.Core.PlayerProfile.DailyRewardCoins, FootballSim.Core.PlayerProfile.Coins, "the next day pays again");
+            }
+            finally { FootballSim.Core.PlayerProfile.Today = oldToday; FootballSim.Core.PlayerProfile.Clear(); }
         }
 
         // ---- the Online screen (host / join) ----

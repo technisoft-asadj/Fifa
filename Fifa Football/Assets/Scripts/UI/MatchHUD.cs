@@ -71,7 +71,9 @@ namespace FootballSim.UI
                 audio.Init(match);
             }
             SetHomeKit(selectedKit, false); // players are built by now (Awake order is undefined), so colour them
-            ShowStart();
+            ApplySavedGraphics();
+            if (OpenSetupDirectly) { OpenSetupDirectly = false; ShowStart(); } // rematch / restart / next match: straight to match setup
+            else ShowMainMenu();
         }
         void OnDestroy() { Time.timeScale = 1f; }
 
@@ -79,11 +81,15 @@ namespace FootballSim.UI
         {
             // Keyboard hint is noise on a phone; show it only when there is no touchscreen.
             bool touchDevice = Application.isMobilePlatform || UnityEngine.InputSystem.Touchscreen.current != null;
-            if (hintText.gameObject.activeSelf == touchDevice) hintText.gameObject.SetActive(!touchDevice);
+            bool showHint = !touchDevice && !MainMenuOpen;
+            if (hintText.gameObject.activeSelf != showHint) hintText.gameObject.SetActive(showHint);
+            // the match scoreboard and stamina bar do not belong behind the main menu
+            bool showHud = !MainMenuOpen;
+            if (scoreText.transform.parent.gameObject.activeSelf != showHud) { scoreText.transform.parent.gameObject.SetActive(showHud); staminaFill.parent.gameObject.SetActive(showHud); }
             ExpireResetLabel();
             UpdateOnlineLabels();
             // Pause: on-screen button, Esc, or the Android back button (reported as Escape).
-            bool inMenu = startPanel.activeSelf || fullTimePanel.activeSelf;
+            bool inMenu = MenuOpen;
             if (pauseButton.activeSelf == inMenu) pauseButton.SetActive(!inMenu);
             var kb = UnityEngine.InputSystem.Keyboard.current;
             bool escape = kb != null && kb.escapeKey.wasPressedThisFrame;
@@ -92,7 +98,7 @@ namespace FootballSim.UI
             // Android only, and only when the Input System did not already see Escape, so one press cannot toggle twice.
             if (!escape && Application.platform == RuntimePlatform.Android) escape = Input.GetKeyDown(KeyCode.Escape);
 #endif
-            if (escape) { if (onlinePanel != null && onlinePanel.activeSelf) CloseOnline(); else TogglePause(); }
+            if (escape && !NavigateBack()) TogglePause();
             if (match == null || OnlineGuestActive) return; // a guest's scoreboard is not driven by the server yet: keep the online label instead
             scoreText.text = $"HOME  {match.HomeScore}  -  {match.AwayScore}  AWAY";
             clockText.text = $"{Mathf.FloorToInt(match.GameMinute):00}:00";
@@ -134,7 +140,7 @@ namespace FootballSim.UI
                 : $"DRAW  {match.HomeScore} - {match.AwayScore}";
             goalsText.text = GoalsSummary(match);
             statsText.text = StatLines(match);
-            if (!TrainingMode.Active) CareerRecord.Record(match.HomeScore, match.AwayScore);
+            if (!TrainingMode.Active) { CareerRecord.Record(match.HomeScore, match.AwayScore); PlayerProfile.AwardMatch(match.HomeScore, match.AwayScore); }
             if (MiniLeague.Active && !MiniLeague.Finished) MiniLeague.RecordResult(match.HomeScore, match.AwayScore); // the human is home
             if (Tournament.Active && !Tournament.Over)
             {
@@ -202,7 +208,7 @@ namespace FootballSim.UI
             ApplyGrowth();
             ApplyFormations();
             match.PrepareKickoff();
-            startPanel.SetActive(false);
+            HideAllMenus();
             Time.timeScale = 1f;
         }
 
@@ -230,6 +236,7 @@ namespace FootballSim.UI
             if (MiniLeague.Finished) MiniLeague.Start(); // "NEW LEAGUE"
             if (Tournament.Over) Tournament.Start(); // "NEW TOURNAMENT"
             if (Season.Over) Season.Start(); // "NEW SEASON"
+            OpenSetupDirectly = true;
             Time.timeScale = 1f;
             SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
         }
@@ -458,6 +465,10 @@ namespace FootballSim.UI
             RefreshMode(); // also sets the difficulty label (the league's opponent while a league is running)
             SetHomeKit(KitPalette.Load(), false);
 
+            // the start panel stays the match-setup screen; the main menu and settings sit above it, the online panel above those
+            var setupBack = Button(st, "< Menu", new Vector2(-370, 245), new Vector2(150, 50), ShowMainMenu, btnCol);
+            setupBack.GetComponentInChildren<Text>().fontSize = 26;
+            BuildMainMenu(root, btnCol);
             BuildOnlinePanel(root, btnCol);
 
             // Full-time panel
@@ -504,7 +515,7 @@ namespace FootballSim.UI
         public void TogglePause()
         {
             if (OnlineGuestActive) { LeaveOnline(); return; } // the pause button and Back both leave an online game
-            if (startPanel.activeSelf || fullTimePanel.activeSelf) return;
+            if (MenuOpen) return;
             bool pause = !IsPaused;
             pausePanel.SetActive(pause);
             Time.timeScale = pause ? 0f : 1f;
@@ -529,6 +540,7 @@ namespace FootballSim.UI
             if (tc == null) return;
             tc.SetAppearance(Mathf.Round((tc.controlScale + dScale) * 10f) / 10f, Mathf.Round((tc.controlOpacity + dOpacity) * 10f) / 10f);
             RefreshTouchLabels();
+            OnTouchAdjusted();
         }
 
         void RefreshTouchLabels()
