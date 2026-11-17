@@ -10,7 +10,7 @@ Written 2026-11-17. This is the short version; `progress.md` has the detail for 
 - Networking (server-authoritative over UDP): snapshots, join handshake with a per-player token bound to the joining address, input packets with sequence numbers, keep-alive, timeout, leave message, adaptive render delay, smooth render clock, input acknowledgement (type 7), a bad-network simulator for tests, `NetSession.Host/Join` helpers, `LanAddress` parsing.
 
 ## Test state
-EditMode 154/154. PlayMode 72/72, plus 5 gated probe tests that show as Inconclusive unless a file named `run_balance.flag` exists in the project root (expected). Android IL2CPP build succeeds (0 errors).
+EditMode 154/154. PlayMode 76/76, plus 5 gated probe tests that show as Inconclusive unless a file named `run_balance.flag` exists in the project root (expected). Android IL2CPP build succeeds (0 errors).
 
 ## Never checked by a person or on a device
 - Anything on a phone: touch feel, frame rate with the newer code, the real Android Back gesture (adb Back works, KB-015).
@@ -20,7 +20,7 @@ EditMode 154/154. PlayMode 72/72, plus 5 gated probe tests that show as Inconclu
 - Constants chosen by guess: shoot-out chances, season goal averages, clock snap and adaptive-delay margins, squad growth size.
 
 ## Not built
-- The host/join screen. The guest's side exists (`Net/GuestMode`: silences the local match, draws snapshots, camera follows) and is tested over loopback, but no button calls it and the scoreboard is not fed by the server. Needs two devices to verify.
+- Host/join: built (start screen "Online" button, same Wi-Fi, free). Verified in the editor and by tests only; never run between two devices. The guest sees the host's match but its scoreboard shows "ONLINE GUEST" (not fed by the server).
 - Client-side prediction (the ack it needs is in; the replay logic is not).
 - A full career (squads, transfers, player development beyond the squad level).
 - AI-versus-AI realism (KB-018): too few passes and no offsides; needs support runs and passing lanes.

@@ -14,7 +14,7 @@ namespace FootballSim.UI
     /// Code-built uGUI for the match: scoreboard, event banner, start screen (match length) and full-time screen.
     /// The simulation is paused (timeScale 0) while a menu is showing.
     /// </summary>
-    public class MatchHUD : MonoBehaviour
+    public partial class MatchHUD : MonoBehaviour
     {
         [SerializeField] MatchManager match;
         [SerializeField] TeamController homeTeam;
@@ -81,6 +81,7 @@ namespace FootballSim.UI
             bool touchDevice = Application.isMobilePlatform || UnityEngine.InputSystem.Touchscreen.current != null;
             if (hintText.gameObject.activeSelf == touchDevice) hintText.gameObject.SetActive(!touchDevice);
             ExpireResetLabel();
+            UpdateOnlineLabels();
             // Pause: on-screen button, Esc, or the Android back button (reported as Escape).
             bool inMenu = startPanel.activeSelf || fullTimePanel.activeSelf;
             if (pauseButton.activeSelf == inMenu) pauseButton.SetActive(!inMenu);
@@ -91,8 +92,8 @@ namespace FootballSim.UI
             // Android only, and only when the Input System did not already see Escape, so one press cannot toggle twice.
             if (!escape && Application.platform == RuntimePlatform.Android) escape = Input.GetKeyDown(KeyCode.Escape);
 #endif
-            if (escape) TogglePause();
-            if (match == null) return;
+            if (escape) { if (onlinePanel != null && onlinePanel.activeSelf) CloseOnline(); else TogglePause(); }
+            if (match == null || OnlineGuestActive) return; // a guest's scoreboard is not driven by the server yet: keep the online label instead
             scoreText.text = $"HOME  {match.HomeScore}  -  {match.AwayScore}  AWAY";
             clockText.text = $"{Mathf.FloorToInt(match.GameMinute):00}:00";
             var me = homeTeam != null ? homeTeam.Controlled : null;
@@ -443,6 +444,8 @@ namespace FootballSim.UI
             var resetButton = Button(st, "Reset progress", new Vector2(-345, -385), new Vector2(180, 60), TapResetProgress, btnCol);
             resetLabel = resetButton.GetComponentInChildren<Text>();
             resetLabel.fontSize = 22; // the default 40 is wider than this small button
+            var onlineButton = Button(st, "Online", new Vector2(370, 245), new Vector2(150, 50), OpenOnline, btnCol);
+            onlineButton.GetComponentInChildren<Text>().fontSize = 26;
             recordLabel = Label("Record", st, 20, TextAnchor.MiddleCenter, new Vector2(345, -385), new Vector2(180, 84));
             recordLabel.color = new Color(1f, 0.9f, 0.4f);
             recordLabel.text = CareerRecord.Summary() + (TeamGrowth.CurrentLevel > 0 ? $"\nSquad lv {TeamGrowth.CurrentLevel}" : "");
@@ -454,6 +457,8 @@ namespace FootballSim.UI
             CycleFormation(0, false);
             RefreshMode(); // also sets the difficulty label (the league's opponent while a league is running)
             SetHomeKit(KitPalette.Load(), false);
+
+            BuildOnlinePanel(root, btnCol);
 
             // Full-time panel
             fullTimePanel = Rect("FullTimePanel", root, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(900, 700), Panel).gameObject;
@@ -498,6 +503,7 @@ namespace FootballSim.UI
         /// <summary>Pause or resume. Ignored while the start or full-time screen is showing.</summary>
         public void TogglePause()
         {
+            if (OnlineGuestActive) { LeaveOnline(); return; } // the pause button and Back both leave an online game
             if (startPanel.activeSelf || fullTimePanel.activeSelf) return;
             bool pause = !IsPaused;
             pausePanel.SetActive(pause);

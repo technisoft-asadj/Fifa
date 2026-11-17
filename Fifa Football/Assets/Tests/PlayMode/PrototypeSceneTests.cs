@@ -25,10 +25,13 @@ namespace FootballSim.Tests
         // Every test that plays a match to full time records it in the player's saved career record; the tests must neither start
         // from a leftover record (it changes the squad level) nor leave theirs behind in the real saved data.
         [SetUp]
-        public void SetUp() { FootballSim.Core.CareerRecord.Clear(); }
+        public void SetUp() { FootballSim.Core.CareerRecord.Clear(); ForgetOnlineAddress(); }
 
         [TearDown]
-        public void TearDown() { Time.timeScale = 1f; FootballSim.Core.CareerRecord.Clear(); }
+        public void TearDown() { Time.timeScale = 1f; FootballSim.Core.CareerRecord.Clear(); ForgetOnlineAddress(); }
+
+        // joining remembers the typed address; a test must not leave its fake one in the real saved data
+        static void ForgetOnlineAddress() { PlayerPrefs.DeleteKey(FootballSim.UI.MatchHUD.LastAddressKey); }
 
         [UnityTest]
         public IEnumerator LiveMatchSnapshotSurvivesEncodingAndStaysSmall()
@@ -1397,6 +1400,86 @@ namespace FootballSim.Tests
             yield return new WaitForSeconds(0.5f);
             Assert.AreEqual(1, match.AwayScore);
             Assert.AreEqual(0, match.HomeScore);
+        }
+
+        // ---- the Online screen (host / join) ----
+
+        [UnityTest]
+        public IEnumerator HostingStartsTheMatchAndOffersAGuestAnAwayOutfielder()
+        {
+            yield return LoadScene();
+            var hud = Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>();
+            var teams = new System.Collections.Generic.List<TeamController>(Object.FindObjectsByType<TeamController>(FindObjectsSortMode.None));
+            teams.Sort((x, y) => x.teamId.CompareTo(y.teamId));
+            var players = new System.Collections.Generic.List<PlayerController>();
+            foreach (var t in teams) players.AddRange(t.players);
+
+            hud.HostOnline();
+            Assert.IsTrue(hud.OnlineHosting);
+            Assert.AreEqual(1f, Time.timeScale, "hosting starts the match");
+            Assert.Greater(hud.OnlineHost.server.LocalEndPoint.Port, 0);
+            yield return null;
+            StringAssert.Contains("HOSTING", hud.OnlineBannerText);
+            StringAssert.Contains("waiting", hud.OnlineBannerText);
+
+            // the server listens on every interface, so its own endpoint reads 0.0.0.0: a friend uses the LAN address, this test uses loopback
+            var guest = NetSession.Join(new System.Net.IPEndPoint(System.Net.IPAddress.Loopback, hud.OnlineHost.server.LocalEndPoint.Port), new FootballSim.Inputs.ReplayInput(new System.Collections.Generic.List<FootballSim.Inputs.InputFrame>(), 0), new Vector3(500f, 0f, 0f));
+            for (int i = 0; i < 120 && !guest.client.Joined; i++) yield return null;
+            Assert.IsTrue(guest.client.Joined, "the host let the friend in");
+            Assert.GreaterOrEqual(guest.client.PlayerIndex, 11, "the guest plays for the away side");
+            Assert.IsFalse(players[guest.client.PlayerIndex].isGoalkeeper, "and is not a goalkeeper");
+            yield return null; yield return null;
+            StringAssert.Contains("friend connected", hud.OnlineBannerText);
+            Object.Destroy(guest.root);
+            Object.Destroy(hud.OnlineHost.root);
+        }
+
+        [UnityTest]
+        public IEnumerator HostingIsRefusedOutsideSingleMatchMode()
+        {
+            yield return LoadScene();
+            var hud = Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>();
+            FootballSim.Core.MiniLeague.Start();
+            try
+            {
+                hud.HostOnline();
+                Assert.IsFalse(hud.OnlineHosting);
+                StringAssert.Contains("Single match", hud.OnlineStatusText);
+            }
+            finally { FootballSim.Core.MiniLeague.Abandon(); }
+        }
+
+        [UnityTest]
+        public IEnumerator JoiningWithANonsenseAddressOnlyShowsAMessage()
+        {
+            yield return LoadScene();
+            var hud = Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>();
+            var match = Object.FindFirstObjectByType<MatchManager>();
+            hud.JoinOnline("banana");
+            Assert.IsFalse(hud.OnlineGuestActive);
+            StringAssert.Contains("not an address", hud.OnlineStatusText);
+            Assert.IsTrue(match.enabled, "the local match is untouched");
+        }
+
+        [UnityTest]
+        public IEnumerator JoiningShowsAGuestScreenAndBackLeavesItWithTheStartScreenRestored()
+        {
+            yield return LoadScene();
+            var hud = Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>();
+            var match = Object.FindFirstObjectByType<MatchManager>();
+            // nobody listens on port 9: the point is what the screen does, not the network
+            hud.JoinOnline("127.0.0.1:9");
+            yield return null; yield return null;
+            Assert.IsTrue(hud.OnlineGuestActive);
+            Assert.IsFalse(match.enabled, "the local clock is stopped while a guest");
+            StringAssert.Contains("connecting", hud.OnlineBannerText);
+            Assert.AreEqual(1f, Time.timeScale);
+
+            hud.TogglePause(); // Back and the pause button both leave
+            Assert.IsFalse(hud.OnlineGuestActive);
+            Assert.IsTrue(match.enabled, "the local match is back");
+            Assert.AreEqual(0f, Time.timeScale, "the start screen is showing again");
+            Assert.AreEqual("", hud.OnlineBannerText);
         }
     }
 }

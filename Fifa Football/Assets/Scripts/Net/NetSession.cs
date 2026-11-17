@@ -28,6 +28,21 @@ namespace FootballSim.Net
             return new HostHandle { root = root, server = server };
         }
 
+        /// <summary>
+        /// Like <see cref="Host"/> but reachable from other devices on the network (all interfaces) on a fixed port, so a friend can type the address.
+        /// Needs no account, relay or paid service: it is plain UDP between two devices on the same Wi-Fi. Falls back to a free port if
+        /// <paramref name="port"/> is taken; read the real one from <c>server.LocalEndPoint</c>.
+        /// </summary>
+        public static HostHandle HostOnLan(MatchManager match, BallController ball, IList<PlayerController> players, int port, params int[] remoteSlots)
+        {
+            var root = new GameObject("NetHost");
+            var server = root.AddComponent<NetServer>();
+            try { server.Init(match, ball, players, 3, true, port); }
+            catch (System.Net.Sockets.SocketException) { server.Init(match, ball, players, 3, true, 0); }
+            server.OfferRemoteSlots(remoteSlots);
+            return new HostHandle { root = root, server = server };
+        }
+
         /// <summary>Starts a client that joins the server at <paramref name="server"/> and sends <paramref name="input"/> once it has a slot.</summary>
         public static ClientHandle Join(IPEndPoint server, IPlayerInput input, Vector3 viewOrigin)
         {
