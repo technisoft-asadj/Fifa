@@ -8,7 +8,28 @@ namespace FootballSim.Net
     {
         public float x, z, yaw, speed;
         public byte flags;
+        /// <summary>The last body action the player started (kick, tackle, dive...), packed by <see cref="NetAction"/>.</summary>
+        public byte act;
         public const byte Diving = 1, Exhausted = 2;
+    }
+
+    /// <summary>
+    /// What a remote screen needs to play the same body action as the host: which action, which side, and a small counter that goes up
+    /// each time one starts. The action stays in the snapshot until the next one replaces it, so a lost snapshot does not lose the event;
+    /// a client plays an action when it sees the counter change. Byte layout: bits 0-3 action (0 = none), bit 4 mirrored/left, bits 5-7 counter.
+    /// </summary>
+    public static class NetAction
+    {
+        // codes match Players.AnimatedPlayerVisual.Action + 1 (0 = nothing yet)
+        public const int None = 0;
+
+        public static byte Pack(int action, bool right, int serial)
+        {
+            return (byte)((action & 15) | (right ? 0 : 16) | ((serial & 7) << 5));
+        }
+        public static int Action(byte act) { return act & 15; }
+        public static bool Right(byte act) { return (act & 16) == 0; }
+        public static int Serial(byte act) { return (act >> 5) & 7; }
     }
 
     /// <summary>The whole match state a client needs to draw one moment: 22 players, the ball, the score and the clock.</summary>
@@ -30,7 +51,7 @@ namespace FootballSim.Net
     /// </summary>
     public static class NetCodec
     {
-        public const int SnapshotBytes = 4 + 6 + 6 + WorldSnapshot.PlayerCount * 7 + 2 + 2;
+        public const int SnapshotBytes = 4 + 6 + 6 + WorldSnapshot.PlayerCount * 8 + 2 + 2;
         public const int InputBytes = 5;
         /// <summary>First byte of a datagram client to server: 1 = hello, 2 = input (then player index, then an input frame).</summary>
         public const byte HelloPacket = 1, InputPacket = 2;
@@ -138,6 +159,7 @@ namespace FootballSim.Net
                 buffer[o++] = (byte)(Mathf.RoundToInt(yaw / 360f * 256f) & 0xFF);
                 buffer[o++] = (byte)Mathf.Clamp(Mathf.RoundToInt(p.speed * 10f), 0, 255);
                 buffer[o++] = p.flags;
+                buffer[o++] = p.act;
             }
             buffer[o++] = s.homeScore; buffer[o++] = s.awayScore;
             buffer[o++] = (byte)(s.clockTenths & 0xFF); buffer[o++] = (byte)(s.clockTenths >> 8);
@@ -160,6 +182,7 @@ namespace FootballSim.Net
                 p.yaw = buffer[o++] * 360f / 256f;
                 p.speed = buffer[o++] * 0.1f;
                 p.flags = buffer[o++];
+                p.act = buffer[o++];
                 s.players[i] = p;
             }
             s.homeScore = buffer[o++]; s.awayScore = buffer[o++];

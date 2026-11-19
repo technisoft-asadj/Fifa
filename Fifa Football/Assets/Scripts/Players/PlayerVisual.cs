@@ -195,8 +195,18 @@ namespace FootballSim.Players
             return sh;
         }
 
+        // ---- what a remote screen is told: the last action started, whichever body is showing (see Net.NetAction) ----
+        int netAction, netSerial; bool netRight = true;
+        /// <summary>The last body action, packed for the snapshot (0 = none yet).</summary>
+        public byte NetAct => Net.NetAction.Pack(netAction, netRight, netSerial);
+        void Tell(AnimatedPlayerVisual.Action a, bool right)
+        {
+            netAction = (int)a + 1; netRight = right; netSerial = (netSerial + 1) & 7;
+        }
+
         public void PlayKick(bool rightFoot = true, bool shot = false)
         {
+            Tell(shot ? AnimatedPlayerVisual.Action.Shot : AnimatedPlayerVisual.Action.Pass, rightFoot);
             kickT = 0f; kickRight = rightFoot;
             if (animatedActive && animated != null) animated.PlayAction(shot ? AnimatedPlayerVisual.Action.Shot : AnimatedPlayerVisual.Action.Pass, rightFoot);
         }
@@ -204,10 +214,12 @@ namespace FootballSim.Players
         /// <summary>A fast ball arriving at a player who is about to take it down: the animated body plays its first-touch clip.</summary>
         public void PlayFirstTouch(bool rightFoot = true)
         {
+            Tell(AnimatedPlayerVisual.Action.Receive, rightFoot);
             if (animatedActive && animated != null) animated.PlayAction(AnimatedPlayerVisual.Action.Receive, rightFoot);
         }
         public void PlayTackle()
         {
+            Tell(AnimatedPlayerVisual.Action.Tackle, true);
             tackleT = 0f; kickRight = true;
             if (animatedActive && animated != null) animated.PlayAction(AnimatedPlayerVisual.Action.Tackle, true);
         }
@@ -215,12 +227,14 @@ namespace FootballSim.Players
         /// <summary>A keeper dives: sideways to the right or left of his own body.</summary>
         public void PlayDive(bool right)
         {
+            Tell(AnimatedPlayerVisual.Action.Dive, right);
             if (animatedActive && animated != null) animated.PlayAction(AnimatedPlayerVisual.Action.Dive, right);
         }
 
         /// <summary>A keeper stops a shot: the primitive body swings a leg, the animated one plays a catch (high balls jump) when he held it.</summary>
         public void PlaySave(bool held, bool high)
         {
+            if (held) Tell(high ? AnimatedPlayerVisual.Action.JumpCatch : AnimatedPlayerVisual.Action.Catch, true);
             if (animatedActive && animated != null)
             {
                 if (held) animated.PlayAction(high ? AnimatedPlayerVisual.Action.JumpCatch : AnimatedPlayerVisual.Action.Catch, true);
@@ -235,6 +249,7 @@ namespace FootballSim.Players
         public float PlayReaction(AnimatedPlayerVisual.Action reaction)
         {
             if (!animatedActive || animated == null) return 0f;
+            Tell(reaction, true); // only a reaction the host really plays is shown to guests, since the host holds the player still for it
             return animated.PlayAction(reaction, true) ? animated.LastActionLength : 0f;
         }
 
@@ -243,6 +258,7 @@ namespace FootballSim.Players
         /// <summary>The victim of a foul goes down and gets back up (animated body only).</summary>
         public void PlayFall()
         {
+            Tell(AnimatedPlayerVisual.Action.Fall, true);
             if (animatedActive && animated != null) animated.PlayAction(AnimatedPlayerVisual.Action.Fall, true);
         }
 

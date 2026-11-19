@@ -80,7 +80,8 @@ namespace FootballSim.Players
             if (animator == null || !animator.isActiveAndEnabled) return false;
             if (clipInfo == null) clipInfo = AnimatedClipInfo.Load();
             if (clipInfo == null) return false;
-            bool moving = pc != null && pc.Velocity.magnitude > 2.5f;
+            float speedNow = SpeedOverride >= 0f ? SpeedOverride : (pc != null ? pc.Velocity.magnitude : 0f);
+            bool moving = speedNow > 2.5f;
             string state = action == Action.Receive ? "Receive" : action == Action.Tackle ? "SlideTackle" : action == Action.Fall ? "FallOver"
                 : action == Action.CelebrateA ? "CelebrateA" : action == Action.CelebrateB ? "CelebrateB" : action == Action.Defeated ? "Defeated"
                 : action == Action.Dive ? "KeeperDive" : action == Action.Catch ? "KeeperCatch" : action == Action.JumpCatch ? "KeeperJumpCatch"

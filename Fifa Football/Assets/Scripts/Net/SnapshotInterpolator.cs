@@ -67,7 +67,8 @@ namespace FootballSim.Net
                 {
                     x = Mathf.Lerp(pa.x, pb.x, t), z = Mathf.Lerp(pa.z, pb.z, t),
                     yaw = Mathf.LerpAngle(pa.yaw, pb.yaw, t), speed = Mathf.Lerp(pa.speed, pb.speed, t),
-                    flags = t < 0.5f ? pa.flags : pb.flags
+                    flags = t < 0.5f ? pa.flags : pb.flags,
+                    act = t < 1f ? pa.act : pb.act // an action starts when the later snapshot is reached, not half way
                 };
             }
             // discrete values switch at the later snapshot's moment rather than blending

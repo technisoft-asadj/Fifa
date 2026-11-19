@@ -20,7 +20,7 @@ namespace FootballSim.Net
                 byte flags = 0;
                 if (p.IsDiving) flags |= PlayerState.Diving;
                 if (p.Exhausted) flags |= PlayerState.Exhausted;
-                s.players[i] = new PlayerState { x = p.transform.position.x, z = p.transform.position.z, yaw = p.transform.eulerAngles.y, speed = p.Velocity.magnitude, flags = flags };
+                s.players[i] = new PlayerState { x = p.transform.position.x, z = p.transform.position.z, yaw = p.transform.eulerAngles.y, speed = p.Velocity.magnitude, flags = flags, act = p.Visual != null ? p.Visual.NetAct : (byte)0 };
             }
             s.homeScore = (byte)Mathf.Min(255, match.HomeScore);
             s.awayScore = (byte)Mathf.Min(255, match.AwayScore);

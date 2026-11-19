@@ -292,6 +292,65 @@ namespace FootballSim.Tests
         }
 
         [UnityTest]
+        public IEnumerator ClientViewPlaysTheHostsBodyActionsOnAnimatedBodiesAndIgnoresOldOnes()
+        {
+            if (!FootballSim.Players.AnimatedPlayerVisual.PrefabAvailable) Assert.Ignore("the animated player files are not in this checkout");
+            yield return LoadScene();
+            var match = Object.FindFirstObjectByType<MatchManager>();
+            var ball = Object.FindFirstObjectByType<BallController>();
+            var teams = new System.Collections.Generic.List<TeamController>(Object.FindObjectsByType<TeamController>(FindObjectsSortMode.None));
+            teams.Sort((x, y) => x.teamId.CompareTo(y.teamId));
+            var players = new System.Collections.Generic.List<PlayerController>();
+            foreach (var t in teams) { t.ReleaseHumanControl(); players.AddRange(t.players); }
+            var server = new GameObject("NetServer").AddComponent<NetServer>();
+            server.Init(match, ball, players, 3);
+            var client = new GameObject("NetClient").AddComponent<NetClient>();
+            client.Connect(server.LocalEndPoint);
+            var viewGo = new GameObject("NetView");
+            viewGo.transform.position = new Vector3(500f, 0f, 0f);
+            var view = viewGo.AddComponent<NetClientView>();
+            view.client = client;
+            view.modeOverride = 2; // every drawn body animated
+            Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>().BeginMatch();
+
+            Time.captureFramerate = 60;
+            for (int i = 0; i < 90; i++) yield return null;
+            Assert.IsNotNull(view.AnimatedBody(5), "slot 5 shows the animated body");
+            Assert.IsFalse(view.Bodies[5].Find("Capsule").gameObject.activeSelf, "and not the capsule");
+            int start = view.ActionsPlayed; // the live match may already have had a kick or two
+
+            // the host's players act; the guest's bodies must play the same actions
+            players[5].Visual.PlayDive(false);
+            players[6].Visual.PlayTackle();
+            players[7].Visual.PlayFall();
+            for (int i = 0; i < 60; i++) yield return null;
+            Assert.AreEqual("KeeperDive", view.AnimatedBody(5).LastActionState);
+            Assert.IsTrue(view.AnimatedBody(5).LastActionMirrored, "a dive to the left is the mirrored clip");
+            Assert.AreEqual("SlideTackle", view.AnimatedBody(6).LastActionState);
+            Assert.AreEqual("FallOver", view.AnimatedBody(7).LastActionState);
+            Assert.GreaterOrEqual(view.ActionsPlayed, start + 3);
+
+            // the same action twice in a row plays twice (the counter changes)
+            int before = view.ActionsPlayed;
+            players[6].Visual.PlayTackle();
+            for (int i = 0; i < 40; i++) yield return null;
+            Assert.GreaterOrEqual(view.ActionsPlayed, before + 1);
+
+            // a second screen that joins now sees old actions in the snapshots but must not replay them
+            var client2 = new GameObject("NetClient2").AddComponent<NetClient>();
+            client2.Connect(server.LocalEndPoint);
+            var view2Go = new GameObject("NetView2");
+            view2Go.transform.position = new Vector3(900f, 0f, 0f);
+            var view2 = view2Go.AddComponent<NetClientView>();
+            view2.client = client2; view2.modeOverride = 2;
+            for (int i = 0; i < 90; i++) yield return null;
+            Time.captureFramerate = 0;
+            Assert.IsNull(view2.AnimatedBody(5).LastActionState, "a late joiner does not replay the old dive");
+            Assert.IsNull(view2.AnimatedBody(6).LastActionState, "or the old tackles");
+            Assert.IsNull(view2.AnimatedBody(7).LastActionState, "or the old fall");
+        }
+
+        [UnityTest]
         public IEnumerator ClientOverABadNetworkRaisesItsDelayAndStillDrawsTheMatch()
         {
             yield return LoadScene();

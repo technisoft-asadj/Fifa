@@ -32,6 +32,7 @@ namespace FootballSim.Players
 
         CharacterController cc;
         PlayerVisual visual;
+        public PlayerVisual Visual => visual;
         Vector3 planarVelocity;
         float shootCharge, touchCooldown, tackleCooldown, lungeTimer;
         Vector3 lungeDir;
