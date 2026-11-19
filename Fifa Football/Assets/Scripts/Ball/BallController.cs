@@ -12,6 +12,8 @@ namespace FootballSim.Ball
         [SerializeField] BallSettings settings;
         Rigidbody rb;
         bool grounded;
+        /// <summary>How much bigger than real size the ball is drawn (the physics size does not change).</summary>
+        public const float DrawScale = 1.6f;
 
         public Rigidbody Body => rb;
         /// <summary>Simulation position of the ball. transform.position is interpolated for display and depends on the render-time fraction, so gameplay code must not read it.</summary>
@@ -48,6 +50,9 @@ namespace FootballSim.Ball
         {
             rb = GetComponent<Rigidbody>();
             if (settings == null) settings = ScriptableObject.CreateInstance<BallSettings>();
+            // On a phone the camera is wide and a real-size ball is a few pixels: draw it bigger. The collider radius below is computed from
+            // the scale, so the physics ball keeps its real size.
+            if (transform.localScale.x < DrawScale * 0.5f) transform.localScale *= DrawScale;
             rb.mass = settings.mass;
             rb.linearDamping = 0f;
             rb.angularDamping = 0.05f;

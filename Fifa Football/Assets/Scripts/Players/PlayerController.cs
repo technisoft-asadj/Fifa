@@ -232,6 +232,8 @@ namespace FootballSim.Players
                 touchCooldown = Mathf.Lerp(0.22f, 0.12f, data.ballControl / 99f);
             }
 
+            KeepBallClose();
+
             if (input.ShootHeld) shootCharge = Mathf.Min(1f, shootCharge + Time.deltaTime / chargeTime);
 
             if (input.ShootReleased)
@@ -246,6 +248,29 @@ namespace FootballSim.Players
                 Strike(p, data.MaxPassSpeed, data.PassInaccuracyDeg, 0.02f);
                 Struck?.Invoke(this, false, lastStrikeDir);
             }
+        }
+
+        float noAssistUntil;
+        /// <summary>
+        /// Close control: a player who has the ball and runs with it keeps it at his feet. Dribble touches alone cannot do this at a sprint (the
+        /// ball slows down faster than a 10 m/s runner, so he leaves it behind), so the ball is gently steered toward a spot just ahead of him.
+        /// Off for a moment after a pass or shot, for keepers, and for a ball somebody else touched last.
+        /// </summary>
+        void KeepBallClose()
+        {
+            if (isGoalkeeper || ball.LastToucher != this || !ball.IsGrounded || ball.Body.isKinematic || Time.time < noAssistUntil) return;
+            float speed = planarVelocity.magnitude;
+            if (speed < 0.5f) return;
+            Vector3 toBall = ball.Position - transform.position; toBall.y = 0f;
+            if (toBall.magnitude > 2.4f) return; // already gone: only a new touch gets it back
+            Vector3 spot = transform.position + planarVelocity / speed * 0.75f;
+            Vector3 miss = spot - ball.Position; miss.y = 0f;
+            Vector3 want = planarVelocity + miss * 6f;
+            float cap = speed * 1.15f + 2f;
+            if (want.magnitude > cap) want = want.normalized * cap;
+            Vector3 v = ball.Velocity;
+            Vector3 flat = Vector3.Lerp(new Vector3(v.x, 0f, v.z), want, 1f - Mathf.Exp(-10f * Time.deltaTime));
+            ball.Body.linearVelocity = new Vector3(flat.x, v.y, flat.z);
         }
 
         /// <summary>Raised after a pass or shot; arguments = player, true for a shot, strike direction.</summary>
@@ -265,6 +290,7 @@ namespace FootballSim.Players
             KickBall(dir, maxSpeed * Mathf.Clamp01(power), spin);
             if (visual != null) visual.PlayKick(Random.value > 0.25f, shot);
             touchCooldown = 0.4f;
+            noAssistUntil = Time.time + 0.6f; // a pass or shot must leave the foot, not be pulled back
         }
 
         void TryTackle()
