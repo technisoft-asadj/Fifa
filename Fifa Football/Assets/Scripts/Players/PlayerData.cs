@@ -18,9 +18,15 @@ namespace FootballSim.Players
         [Range(1, 99)] public int stamina = 70;
         [Range(1, 99)] public int strength = 70;
 
-        public float JogSpeed => Mathf.Lerp(3.2f, 4.5f, pace / 99f);
-        public float SprintSpeedMs => Mathf.Lerp(6.0f, 9.5f, sprintSpeed / 99f);
-        public float AccelerationMs2 => Mathf.Lerp(4f, 9f, acceleration / 99f);
+        /// <summary>
+        /// Everyone (both teams) runs this much faster than the real-life figures below. On a phone screen the pitch is small and the camera
+        /// is far away, so real speeds look like slow motion; scaling all players together keeps the match balanced.
+        /// </summary>
+        public const float PaceScale = 1.25f;
+
+        public float JogSpeed => Mathf.Lerp(3.2f, 4.5f, pace / 99f) * PaceScale;
+        public float SprintSpeedMs => Mathf.Lerp(6.0f, 9.5f, sprintSpeed / 99f) * PaceScale;
+        public float AccelerationMs2 => Mathf.Lerp(4f, 9f, acceleration / 99f) * PaceScale;
         public float TurnRateDegPerSec => Mathf.Lerp(360f, 720f, agility / 99f);
         public float MaxShotSpeed => Mathf.Lerp(18f, 32f, shooting / 99f);
         public float MaxPassSpeed => Mathf.Lerp(12f, 24f, passing / 99f);

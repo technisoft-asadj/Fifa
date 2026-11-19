@@ -91,6 +91,12 @@ namespace FootballSim.UI
             // the match scoreboard and stamina bar do not belong behind the main menu
             bool showHud = !MainMenuOpen && !startPanel.activeSelf && !frontScreen;
             if (scoreText.transform.parent.gameObject.activeSelf != showHud) { scoreText.transform.parent.gameObject.SetActive(showHud); staminaFill.parent.gameObject.SetActive(showHud); }
+            if (radarRoot != null)
+            {
+                bool showRadar = showHud && !OnlineGuestActive; // a guest's players are drawn from snapshots, not the hidden local ones
+                if (radarRoot.activeSelf != showRadar) radarRoot.SetActive(showRadar);
+                if (showRadar) RefreshZoomLabel();
+            }
             ExpireResetLabel();
             UpdateOnlineLabels();
             // Pause: on-screen button, Esc, or the Android back button (reported as Escape).
@@ -453,6 +459,8 @@ namespace FootballSim.UI
             var hrt = hint.rectTransform; hrt.anchorMin = hrt.anchorMax = new Vector2(0.5f, 0f);
             hint.text = "WASD move  |  Shift sprint  |  Space shoot (hold)  |  K pass  |  J tackle  |  Tab switch player";
             hint.color = new Color(1, 1, 1, 0.75f);
+
+            BuildRadar(root);
 
             // Start panel
             startPanel = Glassify(Rect("StartPanel", root, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(900, 1000), Panel).gameObject);

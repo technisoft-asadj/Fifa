@@ -962,6 +962,58 @@ namespace FootballSim.Tests
         }
 
         [UnityTest]
+        public IEnumerator TheRadarShowsEveryPlayerAndATapMakesTheCameraLookAtOne()
+        {
+            yield return LoadScene();
+            var hud = Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>();
+            var cam = Object.FindFirstObjectByType<FootballSim.CameraSystem.BroadcastCamera>();
+            hud.BeginMatch();
+            for (int i = 0; i < 20; i++) yield return null;
+            var radar = hud.Radar;
+            Assert.IsNotNull(radar, "the radar is built");
+            Assert.IsTrue(hud.RadarRoot.activeSelf, "and shown during a match");
+            int shown = 0;
+            foreach (var d in radar.Dots) if (d.gameObject.activeSelf) shown++;
+            Assert.AreEqual(22, shown, "one dot for each player");
+
+            var players = Object.FindObjectsByType<PlayerController>(FindObjectsSortMode.None);
+            var target = System.Array.Find(players, p => p.transform != cam.Player);
+            var spot = FootballSim.UI.MiniRadar.Map(target.transform.position, radar.Size, cam.ViewSign);
+            var hit = radar.Tap(spot);
+            Assert.AreSame(target, hit, "a tap on a dot finds that player");
+            Assert.IsTrue(cam.Focusing); Assert.AreSame(target.transform, cam.FocusTarget);
+            for (int i = 0; i < 90; i++) yield return null;
+            Assert.Less(cam.Zoom, 0.8f, "the camera comes in on the player it looks at");
+
+            Assert.IsNull(radar.Tap(new Vector2(radar.Size.x * 3f, 0f)), "a tap away from every dot finds nobody");
+            Assert.IsFalse(cam.Focusing, "and goes back to following play");
+        }
+
+        [UnityTest]
+        public IEnumerator TheZoomButtonsMoveTheCameraInAndOutAndRememberIt()
+        {
+            yield return LoadScene();
+            var hud = Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>();
+            var cam = Object.FindFirstObjectByType<FootballSim.CameraSystem.BroadcastCamera>();
+            hud.BeginMatch();
+            for (int i = 0; i < 20; i++) yield return null;
+            float before = cam.UserZoom;
+            try
+            {
+                hud.ZoomCamera(-1);
+                Assert.AreEqual(before - 0.1f, cam.UserZoom, 1e-4f, "closer");
+                for (int i = 0; i < 60; i++) yield return null;
+                float zoomedIn = cam.Zoom;
+                hud.ZoomCamera(1); hud.ZoomCamera(1);
+                Assert.AreEqual(before + 0.1f, cam.UserZoom, 1e-4f, "wider");
+                for (int i = 0; i < 60; i++) yield return null;
+                Assert.Greater(cam.Zoom, zoomedIn, "wider than before");
+                Assert.AreEqual(cam.UserZoom, PlayerPrefs.GetFloat(FootballSim.CameraSystem.BroadcastCamera.PrefZoom, -1f), 1e-4f, "the choice is saved");
+            }
+            finally { cam.SetUserZoom(before); }
+        }
+
+        [UnityTest]
         public IEnumerator AFullStickPushSprintsByItselfAndTheSettingTurnsItOff()
         {
             yield return LoadScene();

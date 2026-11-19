@@ -167,10 +167,10 @@ namespace FootballSim.EditorTools
             BlendTree tree;
             ctrl.CreateBlendTreeInController("Locomotion", out tree);
             tree.blendParameter = "Speed"; tree.useAutomaticThresholds = false;
-            // Run and Sprint also appear sped up or slowed down so the game's whole speed range (jog 3.2-4.5, sprint 6-9.5 m/s) is covered by
+            // Run and Sprint also appear sped up or slowed down so the game's whole speed range (jog 4-5.6, sprint 7.5-11.9 m/s after PlayerData.PaceScale) is covered by
             // gaits whose planted feet match the ground; a clip played at scale k travels k times faster, so its threshold is its speed times k
             var entries = new List<(string clip, float scale)>
-            { ("Idle", 1f), ("Walk", 1f), ("Jog", 1f), ("Run", 1f), ("Run", 1.45f), ("Sprint", 0.8f), ("Sprint", 1f), ("Sprint", 1.3f) };
+            { ("Idle", 1f), ("Walk", 1f), ("Jog", 1f), ("Run", 1f), ("Run", 1.45f), ("Sprint", 0.8f), ("Sprint", 1f), ("Sprint", 1.3f), ("Sprint", 1.6f) };
             var children = new List<ChildMotion>();
             foreach (var (name, scale) in entries)
             {
