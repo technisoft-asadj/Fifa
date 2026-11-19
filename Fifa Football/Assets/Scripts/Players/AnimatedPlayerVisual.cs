@@ -36,6 +36,8 @@ namespace FootballSim.Players
             model.transform.localPosition = new Vector3(0f, FeetY, 0f);
             model.transform.localRotation = Quaternion.identity;
             animator = model.GetComponent<Animator>();
+            // a player the camera cannot see keeps his state (so an action still ends on time) but his bones are not recalculated
+            if (animator != null) animator.cullingMode = AnimatorCullingMode.CullUpdateTransforms;
             // one material instance per player so each can wear its own kit colour (the joint material stays dark)
             foreach (var r in model.GetComponentsInChildren<Renderer>())
             {
