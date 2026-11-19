@@ -137,6 +137,8 @@ namespace FootballSim.Inputs
             var img = b.GetComponent<Image>();
             var c = img.color; c.a = controlOpacity * l.alpha; img.color = c;
             var tc = txt.color; tc.a = Mathf.Clamp01(controlOpacity + 0.3f) * l.alpha; txt.color = tc;
+            var fill = b.transform.Find("Fill");
+            if (fill != null) { var fi = fill.GetComponent<Image>(); var fc = fi.color; fc.a = Mathf.Clamp01(controlOpacity + 0.15f) * l.alpha; fi.color = fc; }
         }
 
         /// <summary>Show the controls while the game is paused so size/opacity changes can be seen.</summary>
@@ -357,11 +359,11 @@ namespace FootballSim.Inputs
 
             float s = controlScale;
             buttons.Clear();
-            shoot = Button(rt, font, "SHOOT", Core.TouchButtonId.Shoot, s, new Color(0.9f, 0.25f, 0.2f));
-            pass = Button(rt, font, "PASS", Core.TouchButtonId.Pass, s, new Color(0.2f, 0.6f, 0.9f));
-            tackle = Button(rt, font, "TACKLE", Core.TouchButtonId.Tackle, s, new Color(0.95f, 0.7f, 0.1f));
-            switchBtn = Button(rt, font, "SWITCH", Core.TouchButtonId.Switch, s, new Color(0.5f, 0.5f, 0.55f));
-            sprint = Button(rt, font, "SPRINT", Core.TouchButtonId.Sprint, s, new Color(0.2f, 0.75f, 0.4f));
+            shoot = Button(rt, font, "SHOOT", Core.TouchButtonId.Shoot, s, new Color(1f, 0.72f, 0.12f));
+            pass = Button(rt, font, "PASS", Core.TouchButtonId.Pass, s, new Color(0.3f, 0.75f, 1f));
+            tackle = Button(rt, font, "TACKLE", Core.TouchButtonId.Tackle, s, new Color(0.95f, 0.3f, 0.3f));
+            switchBtn = Button(rt, font, "SWITCH", Core.TouchButtonId.Switch, s, new Color(0.7f, 0.6f, 1f));
+            sprint = Button(rt, font, "SPRINT", Core.TouchButtonId.Sprint, s, new Color(0.3f, 0.85f, 0.45f));
             // a button saved on a bigger screen may no longer fit: pull it back inside (the saved value is kept as it was)
             foreach (var id in new System.Collections.Generic.List<Core.TouchButtonId>(custom.Keys))
             {
@@ -420,6 +422,14 @@ namespace FootballSim.Inputs
             var img = go.GetComponent<Image>();
             img.sprite = Circle();
             img.color = new Color(color.r, color.g, color.b, controlOpacity);
+            // glass look: a coloured ring around a dark navy disc, so the colour says which button it is and the word stays readable
+            var fgo = new GameObject("Fill", typeof(RectTransform), typeof(Image));
+            fgo.transform.SetParent(go.transform, false);
+            var frt = (RectTransform)fgo.transform;
+            frt.anchorMin = Vector2.zero; frt.anchorMax = Vector2.one; frt.offsetMin = new Vector2(size * 0.06f, size * 0.06f); frt.offsetMax = new Vector2(-size * 0.06f, -size * 0.06f);
+            var fimg = fgo.GetComponent<Image>();
+            fimg.sprite = Circle(); fimg.raycastTarget = false;
+            fimg.color = new Color(0.04f, 0.1f, 0.22f, Mathf.Clamp01(controlOpacity + 0.15f));
 
             var tgo = new GameObject("Label", typeof(RectTransform), typeof(Text));
             tgo.transform.SetParent(go.transform, false);
@@ -427,8 +437,9 @@ namespace FootballSim.Inputs
             trt.anchorMin = Vector2.zero; trt.anchorMax = Vector2.one; trt.offsetMin = trt.offsetMax = Vector2.zero;
             var t = tgo.GetComponent<Text>();
             t.font = font; t.text = label; t.alignment = TextAnchor.MiddleCenter;
-            t.fontSize = Mathf.RoundToInt(size * 0.2f); t.fontStyle = FontStyle.Bold;
+            t.fontSize = Mathf.RoundToInt(size * 0.24f); t.fontStyle = FontStyle.Bold;
             t.color = new Color(1, 1, 1, Mathf.Clamp01(controlOpacity + 0.3f)); t.raycastTarget = false;
+            var ol = tgo.AddComponent<Outline>(); ol.effectColor = new Color(0, 0, 0, 0.7f); ol.effectDistance = new Vector2(2f, -2f);
             t.horizontalOverflow = HorizontalWrapMode.Overflow;
             return go.GetComponent<HoldButton>();
         }

@@ -214,7 +214,7 @@ namespace FootballSim.Players
             if (ball == null) return;
             touchCooldown -= Time.deltaTime;
             bool inRange = BallInRange(out Vector3 toBall);
-            bool inFront = Vector3.Dot(transform.forward, toBall.normalized) > 0.2f;
+            bool inFront = Vector3.Dot(transform.forward, toBall.normalized) > 0f;
 
             // a pass arriving at a (nearly) standing player: the animated body takes it down with its first-touch clip (visual only)
             if (inRange && !ballWasInRange && visual != null && !isGoalkeeper && planarVelocity.magnitude < 2.5f && ball.LastToucher != this && ball.Velocity.magnitude > 5f)
@@ -224,10 +224,12 @@ namespace FootballSim.Players
             // Dribble touch (not for goalkeepers: they catch/clear instead)
             if (!isGoalkeeper && inRange && inFront && planarVelocity.magnitude > 0.5f && touchCooldown <= 0f && ball.IsGrounded)
             {
-                float push = planarVelocity.magnitude * 1.15f + 0.8f;
-                Vector3 dirTo = Vector3.Lerp(transform.forward, planarVelocity.normalized, 0.7f).normalized;
+                // a close touch: the ball leaves only slightly faster than the runner, so it stays at his feet even at the faster pace
+                float speed = planarVelocity.magnitude;
+                float push = speed * 1.04f + 0.5f;
+                Vector3 dirTo = Vector3.Lerp(transform.forward, planarVelocity.normalized, 0.85f).normalized;
                 KickBall(dirTo, push, Vector3.zero);
-                touchCooldown = Mathf.Lerp(0.35f, 0.18f, data.ballControl / 99f);
+                touchCooldown = Mathf.Lerp(0.22f, 0.12f, data.ballControl / 99f);
             }
 
             if (input.ShootHeld) shootCharge = Mathf.Min(1f, shootCharge + Time.deltaTime / chargeTime);

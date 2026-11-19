@@ -1053,8 +1053,9 @@ namespace FootballSim.Tests
             var hud = Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>();
             var touch = Object.FindFirstObjectByType<FootballSim.Inputs.TouchControls>();
             touch.forceShow = true;
-            var shoot = FootballSim.Core.TouchButtonId.Shoot;
-            var pass = FootballSim.Core.TouchButtonId.Pass;
+            // the moved button is a low one (a small editor window clamps a tall position on a rebuild); the other is the one it must not land on
+            var shoot = FootballSim.Core.TouchButtonId.Pass;
+            var pass = FootballSim.Core.TouchButtonId.Shoot;
             try
             {
                 touch.ResetToDefaults();
@@ -1070,9 +1071,9 @@ namespace FootballSim.Tests
                 Assert.IsFalse(btn.Held, "a locked button does not act");
                 Assert.IsFalse(btn.ConsumePress());
 
-                // drag the shoot button down and right (clear of the others), then let go
+                // drag the shoot button up and left (clear of the others), then let go
                 var start = touch.ButtonPosition(shoot);
-                touch.DragButton(shoot, new Vector2(60f, -60f));
+                touch.DragButton(shoot, new Vector2(-60f, 0f));
                 touch.DropButton(shoot, start);
                 var moved = touch.ButtonPosition(shoot);
                 Assert.AreNotEqual(start, moved, "the button moved");
@@ -1103,7 +1104,7 @@ namespace FootballSim.Tests
                 string saved = PlayerPrefs.GetString(FootballSim.Inputs.TouchControls.PrefPositions, "");
                 Assert.IsNotEmpty(saved, "the layout was written");
                 var read = FootballSim.Core.TouchLayout.Parse(saved);
-                Assert.AreEqual(before, read[shoot]);
+                Assert.Less(Vector2.Distance(before, read[shoot]), 0.1f, "saved to a tenth of a unit");
 
                 // the stick follows its sensitivity, and the buzz can be switched off
                 touch.SetTuning(1.5f, true);

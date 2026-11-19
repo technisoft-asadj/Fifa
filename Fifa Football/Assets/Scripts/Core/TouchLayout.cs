@@ -18,11 +18,12 @@ namespace FootballSim.Core
         {
             switch (id)
             {
-                case TouchButtonId.Shoot: return new Vector2(-210f, 210f);
-                case TouchButtonId.Pass: return new Vector2(-460f, 140f);
-                case TouchButtonId.Tackle: return new Vector2(-120f, 450f);
-                case TouchButtonId.Switch: return new Vector2(-390f, 380f);
-                default: return new Vector2(-640f, 100f); // Sprint
+                // the cluster of the reference design: Shoot on top, Pass lower left, Sprint lower right; Tackle and Switch beside and above
+                case TouchButtonId.Shoot: return new Vector2(-250f, 380f);
+                case TouchButtonId.Pass: return new Vector2(-400f, 160f);
+                case TouchButtonId.Tackle: return new Vector2(-500f, 370f);
+                case TouchButtonId.Switch: return new Vector2(-250f, 600f);
+                default: return new Vector2(-150f, 170f); // Sprint
             }
         }
 
@@ -30,8 +31,9 @@ namespace FootballSim.Core
         {
             switch (id)
             {
-                case TouchButtonId.Shoot: return 190f;
-                case TouchButtonId.Pass: case TouchButtonId.Tackle: return 150f;
+                case TouchButtonId.Shoot: return 180f;
+                case TouchButtonId.Pass: return 160f;
+                case TouchButtonId.Sprint: return 150f;
                 default: return 130f;
             }
         }
