@@ -277,7 +277,7 @@ namespace FootballSim.Match
         void Update()
         {
             if (Finished) return;
-            RealSecondsElapsed += Time.deltaTime;
+            if (resetTimer <= 0f) RealSecondsElapsed += Time.deltaTime; // the clock stops during the goal celebration and half-time break
             if (RealSecondsElapsed >= matchMinutes * 60f)
             {
                 Finished = true;

@@ -61,22 +61,23 @@ namespace FootballSim.UI
             startPanel.SetActive(false);
             if (mainMenu != null) mainMenu.SetActive(false);
             if (settingsPanel != null) settingsPanel.SetActive(false);
-            CloseControls(); CloseCareer();
+            CloseControls(); CloseCareer(); CloseTeams();
             if (onlinePanel != null) onlinePanel.SetActive(false);
         }
 
         public void MenuPlay() { mainMenu.SetActive(false); ShowStart(); }
         public void MenuTournaments() { SelectMode(PlayMode.Tournament); MenuPlay(); }
         public void MenuOnline() { OpenOnline(); }
-        public void MenuTeams() { MenuPlay(); } // kit and formation are chosen on the match-setup panel
+        public void MenuTeams() { OpenTeams(); }
         public void MenuSettings() { RefreshSettings(); settingsPanel.SetActive(true); }
-        public void CloseSettings() { settingsPanel.SetActive(false); }
+        public void CloseSettings() { settingsPanel.SetActive(false); RestorePauseAfterSettings(); }
 
         /// <summary>One step back for Escape / the Android Back button. Returns true if it did something.</summary>
         bool NavigateBack()
         {
             if (SplashOpen) { FinishSplash(); return true; }
             if (NameOpen) { if (PlayerProfile.HasName) CloseName(); else ConfirmName(""); return true; }
+            if (TeamsOpen) { CloseTeams(); return true; }
             if (CareerOpen) { CloseCareer(); return true; }
             if (ControlsOpen) { CloseControls(); return true; }
             if (SettingsOpen) { CloseSettings(); return true; }
@@ -155,8 +156,8 @@ namespace FootballSim.UI
             menuCoins = UIKit.Pill(menu, "Coins", UIIcon.Coin, UITheme.Gold, "0", UIKit.TopRight, new Vector2(-144f, -42f), new Vector2(250f, 68f));
 
             // title block, left
-            UIKit.TextAt(menu, "TitleTop", "FOOTBALL", 150f, UITheme.Gold, UIKit.Center, new Vector2(-480f, 190f), new Vector2(800f, 170f), TextAlignmentOptions.Center, true);
-            UIKit.TextAt(menu, "TitleBottom", "SIMULATOR", 96f, Color.white, UIKit.Center, new Vector2(-480f, 60f), new Vector2(800f, 110f), TextAlignmentOptions.Center, true);
+            UIKit.TextAt(menu, "TitleTop", "SOCCER", 150f, UITheme.Gold, UIKit.Center, new Vector2(-480f, 190f), new Vector2(800f, 170f), TextAlignmentOptions.Center, true);
+            UIKit.TextAt(menu, "TitleBottom", "FIGHT", 150f, Color.white, UIKit.Center, new Vector2(-480f, 60f), new Vector2(800f, 110f), TextAlignmentOptions.Center, true);
             var ball = UIKit.Image(menu, "Ball", UITheme.Icon(UIIcon.Ball), Color.white, false, false);
             ball.rectTransform.anchorMin = ball.rectTransform.anchorMax = UIKit.Center; ball.rectTransform.pivot = UIKit.Center;
             ball.rectTransform.anchoredPosition = new Vector2(-480f, -150f); ball.rectTransform.sizeDelta = new Vector2(200f, 200f);

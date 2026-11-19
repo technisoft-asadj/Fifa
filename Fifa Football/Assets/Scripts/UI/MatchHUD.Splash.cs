@@ -33,8 +33,8 @@ namespace FootballSim.UI
             var bg = UIKit.Image(splash, "Background", UITheme.Gradient, Color.white, false, true);
             bg.rectTransform.anchorMin = Vector2.zero; bg.rectTransform.anchorMax = Vector2.one; bg.rectTransform.offsetMin = bg.rectTransform.offsetMax = Vector2.zero;
             var skip = bg.gameObject.AddComponent<Button>(); skip.targetGraphic = bg; skip.transition = Selectable.Transition.None; skip.onClick.AddListener(FinishSplash);
-            UIKit.TextAt(splash, "Top", "FOOTBALL", 190f, UITheme.Gold, UIKit.Center, new Vector2(0f, 150f), new Vector2(1400f, 210f), TextAlignmentOptions.Center, true);
-            UIKit.TextAt(splash, "Bottom", "SIMULATOR", 120f, Color.white, UIKit.Center, new Vector2(0f, -20f), new Vector2(1400f, 140f), TextAlignmentOptions.Center, true);
+            UIKit.TextAt(splash, "Top", "SOCCER", 190f, UITheme.Gold, UIKit.Center, new Vector2(0f, 150f), new Vector2(1400f, 210f), TextAlignmentOptions.Center, true);
+            UIKit.TextAt(splash, "Bottom", "FIGHT", 190f, Color.white, UIKit.Center, new Vector2(0f, -20f), new Vector2(1400f, 140f), TextAlignmentOptions.Center, true);
             var ball = UIKit.Image(splash, "Ball", UITheme.Icon(UIIcon.Ball), Color.white, false, false);
             ball.rectTransform.anchorMin = ball.rectTransform.anchorMax = UIKit.Center; ball.rectTransform.pivot = UIKit.Center;
             ball.rectTransform.anchoredPosition = new Vector2(0f, -190f); ball.rectTransform.sizeDelta = new Vector2(150f, 150f);

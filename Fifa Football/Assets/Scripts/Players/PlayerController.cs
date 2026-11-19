@@ -159,7 +159,8 @@ namespace FootballSim.Players
             if (visual != null) visual.PlaySave(outcome == SaveOutcome.Catch, ball.Position.y > 1.5f);
         }
 
-        void Locomotion()
+        /// <summary>The direction the stick asks for in world space (length 0..1).</summary>
+        Vector3 InputDirection()
         {
             Vector2 m = input.Move;
             Vector3 dir;
@@ -170,6 +171,12 @@ namespace FootballSim.Players
                 dir = fwd * m.y + Vector3.Cross(Vector3.up, fwd) * m.x;
             }
             if (dir.sqrMagnitude > 1f) dir.Normalize();
+            return dir;
+        }
+
+        void Locomotion()
+        {
+            Vector3 dir = InputDirection();
             if (HoldStill > 0f)
             {
                 HoldStill -= Time.deltaTime; dir = Vector3.zero; lungeTimer = 0f;
@@ -236,19 +243,32 @@ namespace FootballSim.Players
 
             if (input.ShootHeld) shootCharge = Mathf.Min(1f, shootCharge + Time.deltaTime / chargeTime);
 
+            bool struck = false;
             if (input.ShootReleased)
             {
-                float p = input.ActionPower > 0f ? input.ActionPower : Mathf.Max(0.25f, shootCharge);
-                if (inRange && !ball.Body.isKinematic) { Strike(p, data.MaxShotSpeed, data.ShotInaccuracyDeg, 0.18f, true); Struck?.Invoke(this, true, lastStrikeDir); }
+                float p = input.ActionPower > 0f ? input.ActionPower : Mathf.Max(AimAssist.MinTapShot, shootCharge); // a tap is still a real shot
+                if (inRange && !ball.Body.isKinematic) { Strike(p, data.MaxShotSpeed, data.ShotInaccuracyDeg, 0.18f, true); Struck?.Invoke(this, true, lastStrikeDir); struck = true; shootBufferUntil = 0f; }
+                else { shootBufferUntil = Time.time + PressBuffer; bufferedShootPower = p; } // the ball is just out of reach: remember the press for a moment
                 shootCharge = 0f;
             }
-            else if (input.PassPressed && inRange && !ball.Body.isKinematic)
+            else if (Time.time < shootBufferUntil && inRange && !ball.Body.isKinematic)
             {
-                float p = input.ActionPower > 0f ? input.ActionPower : 0.55f;
-                Strike(p, data.MaxPassSpeed, data.PassInaccuracyDeg, 0.02f);
+                Strike(bufferedShootPower, data.MaxShotSpeed, data.ShotInaccuracyDeg, 0.18f, true); Struck?.Invoke(this, true, lastStrikeDir);
+                struck = true; shootBufferUntil = 0f;
+            }
+
+            if (input.PassPressed) { passBufferUntil = Time.time + PressBuffer; bufferedPassPower = input.ActionPower > 0f ? input.ActionPower : -1f; }
+            if (!struck && Time.time < passBufferUntil && inRange && !ball.Body.isKinematic)
+            {
+                Strike(bufferedPassPower, data.MaxPassSpeed, data.PassInaccuracyDeg, 0.02f);
                 Struck?.Invoke(this, false, lastStrikeDir);
+                passBufferUntil = 0f;
             }
         }
+
+        /// <summary>A pass or shot pressed while the ball is just out of reach still happens if the ball arrives within this many seconds.</summary>
+        const float PressBuffer = 0.25f;
+        float shootBufferUntil, passBufferUntil, bufferedShootPower, bufferedPassPower;
 
         float noAssistUntil;
         /// <summary>
@@ -256,8 +276,20 @@ namespace FootballSim.Players
         /// ball slows down faster than a 10 m/s runner, so he leaves it behind), so the ball is gently steered toward a spot just ahead of him.
         /// Off for a moment after a pass or shot, for keepers, and for a ball somebody else touched last.
         /// </summary>
+        Vector3 lastDribbleDir;
+
         void KeepBallClose()
         {
+            // A hard change of direction at speed knocks the ball loose for a moment instead of it following the runner round the corner
+            float runSpeed = planarVelocity.magnitude;
+            if (runSpeed > 5f && Time.deltaTime > 0f)
+            {
+                Vector3 dirNow = planarVelocity / runSpeed;
+                if (lastDribbleDir != Vector3.zero && Vector3.Angle(lastDribbleDir, dirNow) / Time.deltaTime > 240f) noAssistUntil = Mathf.Max(noAssistUntil, Time.time + 0.3f);
+                lastDribbleDir = dirNow;
+            }
+            else lastDribbleDir = Vector3.zero;
+
             if (isGoalkeeper || ball.LastToucher != this || !ball.IsGrounded || ball.Body.isKinematic || Time.time < noAssistUntil) return;
             float speed = planarVelocity.magnitude;
             if (speed < 0.5f) return;
@@ -277,10 +309,63 @@ namespace FootballSim.Players
         public static event System.Action<PlayerController, bool, Vector3> Struck;
         Vector3 lastStrikeDir;
 
+        Match.MatchManager matchRef;
+        static readonly System.Collections.Generic.List<PlayerController> allPlayers = new System.Collections.Generic.List<PlayerController>(22);
+        static float nextPlayerRefresh;
+        readonly System.Collections.Generic.List<Vector3> mateSpots = new System.Collections.Generic.List<Vector3>(10);
+        readonly System.Collections.Generic.List<PlayerController> mateList = new System.Collections.Generic.List<PlayerController>(10);
+
+        float AttackSign()
+        {
+            if (matchRef == null) matchRef = Object.FindFirstObjectByType<Match.MatchManager>();
+            if (matchRef != null) return matchRef.AttackSign(TeamId);
+            return TeamId == 0 ? 1f : -1f;
+        }
+
+        /// <summary>Team-mates (not keepers) a pass could go to, refreshed about once a second.</summary>
+        void CollectMates()
+        {
+            if (Time.unscaledTime >= nextPlayerRefresh)
+            {
+                nextPlayerRefresh = Time.unscaledTime + 1f;
+                allPlayers.Clear();
+                allPlayers.AddRange(Object.FindObjectsByType<PlayerController>(FindObjectsSortMode.None));
+            }
+            mateList.Clear(); mateSpots.Clear();
+            foreach (var p in allPlayers)
+            {
+                if (p == null || p == this || p.TeamId != TeamId || p.isGoalkeeper || !p.isActiveAndEnabled) continue;
+                mateList.Add(p);
+                mateSpots.Add(p.transform.position + p.Velocity * 0.5f); // aim where he will be, not where he is
+            }
+        }
+
         void Strike(float power, float maxSpeed, float inaccuracyDeg, float loft, bool shot = false)
         {
             Vector3 aim = input.AimWorld;
             aim.y = 0f;
+            bool assisted = aim.sqrMagnitude < 0.01f; // touch controls have no aim stick: help the player
+            if (assisted)
+            {
+                Vector3 push = InputDirection();
+                if (push.sqrMagnitude > 0.09f) aim = push;
+                else aim = planarVelocity.sqrMagnitude > 0.5f ? planarVelocity : transform.forward;
+                aim.y = 0f;
+                aim.Normalize();
+                if (shot) aim = AimAssist.ShotDirection(transform.position, aim, AttackSign(), Pitch.GoalHalfWidth);
+                else
+                {
+                    CollectMates();
+                    int i = AimAssist.PickPassTarget(transform.position, aim, mateSpots);
+                    if (i >= 0)
+                    {
+                        Vector3 to = mateSpots[i] - transform.position; to.y = 0f;
+                        aim = to.normalized;
+                        if (power < 0f) power = AimAssist.PassPower(to.magnitude, maxSpeed);
+                    }
+                }
+            }
+            if (power < 0f) power = 0.55f; // no target and no pad power: a medium pass
             if (aim.sqrMagnitude < 0.01f) aim = planarVelocity.sqrMagnitude > 0.5f ? planarVelocity : transform.forward;
             aim.Normalize();
             aim = Quaternion.Euler(0f, SimRandom.Range(-inaccuracyDeg, inaccuracyDeg) * power, 0f) * aim;
@@ -304,8 +389,10 @@ namespace FootballSim.Players
 
             Vector3 toBall = ball.Position - transform.position;
             toBall.y = 0f;
-            bool inReach = toBall.magnitude < 1.7f && Vector3.Dot(transform.forward, toBall.normalized) > 0.3f;
-            float winChance = 0.55f + data.strength / 400f;
+            float facing = Vector3.Dot(transform.forward, toBall.normalized);
+            bool inReach = toBall.magnitude < 1.7f && facing > 0.3f;
+            // a clean tackle (ball close, square on) wins more often than a stretched or angled one
+            float winChance = (0.55f + data.strength / 400f) * Mathf.Lerp(0.65f, 1f, Mathf.Clamp01((1.7f - toBall.magnitude) / 1.2f) * Mathf.Clamp01((facing - 0.3f) / 0.5f));
             bool won = inReach && SimRandom.Value < winChance;
             if (won)
             {

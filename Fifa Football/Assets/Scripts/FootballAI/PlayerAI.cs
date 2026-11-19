@@ -79,7 +79,7 @@ namespace FootballSim.FootballAI
 
             if (!isChaser)
             {
-                MoveToward(SupportOrHomePosition(), 10f);
+                MoveToward(Separate(SupportOrHomePosition()), 10f);
                 return;
             }
 
@@ -179,6 +179,24 @@ namespace FootballSim.FootballAI
             float limit = FootballSim.Core.Pitch.HalfLength - 3f;
             home.z = Mathf.Clamp(z, -limit, limit);
             return home;
+        }
+
+        const float PersonalSpace = 3.5f;
+
+        /// <summary>Nudges a target away from team-mates standing closer than <see cref="PersonalSpace"/>, so two players never share one spot.</summary>
+        Vector3 Separate(Vector3 target)
+        {
+            Vector3 push = Vector3.zero;
+            foreach (var m in team.players)
+            {
+                if (m == pc || m.isGoalkeeper || !m.gameObject.activeSelf) continue;
+                Vector3 d = Flat(transform.position - m.transform.position);
+                float dist = d.magnitude;
+                if (dist >= PersonalSpace) continue;
+                if (dist < 0.05f) { d = (slot % 2 == 0 ? Vector3.right : Vector3.left); dist = 0.05f; }
+                push += d / Mathf.Max(dist, 0.05f) * (PersonalSpace - dist);
+            }
+            return target + push * 1.5f;
         }
 
         void TryTackleNearBall(float ballDist)

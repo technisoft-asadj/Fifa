@@ -20,7 +20,8 @@ namespace FootballSim.CameraSystem
         [SerializeField, Range(0f, 1f)] float ballWeight = 0.7f;
         [SerializeField] Vector2 pitchHalfExtents = new Vector2(30f, 45f);
 
-        Vector3 vel;
+        Vector3 vel, smoothFocus;
+        bool focusInitialised;
         float viewSign = 1f;
 
         public const string PrefKey = "camera_preset", PrefZoom = "camera_zoom";
@@ -52,6 +53,9 @@ namespace FootballSim.CameraSystem
 
         void Awake()
         {
+            // Beyond the grass the default skybox showed a flat grey-brown void; a dark stadium green looks like the run-off and the stands in shadow
+            var cam = GetComponent<Camera>();
+            if (cam != null) { cam.clearFlags = CameraClearFlags.SolidColor; cam.backgroundColor = new Color(0.07f, 0.16f, 0.1f); }
             try { SetPreset(PlayerPrefs.GetInt(PrefKey, 0), false); UserZoom = CameraFraming.ClampUser(PlayerPrefs.GetFloat(PrefZoom, 1f)); } catch { }
         }
 
@@ -89,6 +93,7 @@ namespace FootballSim.CameraSystem
             vel = Vector3.zero;
             if (ball == null) return;
             Vector3 focus = ball.position; focus.y = 0f;
+            smoothFocus = focus; focusInitialised = true;
             transform.position = focus + new Vector3(0f, height * Zoom, -distance * Zoom * viewSign);
             transform.rotation = Quaternion.LookRotation(focus - transform.position, Vector3.up);
         }
@@ -171,11 +176,14 @@ namespace FootballSim.CameraSystem
             focus.z = Mathf.Clamp(focus.z, -pitchHalfExtents.y, pitchHalfExtents.y);
             focus.y = 0f;
 
+            // Smooth the point being watched and keep the camera at a fixed offset from it. Smoothing the camera position and aiming it at the
+            // raw focus made the view tilt whenever play moved quickly (touchlines running across the screen at steep angles).
+            if (!focusInitialised) { smoothFocus = focus; focusInitialised = true; }
+            smoothFocus = Vector3.SmoothDamp(smoothFocus, focus, ref vel, smoothTime);
             float z = Zoom;
-            Vector3 desired = focus + new Vector3(0f, height * z, -distance * z * viewSign);
-            transform.position = Vector3.SmoothDamp(transform.position, desired, ref vel, smoothTime);
-            Quaternion look = Quaternion.LookRotation(focus - transform.position, Vector3.up);
-            transform.rotation = Quaternion.Slerp(transform.rotation, look, 1f - Mathf.Exp(-6f * Time.deltaTime));
+            transform.position = smoothFocus + new Vector3(0f, height * z, -distance * z * viewSign);
+            Quaternion look = Quaternion.LookRotation(smoothFocus - transform.position, Vector3.up);
+            transform.rotation = Quaternion.Slerp(transform.rotation, look, 1f - Mathf.Exp(-12f * Time.deltaTime));
         }
     }
 }

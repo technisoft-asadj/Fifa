@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace FootballSim.UI
 {
-    public enum UIIcon { Ball, Trophy, People, Shirt, Gear, Coin, Gem, Gift, Back, Home, Check, Person, Globe }
+    public enum UIIcon { Ball, Trophy, People, Shirt, Gear, Coin, Gem, Gift, Back, Home, Check, Person, Globe, Play, Close }
 
     /// <summary>
     /// The look shared by every screen: palette, plus sprites generated in code (rounded rectangle with a baked highlight, circle, vertical
@@ -244,6 +244,14 @@ namespace FootballSim.UI
                     on = roof || house;
                     break;
                 }
+                case UIIcon.Play:
+                    // a right-pointing triangle
+                    on = u > -0.5f && u < 0.7f && Mathf.Abs(v) < 0.75f * (0.7f - u) / 1.2f;
+                    break;
+                case UIIcon.Close:
+                    // a cross of two diagonal bars
+                    on = r < 0.85f && (Mathf.Abs(u - v) < 0.2f || Mathf.Abs(u + v) < 0.2f);
+                    break;
                 case UIIcon.Check:
                     on = (Mathf.Abs((v + 0.1f) + (u + 0.45f) * 1.0f) < 0.15f && u < -0.2f && u > -0.7f)
                       || (Mathf.Abs((v + 0.55f) - (u + 0.2f) * 1.1f) < 0.15f && u > -0.2f && u < 0.8f);

@@ -753,7 +753,7 @@ namespace FootballSim.Tests
                 match.OnGoal(0);
                 match.SetDurationMinutes(0.5f);
                 Time.captureFramerate = 60;
-                for (int i = 0; i < 2400 && !match.Finished; i++) yield return null;
+                for (int i = 0; i < 6000 && !match.Finished; i++) yield return null; // the clock stops during celebrations and the half-time break
                 Time.captureFramerate = 0;
                 Assert.IsTrue(match.Finished, "the match should reach full time");
                 Assert.AreEqual(1, FootballSim.Core.Tournament.Results.Count, "full time records exactly one result");
@@ -1648,7 +1648,7 @@ namespace FootballSim.Tests
                 Assert.AreEqual(FootballSim.Core.Difficulty.Professional, FootballSim.Core.MiniLeague.CurrentOpponent);
                 var panel = FindDeep(hud.transform.root, "FullTimePanel");
                 StringAssert.Contains("3 points", panel.Find("League").GetComponent<UnityEngine.UI.Text>().text);
-                StringAssert.Contains("NEXT MATCH", panel.GetComponentInChildren<UnityEngine.UI.Button>(true).GetComponentInChildren<UnityEngine.UI.Text>(true).text);
+                StringAssert.Contains("NEXT MATCH", hud.RematchButtonText);
             }
             finally
             {

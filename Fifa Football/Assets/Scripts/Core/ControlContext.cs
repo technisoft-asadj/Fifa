@@ -43,9 +43,9 @@ namespace FootballSim.Core
             switch (c)
             {
                 case ControlContext.Attack:  // with the ball: shoot and pass lead, the tackle button is not useful
-                    return new ControlLook { shoot = B("SHOOT", 1.1f), pass = B("PASS", 1.1f), tackle = B("TACKLE", 0.8f, 0.4f) };
+                    return new ControlLook { shoot = B("SHOOT", 1.1f), pass = B("PASS", 1.1f), tackle = B("TACKLE", 0.8f, 0.55f) };
                 case ControlContext.Defend:  // without the ball: win it back
-                    return new ControlLook { shoot = B("CLEAR", 0.9f, 0.7f), pass = B("PASS", 0.85f, 0.45f), tackle = B("TACKLE", 1.25f) };
+                    return new ControlLook { shoot = B("CLEAR", 0.9f, 0.8f), pass = B("PASS", 0.85f, 0.55f), tackle = B("TACKLE", 1.25f) };
                 case ControlContext.Keeper:  // the keeper's tackle button is the dive, shoot kicks the ball out
                     return new ControlLook { shoot = B("KICK", 1f), pass = B("PASS", 1f), tackle = B("DIVE", 1.25f) };
                 default:                     // loose ball: everything as normal

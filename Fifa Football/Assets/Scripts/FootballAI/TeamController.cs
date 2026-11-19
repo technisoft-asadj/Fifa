@@ -113,14 +113,67 @@ namespace FootballSim.FootballAI
         {
             UpdateChaser();
             if (!humanControlled || Controlled == null) return;
+            if (UpdateKeeperControl()) return;
 
-            if (humanInput.SwitchPressed) SetControlled(ClosestOutfielderToBall());
+            if (humanInput.SwitchPressed)
+            {
+                // the closest player to the ball; if that is already the controlled player, the next closest, so the button always does something
+                var next = ClosestOutfielderToBall();
+                if (next == Controlled) next = ClosestOutfielderToBall(Controlled);
+                SetControlled(next);
+            }
             else
             {
-                // Auto-switch when a teammate is clearly closer to a loose/opposing ball
+                // Auto-switch when a teammate is clearly closer to a loose/opposing ball; sooner when the other team has it
                 var best = ClosestOutfielderToBall();
-                if (best != Controlled && Dist(Controlled) - Dist(best) > 6f) SetControlled(best);
+                bool defending = ball.LastTouchTeam != -1 && ball.LastTouchTeam != teamId;
+                if (best != Controlled && Dist(Controlled) - Dist(best) > (defending ? 3f : 6f)) SetControlled(best);
             }
+        }
+
+        // ---- keeper hand-over: a dangerous shot at our goal puts the human on the keeper, so the DIVE and KICK buttons have a use ----
+        float keeperUntil;
+        const float KeeperTakeoverSpeed = 9f;
+
+        PlayerController Keeper()
+        {
+            foreach (var p in players) if (p.isGoalkeeper && IsOn(p)) return p;
+            return null;
+        }
+
+        bool ShotAtOurGoal()
+        {
+            if (ball.Body.isKinematic || ball.LastTouchTeam == teamId || ball.LastTouchTeam == -1) return false;
+            Vector3 v = ball.Velocity;
+            float towardGoal = v.z * -attackDir; // positive when the ball is moving at our goal line
+            if (towardGoal < KeeperTakeoverSpeed) return false;
+            float dz = OwnGoalZ - ball.Position.z;
+            if (Mathf.Abs(dz) > 30f) return false;
+            float t = dz / v.z;
+            float x = ball.Position.x + v.x * t;
+            return Mathf.Abs(x) < Pitch.GoalHalfWidth + 3f; // heading at (or near) the goal, not just a long pass
+        }
+
+        /// <summary>True while the human is the keeper (the normal switching is skipped).</summary>
+        bool UpdateKeeperControl()
+        {
+            var keeper = Keeper();
+            if (keeper == null) return false;
+            bool shot = ShotAtOurGoal();
+            if (Controlled != keeper)
+            {
+                if (!shot) return false;
+                SetControlled(keeper);
+                keeperUntil = Time.time + 2.5f;
+                return true;
+            }
+            if (shot || (Dist(keeper) < 3f && ball.Velocity.magnitude > 1f)) keeperUntil = Mathf.Max(keeperUntil, Time.time + 0.8f);
+            if (Time.time >= keeperUntil || ball.Body.isKinematic)
+            {
+                SetControlled(ClosestOutfielderToBall());
+                return false;
+            }
+            return true;
         }
 
         float Dist(PlayerController p)
@@ -128,12 +181,12 @@ namespace FootballSim.FootballAI
             Vector3 d = p.transform.position - ball.Position; d.y = 0f; return d.magnitude;
         }
 
-        PlayerController ClosestOutfielderToBall()
+        PlayerController ClosestOutfielderToBall(PlayerController exclude = null)
         {
             PlayerController best = null; float bd = float.MaxValue;
             foreach (var p in players)
             {
-                if (p.isGoalkeeper || !IsOn(p)) continue;
+                if (p.isGoalkeeper || !IsOn(p) || p == exclude) continue;
                 float d = Dist(p);
                 if (d < bd) { bd = d; best = p; }
             }

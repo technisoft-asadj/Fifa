@@ -92,6 +92,7 @@ namespace FootballSim.Inputs
             want &= running || preview; // hide during menus, except while previewing from the pause settings
             if (root.activeSelf != want) root.SetActive(want);
             if (group != null) group.blocksRaycasts = running || editing; // a preview must not swallow menu touches, but moving buttons needs them
+            if (chargeDisc != null) { float c = shoot != null && shoot.Held ? Mathf.Clamp01(shoot.HeldSeconds / 0.8f) : 0f; chargeDisc.color = new Color(1f, 0.78f, 0.1f, c * 0.8f); }
             if (running && Time.unscaledTime >= nextContextCheck) { nextContextCheck = Time.unscaledTime + 0.2f; UpdateContext(); }
         }
 
@@ -288,6 +289,22 @@ namespace FootballSim.Inputs
             SaveLayout();
         }
 
+        Image chargeDisc;
+        /// <summary>The longer Shoot is held (up to the charge time) the more the button fills with gold, so the player can see the power building.</summary>
+        void AddChargeDisc(HoldButton b)
+        {
+            var go = new GameObject("Charge", typeof(RectTransform), typeof(Image));
+            go.transform.SetParent(b.transform, false);
+            var r = (RectTransform)go.transform;
+            float size = ((RectTransform)b.transform).sizeDelta.x;
+            r.anchorMin = Vector2.zero; r.anchorMax = Vector2.one;
+            r.offsetMin = new Vector2(size * 0.06f, size * 0.06f); r.offsetMax = new Vector2(-size * 0.06f, -size * 0.06f);
+            chargeDisc = go.GetComponent<Image>();
+            chargeDisc.sprite = Circle(); chargeDisc.raycastTarget = false;
+            chargeDisc.color = new Color(1f, 0.78f, 0.1f, 0f);
+            go.transform.SetSiblingIndex(1); // above the navy disc, below the label
+        }
+
         void Rebuild()
         {
             if (canvas != null) Destroy(canvas.gameObject);
@@ -360,6 +377,7 @@ namespace FootballSim.Inputs
             float s = controlScale;
             buttons.Clear();
             shoot = Button(rt, font, "SHOOT", Core.TouchButtonId.Shoot, s, new Color(1f, 0.72f, 0.12f));
+            AddChargeDisc(shoot);
             pass = Button(rt, font, "PASS", Core.TouchButtonId.Pass, s, new Color(0.3f, 0.75f, 1f));
             tackle = Button(rt, font, "TACKLE", Core.TouchButtonId.Tackle, s, new Color(0.95f, 0.3f, 0.3f));
             switchBtn = Button(rt, font, "SWITCH", Core.TouchButtonId.Switch, s, new Color(0.7f, 0.6f, 1f));
@@ -557,6 +575,9 @@ namespace FootballSim.Inputs
     {
         bool pressLatch, releaseLatch;
         public bool Held { get; private set; }
+        /// <summary>Seconds the button has been held down (0 when not held).</summary>
+        public float HeldSeconds { get; private set; }
+        void Update() { if (Held) HeldSeconds += Time.unscaledDeltaTime; }
         /// <summary>While the buttons are being moved they must not act.</summary>
         public bool Locked;
         /// <summary>Called on a real press (the buzz).</summary>
@@ -570,10 +591,10 @@ namespace FootballSim.Inputs
         public void Press()
         {
             if (Locked) return;
-            Held = true; pressLatch = true;
+            Held = true; pressLatch = true; HeldSeconds = 0f;
             if (OnPressed != null) OnPressed();
         }
-        public void Release() { if (!Held) return; Held = false; releaseLatch = true; }
+        public void Release() { if (!Held) return; Held = false; releaseLatch = true; HeldSeconds = 0f; }
 
         public bool ConsumePress() { var v = pressLatch; pressLatch = false; return v; }
         public bool ConsumeRelease() { var v = releaseLatch; releaseLatch = false; return v; }

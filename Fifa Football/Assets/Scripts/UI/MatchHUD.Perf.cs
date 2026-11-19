@@ -57,6 +57,11 @@ namespace FootballSim.UI
 
         void UpdatePerf()
         {
+            if (fpsText != null)
+            {
+                bool want = showFps && !MainMenuOpen; // the main menu's Play button sits under the readout
+                if (fpsText.gameObject.activeSelf != want) fpsText.gameObject.SetActive(want);
+            }
             if (!showFps || fpsText == null) return;
             frameStats.Add(Time.unscaledDeltaTime);
             float now = Time.unscaledTime;

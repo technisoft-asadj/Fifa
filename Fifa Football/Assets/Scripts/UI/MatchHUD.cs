@@ -72,7 +72,7 @@ namespace FootballSim.UI
             }
             SetHomeKit(selectedKit, false); // players are built by now (Awake order is undefined), so colour them
             ApplySavedGraphics();
-            if (OpenSetupDirectly) { OpenSetupDirectly = false; ShowStart(); } // rematch / restart / next match: straight to match setup
+            if (OpenSetupDirectly) { OpenSetupDirectly = false; if (mainMenu != null) mainMenu.SetActive(false); ShowStart(); } // rematch / restart / next match: straight to match setup
             else if (!SplashShown) ShowSplash();
             else ShowMainMenu();
         }
@@ -127,7 +127,7 @@ namespace FootballSim.UI
         }
 
         // ---- match events ----
-        void OnHalfTime() { Banner($"HALF TIME  {match.HomeScore} - {match.AwayScore}", MatchManager.HalfTimeSeconds - 0.5f); }
+        void OnHalfTime() { Banner($"HALF TIME  {match.HomeScore} - {match.AwayScore}\n<size=60%>Teams change ends</size>", MatchManager.HalfTimeSeconds - 0.5f); }
 
         void OnGoal(int team)
         {
@@ -250,6 +250,14 @@ namespace FootballSim.UI
             foreach (var p in homeTeam.players) if (!p.isGoalkeeper) p.SetGrowth(level);
         }
 
+        /// <summary>Leave the match for the main menu (from the pause panel or the full-time panel). Reloads the scene so the next match starts clean.</summary>
+        void GoToMainMenu()
+        {
+            OpenSetupDirectly = false;
+            Time.timeScale = 1f;
+            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+        }
+
         void Rematch()
         {
             if (MiniLeague.Finished) MiniLeague.Start(); // "NEW LEAGUE"
@@ -333,7 +341,9 @@ namespace FootballSim.UI
         Image[] kitRings, modeCards;
         /// <summary>The "+coins +XP" line on the full-time panel (test hook).</summary>
         public string EarnedText => earnedText != null ? earnedText.text : "";
-        Text rematchLabel;
+        TMPro.TMP_Text rematchLabel;
+        /// <summary>The text on the full-time screen's main button (test hook).</summary>
+        public string RematchButtonText => rematchLabel != null ? rematchLabel.text : "";
 
         /// <summary>Switch between a single match and the three-match mini-league (see MiniLeague).</summary>
         public void ToggleLeagueMode()
@@ -465,7 +475,7 @@ namespace FootballSim.UI
             // Start panel
             startPanel = Glassify(Rect("StartPanel", root, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(900, 1000), Panel).gameObject);
             var st = startPanel.transform;
-            var title = Label("Title", st, 72, TextAnchor.MiddleCenter, new Vector2(0, 320), new Vector2(860, 100)); title.text = "FOOTBALL SIMULATOR"; title.fontStyle = FontStyle.Bold;
+            var title = Label("Title", st, 72, TextAnchor.MiddleCenter, new Vector2(0, 320), new Vector2(860, 100)); title.text = "SOCCER FIGHT"; title.fontStyle = FontStyle.Bold;
             var sub = Label("Sub", st, 30, TextAnchor.MiddleCenter, new Vector2(0, 245), new Vector2(860, 50)); sub.text = "Kick-Off  -  Home vs Away";
             subtitleLabel = sub;
             var btnCol = new Color(0.2f, 0.3f, 0.45f);
@@ -532,9 +542,10 @@ namespace FootballSim.UI
             BuildFpsReadout(root);
 
             // Full-time panel
-            fullTimePanel = Glassify(Rect("FullTimePanel", root, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(900, 700), Panel).gameObject);
-            var ft = fullTimePanel.transform;
-            var ftTitle = Label("FT", ft, 72, TextAnchor.MiddleCenter, new Vector2(0, 270), new Vector2(860, 100)); ftTitle.text = "FULL TIME"; ftTitle.fontStyle = FontStyle.Bold;
+            var ftGlass = UIKit.GlassPanel(root, "FullTimePanel", UIKit.Center, Vector2.zero, new Vector2(900, 700), true, 0.95f);
+            fullTimePanel = ftGlass.parent.gameObject; // the rim holds the glass, so hiding it hides both
+            var ft = ftGlass;
+            var ftTitle = Label("FT", ft, 72, TextAnchor.MiddleCenter, new Vector2(0, 270), new Vector2(860, 100)); ftTitle.text = "FULL TIME"; ftTitle.fontStyle = FontStyle.Bold; ftTitle.color = UITheme.Gold;
             // Vertical budget (panel is 700 high): title, result, goal lines (<=5 lines), five stat lines, button. Nothing overlaps.
             resultText = Label("Result", ft, 48, TextAnchor.MiddleCenter, new Vector2(0, 190), new Vector2(860, 70));
             goalsText = Label("Goals", ft, 22, TextAnchor.MiddleCenter, new Vector2(0, 105), new Vector2(860, 130));
@@ -545,28 +556,24 @@ namespace FootballSim.UI
             leagueText.color = new Color(1f, 0.9f, 0.4f);
             earnedText = Label("Earned", ft, 28, TextAnchor.MiddleCenter, new Vector2(0, -322), new Vector2(860, 40));
             earnedText.color = UITheme.Gold; earnedText.fontStyle = FontStyle.Bold;
-            var rematchButton = Button(ft, "REMATCH", new Vector2(0, -250), new Vector2(420, 110), Rematch, Accent);
-            rematchLabel = rematchButton.GetComponentInChildren<Text>();
+            var rematchButton = UIKit.SmallButton(ft, "REMATCH", UITheme.Blue, UIKit.Center, new Vector2(-215, -250), new Vector2(400, 110), Rematch, 46f);
+            UIKit.SmallButton(ft, "MENU", UITheme.Slate, UIKit.Center, new Vector2(215, -250), new Vector2(400, 110), GoToMainMenu, 46f);
+            rematchLabel = rematchButton.GetComponentInChildren<TMPro.TMP_Text>();
             fullTimePanel.SetActive(false);
 
             // Pause button (top-right) and pause panel with touch-control settings
             var pb = Button(root, "II", new Vector2(-150, -70), new Vector2(100, 90), TogglePause, new Color(0.05f, 0.08f, 0.12f, 0.7f));
             pb.anchorMin = pb.anchorMax = new Vector2(1f, 1f);
             pauseButton = pb.gameObject;
-            pausePanel = Glassify(Rect("PausePanel", root, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 40), new Vector2(820, 600), Panel).gameObject);
-            var pp = pausePanel.transform;
-            var pTitle = Label("Paused", pp, 64, TextAnchor.MiddleCenter, new Vector2(0, 230), new Vector2(780, 90)); pTitle.text = "PAUSED"; pTitle.fontStyle = FontStyle.Bold;
-            touchScaleLabel = Label("TouchScale", pp, 32, TextAnchor.MiddleCenter, new Vector2(0, 130), new Vector2(520, 50));
-            Button(pp, "-", new Vector2(-330, 130), new Vector2(90, 70), () => AdjustTouch(-0.1f, 0f), btnCol);
-            Button(pp, "+", new Vector2(330, 130), new Vector2(90, 70), () => AdjustTouch(0.1f, 0f), btnCol);
-            touchOpacityLabel = Label("TouchOpacity", pp, 32, TextAnchor.MiddleCenter, new Vector2(0, 30), new Vector2(520, 50));
-            Button(pp, "-", new Vector2(-330, 30), new Vector2(90, 70), () => AdjustTouch(0f, -0.1f), btnCol);
-            Button(pp, "+", new Vector2(330, 30), new Vector2(90, 70), () => AdjustTouch(0f, 0.1f), btnCol);
-            Button(pp, "RESUME", new Vector2(-205, -120), new Vector2(370, 90), TogglePause, Accent);
-            var soundBtn = Button(pp, "", new Vector2(205, -120), new Vector2(370, 90), ToggleSound, btnCol);
-            soundLabel = soundBtn.GetComponentInChildren<Text>();
-            RefreshSoundLabel();
-            Button(pp, "RESTART", new Vector2(0, -230), new Vector2(420, 80), Rematch, btnCol);
+            // the pause menu of the reference design: four big icon buttons (button size, opacity and sound live in Settings)
+            var pauseGlass = UIKit.GlassPanel(root, "PausePanel", UIKit.Center, Vector2.zero, new Vector2(720, 800), true, 0.95f);
+            pausePanel = pauseGlass.parent.gameObject;
+            var pp = pauseGlass;
+            UIKit.TextAt(pp, "Paused", "Paused", 76f, Color.white, UIKit.Center, new Vector2(0f, 300f), new Vector2(600f, 100f), TMPro.TextAlignmentOptions.Center, true);
+            UIKit.MenuButton(pp, "Resume", UIIcon.Play, UITheme.Blue, UIKit.Center, new Vector2(0f, 150f), new Vector2(580f, 120f), TogglePause, false, 50f);
+            UIKit.MenuButton(pp, "Settings", UIIcon.Gear, UITheme.Blue, UIKit.Center, new Vector2(0f, 10f), new Vector2(580f, 120f), PauseSettings, false, 50f);
+            UIKit.MenuButton(pp, "Main Menu", UIIcon.Home, UITheme.Blue, UIKit.Center, new Vector2(0f, -130f), new Vector2(580f, 120f), GoToMainMenu, false, 50f);
+            UIKit.MenuButton(pp, "Restart", UIIcon.Close, UITheme.Red, UIKit.Center, new Vector2(0f, -270f), new Vector2(580f, 120f), Rematch, false, 50f);
             pausePanel.SetActive(false);
         }
 
@@ -606,6 +613,11 @@ namespace FootballSim.UI
         }
 
         Text soundLabel;
+        bool pausedOverSettings;
+        /// <summary>Settings opened from the pause menu: the pause panel steps aside and comes back when Settings closes.</summary>
+        void PauseSettings() { pausePanel.SetActive(false); pausedOverSettings = true; MenuSettings(); }
+        /// <summary>Called when Settings closes: brings the pause menu back if that is where Settings was opened from.</summary>
+        void RestorePauseAfterSettings() { if (!pausedOverSettings) return; pausedOverSettings = false; pausePanel.SetActive(true); }
         public void ToggleSound() { FootballSim.Audio.MatchAudio.SoundOn = !FootballSim.Audio.MatchAudio.SoundOn; RefreshSoundLabel(); }
         void RefreshSoundLabel() { if (soundLabel != null) soundLabel.text = FootballSim.Audio.MatchAudio.SoundOn ? "SOUND: ON" : "SOUND: OFF"; }
 
@@ -621,8 +633,8 @@ namespace FootballSim.UI
         void RefreshTouchLabels()
         {
             var tc = Touch();
-            touchScaleLabel.text = tc == null ? "Touch controls: none" : $"Button size: {tc.controlScale * 100f:0}%";
-            touchOpacityLabel.text = tc == null ? "" : $"Button opacity: {tc.controlOpacity * 100f:0}%";
+            if (touchScaleLabel != null) touchScaleLabel.text = tc == null ? "Touch controls: none" : $"Button size: {tc.controlScale * 100f:0}%";
+            if (touchOpacityLabel != null) touchOpacityLabel.text = tc == null ? "" : $"Button opacity: {tc.controlOpacity * 100f:0}%";
         }
 
         RectTransform Rect(string name, Transform parent, Vector2 anchorMin, Vector2 anchorMax, Vector2 pos, Vector2 size, Color color)
