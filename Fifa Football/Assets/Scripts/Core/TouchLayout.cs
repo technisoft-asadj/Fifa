@@ -93,6 +93,15 @@ namespace FootballSim.Core
     {
         public const float MinSensitivity = 0.6f, MaxSensitivity = 1.6f;
 
+        /// <summary>Pushing the stick this far (0 to 1) makes the player sprint without holding the sprint button; easing off below the lower value goes back to a jog.</summary>
+        public const float AutoSprintOn = 0.85f, AutoSprintOff = 0.6f;
+
+        /// <summary>The next auto-sprint state: it switches on at a nearly full push and off only well below that, so a thumb resting near the edge does not flicker.</summary>
+        public static bool AutoSprint(bool wasSprinting, float stickMagnitude)
+        {
+            return wasSprinting ? stickMagnitude >= AutoSprintOff : stickMagnitude >= AutoSprintOn;
+        }
+
         public static float ClampSensitivity(float s) { return Mathf.Clamp(s, MinSensitivity, MaxSensitivity); }
 
         /// <summary>The stick value the game sees for a raw stick position (length 0 to 1) at the given sensitivity.</summary>

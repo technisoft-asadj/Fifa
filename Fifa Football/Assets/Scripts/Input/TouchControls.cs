@@ -26,9 +26,12 @@ namespace FootballSim.Inputs
         public float stickSensitivity = 1f;
         /// <summary>A short buzz on the action buttons (phones only).</summary>
         public bool haptics = true;
+        /// <summary>A nearly full push on the stick sprints (the sprint button still works); a lighter push jogs. On by default so a phone player is not stuck at jog speed.</summary>
+        public bool autoSprint = true;
+        bool autoSprinting;
 
         public const string PrefScale = "touch.scale", PrefOpacity = "touch.opacity", PrefLeft = "touch.left", PrefFixed = "touch.fixed";
-        public const string PrefSens = "touch.sens", PrefHaptics = "touch.haptics", PrefPositions = "touch.pos";
+        public const string PrefSens = "touch.sens", PrefHaptics = "touch.haptics", PrefPositions = "touch.pos", PrefAuto = "touch.auto";
 
         // buttons the player has moved (right-handed positions; the rest sit at their defaults)
         System.Collections.Generic.Dictionary<Core.TouchButtonId, Vector2> custom = new System.Collections.Generic.Dictionary<Core.TouchButtonId, Vector2>();
@@ -47,7 +50,8 @@ namespace FootballSim.Inputs
         // ---- IPlayerInput ----
         public Vector2 Move => IsVisible ? joystick.Value : Vector2.zero;
         public bool MoveIsWorldSpace => false;
-        public bool Sprint => IsVisible && sprint.Held;
+        public bool Sprint => IsVisible && (sprint.Held || autoSprinting);
+        public bool AutoSprinting => autoSprinting;
         public bool PassPressed => pass.ConsumePress();
         public bool ShootHeld => shoot.Held;
         public bool ShootReleased => shoot.ConsumeRelease();
@@ -72,6 +76,7 @@ namespace FootballSim.Inputs
                 fixedStick = PlayerPrefs.GetInt(PrefFixed, fixedStick ? 1 : 0) == 1;
                 stickSensitivity = Core.TouchTuning.ClampSensitivity(PlayerPrefs.GetFloat(PrefSens, stickSensitivity));
                 haptics = PlayerPrefs.GetInt(PrefHaptics, haptics ? 1 : 0) == 1;
+                autoSprint = PlayerPrefs.GetInt(PrefAuto, autoSprint ? 1 : 0) == 1;
                 custom = Core.TouchLayout.Parse(PlayerPrefs.GetString(PrefPositions, ""));
             }
             catch { /* prefs unavailable: use defaults */ }
@@ -83,6 +88,7 @@ namespace FootballSim.Inputs
         {
             bool want = forceShow || Application.isMobilePlatform || Touchscreen.current != null;
             bool running = Time.timeScale > 0f;
+            autoSprinting = autoSprint && root.activeSelf && joystick != null && Core.TouchTuning.AutoSprint(autoSprinting, joystick.Value.magnitude);
             want &= running || preview; // hide during menus, except while previewing from the pause settings
             if (root.activeSelf != want) root.SetActive(want);
             if (group != null) group.blocksRaycasts = running || editing; // a preview must not swallow menu touches, but moving buttons needs them
@@ -157,11 +163,11 @@ namespace FootballSim.Inputs
         public void ResetToDefaults()
         {
             controlScale = 1f; controlOpacity = 0.6f; leftHanded = false; fixedStick = false;
-            stickSensitivity = 1f; haptics = true; custom.Clear();
+            stickSensitivity = 1f; haptics = true; autoSprint = true; custom.Clear();
             try
             {
                 PlayerPrefs.DeleteKey(PrefScale); PlayerPrefs.DeleteKey(PrefOpacity); PlayerPrefs.DeleteKey(PrefLeft); PlayerPrefs.DeleteKey(PrefFixed);
-                PlayerPrefs.DeleteKey(PrefSens); PlayerPrefs.DeleteKey(PrefHaptics); PlayerPrefs.DeleteKey(PrefPositions); PlayerPrefs.Save();
+                PlayerPrefs.DeleteKey(PrefSens); PlayerPrefs.DeleteKey(PrefHaptics); PlayerPrefs.DeleteKey(PrefAuto); PlayerPrefs.DeleteKey(PrefPositions); PlayerPrefs.Save();
             }
             catch { }
             Rebuild();
@@ -173,6 +179,13 @@ namespace FootballSim.Inputs
             stickSensitivity = Core.TouchTuning.ClampSensitivity(sensitivity); haptics = buzz;
             try { PlayerPrefs.SetFloat(PrefSens, stickSensitivity); PlayerPrefs.SetInt(PrefHaptics, buzz ? 1 : 0); PlayerPrefs.Save(); } catch { }
             if (joystick != null) joystick.Sensitivity = stickSensitivity;
+        }
+
+        /// <summary>Persist and apply auto-sprint on a full stick push.</summary>
+        public void SetAutoSprint(bool on)
+        {
+            autoSprint = on; if (!on) autoSprinting = false;
+            try { PlayerPrefs.SetInt(PrefAuto, on ? 1 : 0); PlayerPrefs.Save(); } catch { }
         }
 
         // ---- moving the buttons ----

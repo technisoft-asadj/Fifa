@@ -20,7 +20,7 @@ namespace FootballSim.UI
         GameObject mainMenu, settingsPanel, controlsPanel, careerPanel;
         TextMeshProUGUI settingsCamera, careerText;
         FootballSim.CameraSystem.BroadcastCamera cam;
-        TextMeshProUGUI ctlStyle, ctlHand, ctlSize, ctlOpacity, ctlSens, ctlBuzz;
+        TextMeshProUGUI ctlStyle, ctlHand, ctlSize, ctlOpacity, ctlSens, ctlBuzz, ctlAuto;
         GameObject moveBar;
         TextMeshProUGUI menuName, menuLevel,menuXp, menuCoins, dailySub, settingsSound, settingsSize, settingsOpacity, settingsQuality, settingsFps, settingsReset;
         RectTransform xpFill;
@@ -249,13 +249,14 @@ namespace FootballSim.UI
             controlsPanel = p.parent.gameObject;
             UIKit.TextAt(p, "Title", "CONTROLS", 64f, Color.white, UIKit.Center, new Vector2(0f, 350f), new Vector2(700f, 90f), TextAlignmentOptions.Center, true);
             UIKit.SmallButton(p, "< Back", UITheme.Slate, UIKit.TopLeft, new Vector2(30f, -30f), new Vector2(190f, 72f), CloseControls, 34f);
-            Row(p, "Stick", 245f, out ctlStyle, ToggleStick, "CHANGE");
-            Row(p, "Hand", 155f, out ctlHand, ToggleHand, "CHANGE");
-            RowPlusMinus(p, "Button size", 65f, out ctlSize, () => AdjustTouch(-0.1f, 0f), () => AdjustTouch(0.1f, 0f), UITheme.BlueDark);
-            RowPlusMinus(p, "Opacity", -25f, out ctlOpacity, () => AdjustTouch(0f, -0.1f), () => AdjustTouch(0f, 0.1f), UITheme.BlueDark);
-            RowPlusMinus(p, "Stick response", -115f, out ctlSens, () => AdjustSensitivity(-0.1f), () => AdjustSensitivity(0.1f), UITheme.BlueDark);
-            Row(p, "Vibration", -205f, out ctlBuzz, ToggleBuzz, "CHANGE");
-            UIKit.TextAt(p, "Note", "The real buttons show at the sides of the screen while you change them.", 28f, UITheme.Muted, UIKit.Center, new Vector2(0f, -275f), new Vector2(1000f, 40f));
+            Row(p, "Stick", 250f, out ctlStyle, ToggleStick, "CHANGE");
+            Row(p, "Hand", 170f, out ctlHand, ToggleHand, "CHANGE");
+            RowPlusMinus(p, "Button size", 90f, out ctlSize, () => AdjustTouch(-0.1f, 0f), () => AdjustTouch(0.1f, 0f), UITheme.BlueDark);
+            RowPlusMinus(p, "Opacity", 10f, out ctlOpacity, () => AdjustTouch(0f, -0.1f), () => AdjustTouch(0f, 0.1f), UITheme.BlueDark);
+            RowPlusMinus(p, "Stick response", -70f, out ctlSens, () => AdjustSensitivity(-0.1f), () => AdjustSensitivity(0.1f), UITheme.BlueDark);
+            Row(p, "Vibration", -150f, out ctlBuzz, ToggleBuzz, "CHANGE");
+            Row(p, "Auto sprint", -230f, out ctlAuto, ToggleAuto, "CHANGE");
+            UIKit.TextAt(p, "Note", "Auto sprint: push the stick all the way to run. The real buttons show while you change them.", 26f, UITheme.Muted, UIKit.Center, new Vector2(0f, -292f), new Vector2(1040f, 36f));
             UIKit.SmallButton(p, "Move buttons", UITheme.Blue, UIKit.Center, new Vector2(-280f, -365f), new Vector2(480f, 80f), StartMovingButtons, 34f);
             UIKit.SmallButton(p, "Reset controls", UITheme.Red, UIKit.Center, new Vector2(280f, -365f), new Vector2(480f, 80f), ResetControls, 34f);
             controlsPanel.SetActive(false);
@@ -305,6 +306,8 @@ namespace FootballSim.UI
             RefreshControls();
         }
 
+        public void ToggleAuto() { var tc = Touch(); if (tc == null) return; tc.SetAutoSprint(!tc.autoSprint); RefreshControls(); }
+
         public void ToggleBuzz() { var tc = Touch(); if (tc == null) return; tc.SetTuning(tc.stickSensitivity, !tc.haptics); RefreshControls(); }
 
         public void ToggleStick() { var tc = Touch(); if (tc == null) return; tc.SetLayout(tc.leftHanded, !tc.fixedStick); RefreshControls(); }
@@ -321,6 +324,7 @@ namespace FootballSim.UI
             ctlOpacity.text = tc == null ? "-" : $"{tc.controlOpacity * 100f:0}%";
             ctlSens.text = tc == null ? "-" : $"{tc.stickSensitivity * 100f:0}%";
             ctlBuzz.text = tc == null ? "-" : tc.haptics ? "On" : "Off";
+            ctlAuto.text = tc == null ? "-" : tc.autoSprint ? "On" : "Off";
         }
 
         void Row(RectTransform parent, string label, float y, out TextMeshProUGUI value, UnityEngine.Events.UnityAction onClick, string button)

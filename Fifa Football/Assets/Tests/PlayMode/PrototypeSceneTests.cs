@@ -962,6 +962,39 @@ namespace FootballSim.Tests
         }
 
         [UnityTest]
+        public IEnumerator AFullStickPushSprintsByItselfAndTheSettingTurnsItOff()
+        {
+            yield return LoadScene();
+            var touch = Object.FindFirstObjectByType<FootballSim.Inputs.TouchControls>();
+            touch.forceShow = true;
+            Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>().BeginMatch();
+            yield return null; yield return null;
+            try
+            {
+                touch.ResetToDefaults();
+                Assert.IsTrue(touch.autoSprint, "on by default");
+                touch.StickForTest.SetValueForTest(new Vector2(0f, 0.5f));
+                yield return null;
+                Assert.IsFalse(touch.Sprint, "half a push jogs");
+                touch.StickForTest.SetValueForTest(new Vector2(0f, 1f));
+                yield return null;
+                Assert.IsTrue(touch.Sprint, "a full push sprints without holding the button");
+                touch.StickForTest.SetValueForTest(new Vector2(0f, 0.7f));
+                yield return null;
+                Assert.IsTrue(touch.Sprint, "a small sag keeps it");
+                touch.StickForTest.SetValueForTest(Vector2.zero);
+                yield return null;
+                Assert.IsFalse(touch.Sprint, "letting go stops it");
+                touch.SetAutoSprint(false);
+                touch.StickForTest.SetValueForTest(new Vector2(0f, 1f));
+                yield return null;
+                Assert.IsFalse(touch.Sprint, "off: only the sprint button sprints");
+                Assert.AreEqual(0, PlayerPrefs.GetInt(FootballSim.Inputs.TouchControls.PrefAuto, 1), "the choice is saved");
+            }
+            finally { touch.StickForTest.SetValueForTest(Vector2.zero); touch.ResetToDefaults(); }
+        }
+
+        [UnityTest]
         public IEnumerator MovedButtonsStayWhereTheyWereDroppedAcrossRebuildsHandsAndRestarts()
         {
             yield return LoadScene();

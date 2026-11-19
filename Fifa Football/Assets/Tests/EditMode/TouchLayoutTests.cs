@@ -88,6 +88,17 @@ namespace FootballSim.Tests
         }
 
         [Test]
+        public void ANearlyFullPushSprintsAndEasingOffWellBelowItStops()
+        {
+            Assert.IsFalse(TouchTuning.AutoSprint(false, 0.5f), "a light push jogs");
+            Assert.IsFalse(TouchTuning.AutoSprint(false, 0.8f), "not yet");
+            Assert.IsTrue(TouchTuning.AutoSprint(false, 0.9f), "a nearly full push sprints");
+            Assert.IsTrue(TouchTuning.AutoSprint(true, 0.7f), "once sprinting, a thumb that sags a little keeps sprinting");
+            Assert.IsFalse(TouchTuning.AutoSprint(true, 0.4f), "easing right off goes back to a jog");
+            Assert.IsFalse(TouchTuning.AutoSprint(true, 0f));
+        }
+
+        [Test]
         public void SensitivityKeepsTheDirectionOfTheThumb()
         {
             var v = TouchTuning.Shape(new Vector2(0.3f, 0.3f), 1.4f);
