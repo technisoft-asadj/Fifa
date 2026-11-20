@@ -32,7 +32,8 @@ namespace FootballSim.UI
         /// <summary>Where a world position lands on the radar, relative to its centre; the map is turned when the camera looks the other way.</summary>
         public static Vector2 Map(Vector3 world, Vector2 radarSize, float viewSign)
         {
-            return new Vector2(world.x * viewSign / PitchSize.x * radarSize.x, world.z * viewSign / PitchSize.y * radarSize.y);
+            // the radar matches the main picture: the pitch lies across it, the user's team attacks to the right, the far touchline is at the top
+            return new Vector2(world.z * viewSign / PitchSize.y * radarSize.x, -world.x * viewSign / PitchSize.x * radarSize.y);
         }
 
         public static MiniRadar Create(Transform parent, Vector2 size, Vector2 anchoredPos)
@@ -48,7 +49,7 @@ namespace FootballSim.UI
             var r = go.AddComponent<MiniRadar>();
             r.area = rt;
             // halfway line and centre circle so the map reads as a pitch
-            Line(rt, "Halfway", new Vector2(size.x, 2f), Vector2.zero);
+            Line(rt, "Halfway", new Vector2(2f, size.y), Vector2.zero);
             var circle = Dot(rt, "Centre", Mathf.Min(size.x, size.y) * 0.30f, new Color(1f, 1f, 1f, 0.18f)); circle.rectTransform.anchoredPosition = Vector2.zero;
             r.dots = new Image[22];
             for (int i = 0; i < r.dots.Length; i++) r.dots[i] = Dot(rt, "P" + i, 11f, Color.white);

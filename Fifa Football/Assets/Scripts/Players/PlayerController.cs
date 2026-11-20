@@ -40,6 +40,7 @@ namespace FootballSim.Players
         /// <summary>Seconds this player is held still for a goal reaction (set only when the animated body plays one).</summary>
         public float HoldStill { get; set; }
         IPlayerInput input;
+        bool human;
 
         /// <summary>0..1; sprinting drains it. When it hits 0 the player jogs until it recovers to 25%.</summary>
         public float Stamina { get; set; } = 1f;
@@ -77,7 +78,11 @@ namespace FootballSim.Players
         {
             input = newInput;
             shootCharge = 0f;
+            if (human && !humanControlled) PassGuide.Hide();
+            human = humanControlled;
             if (controlMarker) controlMarker.SetActive(humanControlled);
+            if (humanControlled) ControlRing.On(transform).gameObject.SetActive(true);
+            else { var ring = transform.Find("ControlRing"); if (ring != null) ring.gameObject.SetActive(false); }
             if (visual != null) visual.SetControlled(humanControlled);
         }
 
@@ -97,6 +102,7 @@ namespace FootballSim.Players
             tackleCooldown -= Time.deltaTime;
             Locomotion();
             BallInteraction();
+            if (human) UpdatePassGuide();
             if (input.TacklePressed) TryTackle();
             if (isGoalkeeper) TrySave();
         }
@@ -340,6 +346,33 @@ namespace FootballSim.Players
             }
         }
 
+        /// <summary>
+        /// The team-mate a pass would go to now, or -1. The stick chooses: the mate nearest the direction it points (a mate in the way he is
+        /// running or facing when the stick is untouched). <paramref name="aim"/> is that direction. Used by the pass itself and by the guide
+        /// that shows the user the receiver before the button is pressed, so the two always agree.
+        /// </summary>
+        int FindReceiver(out Vector3 aim)
+        {
+            Vector3 push = InputDirection();
+            if (push.sqrMagnitude > 0.09f) aim = push;
+            else aim = planarVelocity.sqrMagnitude > 0.5f ? planarVelocity : transform.forward;
+            aim.y = 0f;
+            aim.Normalize();
+            CollectMates();
+            return AimAssist.PickPassTarget(transform.position, aim, mateSpots);
+        }
+
+        /// <summary>While the user's player has the ball at his feet, a ring and a line show who the pass would reach.</summary>
+        void UpdatePassGuide()
+        {
+            if (isGoalkeeper || ball == null || !isActiveAndEnabled) { PassGuide.Hide(); return; }
+            Vector3 toBall = ball.Position - transform.position; toBall.y = 0f;
+            if (toBall.magnitude > 2.2f) { PassGuide.Hide(); return; }
+            int i = FindReceiver(out _);
+            if (i < 0) PassGuide.Hide();
+            else PassGuide.Show(transform.position, mateList[i].transform.position);
+        }
+
         void Strike(float power, float maxSpeed, float inaccuracyDeg, float loft, bool shot = false)
         {
             Vector3 aim = input.AimWorld;
@@ -347,16 +380,20 @@ namespace FootballSim.Players
             bool assisted = aim.sqrMagnitude < 0.01f; // touch controls have no aim stick: help the player
             if (assisted)
             {
-                Vector3 push = InputDirection();
-                if (push.sqrMagnitude > 0.09f) aim = push;
-                else aim = planarVelocity.sqrMagnitude > 0.5f ? planarVelocity : transform.forward;
-                aim.y = 0f;
-                aim.Normalize();
-                if (shot) aim = AimAssist.ShotDirection(transform.position, aim, AttackSign(), Pitch.GoalHalfWidth);
+                // the user's own stick sets the direction of the kick exactly; help only when the stick is untouched
+                bool stickAimed = InputDirection().sqrMagnitude > 0.09f;
+                if (shot)
+                {
+                    Vector3 push = InputDirection();
+                    if (stickAimed) aim = push;
+                    else aim = planarVelocity.sqrMagnitude > 0.5f ? planarVelocity : transform.forward;
+                    aim.y = 0f;
+                    aim.Normalize();
+                    if (!stickAimed) aim = AimAssist.ShotDirection(transform.position, aim, AttackSign(), Pitch.GoalHalfWidth);
+                }
                 else
                 {
-                    CollectMates();
-                    int i = AimAssist.PickPassTarget(transform.position, aim, mateSpots);
+                    int i = FindReceiver(out aim);
                     if (i >= 0)
                     {
                         Vector3 to = mateSpots[i] - transform.position; to.y = 0f;

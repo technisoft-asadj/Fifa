@@ -37,43 +37,39 @@ namespace FootballSim.UI
 
         void BuildOnlinePanel(RectTransform root, Color btnCol)
         {
-            onlinePanel = MatchHUD.Glassify(Rect("OnlinePanel", root, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1560, 760), new Color(0.05f, 0.08f, 0.12f, 1f)).gameObject);
-            var op = onlinePanel.transform;
-            var onlineFill = onlinePanel.GetComponent<Image>(); var oc = onlineFill.color; oc.a = 1f; onlineFill.color = oc; // opaque: it sits over the main menu
-            var title = Label("OnlineTitle", op, 66, TextAnchor.MiddleCenter, new Vector2(0, 312), new Vector2(900, 90)); title.text = "PLAY ONLINE"; title.fontStyle = FontStyle.Bold; title.color = UITheme.Gold;
-            var note = Label("OnlineNote", op, 28, TextAnchor.MiddleCenter, new Vector2(0, 250), new Vector2(1000, 44));
-            note.text = "Play a friend or a stranger anywhere in the world."; note.color = UITheme.Muted;
-            Button(op, "BACK", new Vector2(-650, 312), new Vector2(200, 64), CloseOnline, btnCol).GetComponentInChildren<Text>().fontSize = 28;
-            var divider = UIKit.Image(op, "Divider", UITheme.Rounded, new Color(1f, 1f, 1f, 0.14f), false, false);
-            divider.rectTransform.anchorMin = divider.rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
-            divider.rectTransform.anchoredPosition = new Vector2(0f, -30f); divider.rectTransform.sizeDelta = new Vector2(3f, 400f);
+            var op = UIKit.Screen(root, "OnlinePanel", new Vector2(SettingsW, SettingsH), "Play Online", UIIcon.Globe, CloseOnline, CloseOnline, out onlinePanel);
 
-            // left: over the internet. Quick match with anyone, or a room code shared with a friend
-            var netLabel = Label("NetLabel", op, 32, TextAnchor.MiddleCenter, new Vector2(-400, 190), new Vector2(700, 44)); netLabel.text = "Over the internet"; netLabel.color = UITheme.Gold;
-            Button(op, "QUICK MATCH", new Vector2(-400, 110), new Vector2(560, 100), QuickMatchOnline, Accent);
-            Button(op, "CREATE ROOM", new Vector2(-400, 0), new Vector2(560, 88), CreateRoomOnline, btnCol);
-            var codeLabel = Label("CodeLabel", op, 26, TextAnchor.MiddleCenter, new Vector2(-400, -76), new Vector2(700, 36)); codeLabel.text = "Have a room code?";
-            codeLabel.color = new Color(1, 1, 1, 0.75f);
-            roomCodeField = BuildAddressField(op, new Vector2(-545, -142), new Vector2(290, 80), "ROOM CODE", 8, TouchScreenKeyboardType.ASCIICapable, false);
-            Button(op, "JOIN ROOM", new Vector2(-255, -142), new Vector2(270, 80), () => JoinRoomOnline(roomCodeField.text), btnCol);
-            // a created room: the code shows here until the host starts the match
-            onlineInfo = Label("OnlineInfo", op, 40, TextAnchor.MiddleCenter, new Vector2(-400, -225), new Vector2(700, 56));
-            onlineInfo.color = UITheme.Gold; onlineInfo.fontStyle = FontStyle.Bold;
-            roomStartButton = Button(op, "START MATCH", new Vector2(-400, -300), new Vector2(420, 66), StartRoomMatch, Accent).gameObject;
+            // three cards: Quick Match, Create Room, Join Room
+            OnlineCard(op, 0, UIIcon.Bolt, UITheme.Gold, "Quick Match", "Find a match instantly", "Play Now", true, QuickMatchOnline);
+            OnlineCard(op, 1, UIIcon.People, new Color(0.45f, 0.75f, 1f), "Create Room", "Create your own room", "Create", false, CreateRoomOnline);
+            OnlineCard(op, 2, UIIcon.Join, new Color(0.45f, 0.75f, 1f), "Join Room", "Enter room code to join", "Join", false, JoinFromField);
+
+            // the created room's code shows over the Create Room card until the host starts the match
+            onlineInfo = Label("OnlineInfo", op, 30, TextAnchor.MiddleCenter, new Vector2(0f, 6f), new Vector2(430f, 44));
+            onlineInfo.color = UITheme.Gold; onlineInfo.fontStyle = FontStyle.Bold; onlineInfo.horizontalOverflow = HorizontalWrapMode.Wrap;
+            onlineInfo.rectTransform.anchorMin = onlineInfo.rectTransform.anchorMax = onlineInfo.rectTransform.pivot = UIKit.TopLeft;
+            onlineInfo.rectTransform.anchoredPosition = new Vector2(530f, -268f); onlineInfo.rectTransform.sizeDelta = new Vector2(440f, 44f);
+
+            // the bottom bar: Host a Room (same Wi-Fi) and the code or address field that Join reads
+            var bar = UIKit.Card(op, "HostBar", UIKit.TopLeft, new Vector2(36f, -540f), new Vector2(1428f, 150f));
+            var crown = UIKit.Image(bar, "Crown", UITheme.Icon(UIIcon.Crown), UITheme.Gold, false, false);
+            crown.rectTransform.anchorMin = crown.rectTransform.anchorMax = crown.rectTransform.pivot = UIKit.TopLeft;
+            crown.rectTransform.anchoredPosition = new Vector2(26f, -16f); crown.rectTransform.sizeDelta = new Vector2(48f, 40f);
+            UIKit.TextAt(bar, "HostTitle", "Host a Room", 34f, Color.white, UIKit.TopLeft, new Vector2(88f, -12f), new Vector2(500f, 46f), TextAlignmentOptions.Left, true);
+            UIKit.TextAt(bar, "HostNote", "Same Wi-Fi, no internet needed", 22f, UITheme.Muted, UIKit.TopLeft, new Vector2(500f, -22f), new Vector2(500f, 32f), TextAlignmentOptions.Left, false);
+            UIKit.TextAt(bar, "CodeLabel", "Room Code:", 34f, Color.white, UIKit.TopLeft, new Vector2(40f, -82f), new Vector2(240f, 52f), TextAlignmentOptions.Left, true);
+            // one field for both: a room code joins over the internet, an address like 192.168.1.20 joins on the same Wi-Fi
+            roomCodeField = BuildAddressField(bar, new Vector2(-70f, -34f), new Vector2(760f, 70f), "Enter Code...", 21, TouchScreenKeyboardType.ASCIICapable, false);
+            var fieldRt = (RectTransform)roomCodeField.transform;
+            fieldRt.anchorMin = fieldRt.anchorMax = fieldRt.pivot = UIKit.TopLeft; fieldRt.anchoredPosition = new Vector2(290f, -76f);
+            addressField = roomCodeField;
+            UIKit.ActionButton(bar, "Host", null, true, UIKit.TopLeft, new Vector2(1090f, -72f), new Vector2(300f, 70f), HostOnline, 38f);
+
+            roomStartButton = UIKit.ActionButton(op, "Start Match", UIIcon.Play, true, UIKit.TopLeft, new Vector2(1010f, -712f), new Vector2(454f, 70f), StartRoomMatch, 36f).gameObject;
             roomStartButton.SetActive(false);
-
-            // right: same Wi-Fi, no internet needed
-            var lanLabel = Label("LanLabel", op, 32, TextAnchor.MiddleCenter, new Vector2(400, 190), new Vector2(700, 44)); lanLabel.text = "Same Wi-Fi";
-            lanLabel.color = UITheme.Gold;
-            var lanNote = Label("LanNote", op, 24, TextAnchor.MiddleCenter, new Vector2(400, 150), new Vector2(700, 34)); lanNote.text = "No internet needed";
-            lanNote.color = new Color(1, 1, 1, 0.65f);
-            Button(op, "HOST", new Vector2(400, 80), new Vector2(480, 84), HostOnline, btnCol);
-            var joinHint = Label("JoinHint", op, 26, TextAnchor.MiddleCenter, new Vector2(400, 0), new Vector2(700, 36)); joinHint.text = "Or join: type the address your friend sees";
-            joinHint.color = new Color(1, 1, 1, 0.75f);
-            addressField = BuildAddressField(op, new Vector2(400, -62), new Vector2(480, 80));
-            Button(op, "JOIN", new Vector2(400, -160), new Vector2(480, 84), () => JoinOnline(addressField.text), btnCol);
-
-            onlineStatus = Label("OnlineStatus", op, 28, TextAnchor.MiddleCenter, new Vector2(400, -250), new Vector2(700, 90));
+            onlineStatus = Label("OnlineStatus", op, 26, TextAnchor.MiddleCenter, new Vector2(0f, 0f), new Vector2(950f, 64));
+            onlineStatus.rectTransform.anchorMin = onlineStatus.rectTransform.anchorMax = onlineStatus.rectTransform.pivot = UIKit.TopLeft;
+            onlineStatus.rectTransform.anchoredPosition = new Vector2(36f, -704f); onlineStatus.rectTransform.sizeDelta = new Vector2(950f, 76f);
             onlineStatus.horizontalOverflow = HorizontalWrapMode.Wrap;
             onlineStatus.color = new Color(1f, 0.9f, 0.4f);
 
@@ -96,6 +92,26 @@ namespace FootballSim.UI
             pingPill = pill.gameObject; pingPill.SetActive(false);
         }
 
+        /// <summary>One of the three cards across the top of the online screen: an icon, a title, a line of help and the button.</summary>
+        void OnlineCard(RectTransform parent, int index, UIIcon icon, Color iconColor, string title, string help, string button, bool gold, UnityEngine.Events.UnityAction onClick)
+        {
+            var card = UIKit.Card(parent, title + "Card", UIKit.TopLeft, new Vector2(36f + index * 494f, -118f), new Vector2(440f, 400f));
+            var ic = UIKit.Image(card, "Icon", UITheme.Icon(icon), iconColor, false, false);
+            ic.rectTransform.anchorMin = ic.rectTransform.anchorMax = ic.rectTransform.pivot = UIKit.TopLeft;
+            ic.rectTransform.anchoredPosition = new Vector2(160f, -34f); ic.rectTransform.sizeDelta = new Vector2(120f, 120f);
+            UIKit.TextAt(card, "Title", title, 46f, Color.white, UIKit.TopLeft, new Vector2(0f, -166f), new Vector2(440f, 60f), TextAlignmentOptions.Center, true);
+            UIKit.TextAt(card, "Help", help, 28f, UITheme.Muted, UIKit.TopLeft, new Vector2(0f, -226f), new Vector2(440f, 40f), TextAlignmentOptions.Center, false);
+            UIKit.ActionButton(card, button, null, gold, UIKit.TopLeft, new Vector2(40f, -310f), new Vector2(360f, 70f), onClick, 38f);
+        }
+
+        /// <summary>The Join Room button: an address (192.168.1.20) joins a friend on the same Wi-Fi, anything else is taken as a room code.</summary>
+        void JoinFromField()
+        {
+            string text = roomCodeField.text.Trim();
+            if (text.IndexOf('.') >= 0 || text.IndexOf(':') >= 0) JoinOnline(text);
+            else JoinRoomOnline(text);
+        }
+
         /// <summary>Green below 60 ms, gold below 120, red above; the words say the same for anyone who cannot tell the colours apart.</summary>
         public static string PingQuality(float rttMs) { return rttMs < 60f ? "good" : rttMs < 120f ? "fair" : "poor"; }
         public string OnlinePingText => pingText != null ? pingText.text : "";
@@ -111,10 +127,10 @@ namespace FootballSim.UI
             var rt = (RectTransform)go.transform;
             rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
             rt.anchoredPosition = pos; rt.sizeDelta = size;
-            var img = go.GetComponent<Image>(); img.sprite = UITheme.Rounded; img.type = Image.Type.Sliced; img.color = new Color(0.14f, 0.19f, 0.30f);
+            var img = go.GetComponent<Image>(); img.sprite = UITheme.Rounded; img.type = Image.Type.Sliced; img.color = UIKit.Field;
             var inner = size - new Vector2(30, 10);
-            var text = Label("Text", go.transform, 38, TextAnchor.MiddleLeft, Vector2.zero, inner); text.supportRichText = false;
-            var placeholder = Label("Placeholder", go.transform, 38, TextAnchor.MiddleLeft, Vector2.zero, inner);
+            var text = Label("Text", go.transform, 36, TextAnchor.MiddleLeft, Vector2.zero, inner); text.supportRichText = false;
+            var placeholder = Label("Placeholder", go.transform, 36, TextAnchor.MiddleLeft, Vector2.zero, inner);
             placeholder.text = hint; placeholder.fontStyle = FontStyle.Italic; placeholder.color = new Color(1, 1, 1, 0.35f);
             var field = go.GetComponent<InputField>();
             field.targetGraphic = img; field.textComponent = text; field.placeholder = placeholder;
@@ -185,6 +201,7 @@ namespace FootballSim.UI
             if (pendingRoom != null) DiscardPendingRoom();
             int request = ++onlineRequest;
             onlineStatus.text = "Opening a room...";
+            ShowNetBusy("Creating Room", "Opening a room...");
             try
             {
                 var room = await OnlineService.CreateRoom(false);
@@ -193,8 +210,9 @@ namespace FootballSim.UI
                 onlineInfo.text = $"ROOM CODE   {room.Code}";
                 roomStartButton.SetActive(true);
                 onlineStatus.text = "Tell your friend this code. Press START when you are ready.";
+                ShowLobby(room.Code);
             }
-            catch (System.Exception e) { if (request == onlineRequest) onlineStatus.text = OnlineService.Describe(e); }
+            catch (System.Exception e) { if (request == onlineRequest) { onlineStatus.text = OnlineService.Describe(e); HideNet(); } }
         }
 
         /// <summary>Starts the match for the room that was just opened.</summary>
@@ -202,6 +220,7 @@ namespace FootballSim.UI
         {
             if (pendingRoom == null || OnlineHosting || !TryFindGuestSlot(out int slot)) return;
             var room = pendingRoom; pendingRoom = null;
+            HideNet();
             var players = new List<PlayerController>(homeTeam.players);
             players.AddRange(awayTeam.players);
             var ball = FindFirstObjectByType<FootballSim.Ball.BallController>();
@@ -222,13 +241,15 @@ namespace FootballSim.UI
             if (clean.Length == 0) { onlineStatus.text = "Type the room code first."; return; }
             int request = ++onlineRequest;
             onlineStatus.text = "Joining the room...";
+            ShowNetBusy("Joining Room", "Joining room " + clean + "...");
             try
             {
                 var transport = await OnlineService.JoinRoom(clean);
                 if (request != onlineRequest) { transport.Dispose(); return; }
+                HideNet();
                 EnterRelayGuest(transport, "room " + clean);
             }
-            catch (System.Exception e) { if (request == onlineRequest) onlineStatus.text = OnlineService.Describe(e); }
+            catch (System.Exception e) { if (request == onlineRequest) { onlineStatus.text = OnlineService.Describe(e); HideNet(); } }
         }
 
         /// <summary>Finds an open public room and joins it, or opens one and plays the AI until someone arrives.</summary>
@@ -237,15 +258,17 @@ namespace FootballSim.UI
             if (OnlineGuestActive || !TryFindGuestSlot(out _)) return;
             int request = ++onlineRequest;
             onlineStatus.text = "Looking for a player...";
+            ShowNetBusy("Matchmaking", "Looking for a player...");
             try
             {
                 var result = await OnlineService.QuickMatch();
                 if (request != onlineRequest) { result.Guest?.Dispose(); result.Hosted?.Transport.Dispose(); return; }
+                HideNet();
                 if (result.Guest != null) { EnterRelayGuest(result.Guest, "a player"); return; }
                 pendingRoom = result.Hosted;
                 StartRoomMatch(); // nobody waiting: the match starts at once and a stranger can join it
             }
-            catch (System.Exception e) { if (request == onlineRequest) onlineStatus.text = OnlineService.Describe(e); }
+            catch (System.Exception e) { if (request == onlineRequest) { onlineStatus.text = OnlineService.Describe(e); HideNet(); } }
         }
 
         void EnterRelayGuest(RelayTransport transport, string what)
@@ -332,7 +355,7 @@ namespace FootballSim.UI
                     int h = client.LatestHomeScore, a = client.LatestAwayScore, mins = Mathf.FloorToInt(client.LatestGameMinute);
                     scoreText.text = $"HOME  {h} - {a}  AWAY";
                     clockText.text = $"{mins:00}:00";
-                    if (lastGuestHome >= 0 && (h != lastGuestHome || a != lastGuestAway)) Banner("GOAL!", 3f);
+                    if (lastGuestHome >= 0 && (h != lastGuestHome || a != lastGuestAway)) Banner("GOAL!", 3f, true);
                     lastGuestHome = h; lastGuestAway = a;
                 }
                 else { scoreText.text = "ONLINE GUEST"; clockText.text = ""; }

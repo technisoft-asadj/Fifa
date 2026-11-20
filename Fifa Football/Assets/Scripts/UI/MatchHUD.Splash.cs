@@ -123,7 +123,7 @@ namespace FootballSim.UI
         {
             string saved = PlayerProfile.SetName(raw);
             namePanel.SetActive(false);
-            if (CareerOpen) { careerText.text = CareerStats(); RefreshMainMenu(); }
+            if (CareerOpen) { careerText.text = CareerStats(); RefreshProfile(); RefreshMainMenu(); }
             else ShowMainMenu();
             return saved;
         }

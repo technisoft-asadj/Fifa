@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem.UI;
@@ -21,7 +22,8 @@ namespace FootballSim.UI
         [SerializeField] TeamController awayTeam;
 
         Font font;
-        Text scoreText, clockText, bannerText, resultText, durationLabel, formationLabel, difficultyLabel, statsText, goalsText, hintText;
+        Text scoreText, clockText, bannerText, hintText;
+        TextMeshProUGUI resultText, durationLabel, formationLabel, difficultyLabel;
         RectTransform staminaFill;
         Image staminaImage;
         int selectedFormation;
@@ -83,6 +85,7 @@ namespace FootballSim.UI
             UpdateSplash();
             FitSetupPanel();
             UpdatePerf();
+            UpdateExtras();
             // Keyboard hint is noise on a phone; show it only when there is no touchscreen.
             bool touchDevice = Application.isMobilePlatform || UnityEngine.InputSystem.Touchscreen.current != null;
             bool frontScreen = SplashOpen || NameOpen; // the splash and name screens cover the match entirely
@@ -127,7 +130,7 @@ namespace FootballSim.UI
         }
 
         // ---- match events ----
-        void OnHalfTime() { Banner($"HALF TIME  {match.HomeScore} - {match.AwayScore}\n<size=60%>Teams change ends</size>", MatchManager.HalfTimeSeconds - 0.5f); }
+        void OnHalfTime() { Banner($"HALF TIME  {match.HomeScore} - {match.AwayScore}\n<size=60%>Teams change ends</size>", MatchManager.HalfTimeSeconds - 0.5f, true); }
 
         /// <summary>"HOME" / "AWAY", or the club's name in capitals when a club was picked for that side.</summary>
         string Side(int team) { return team == 0 ? TeamSelection.NameOf(TeamSelection.Home, "HOME").ToUpperInvariant() : TeamSelection.NameOf(TeamSelection.Away, "AWAY").ToUpperInvariant(); }
@@ -137,7 +140,7 @@ namespace FootballSim.UI
         void OnGoal(int team)
         {
             bool og = match.Goals.Count > 0 && match.Goals[match.Goals.Count - 1].ownGoal;
-            Banner($"GOAL!  {Side(team)} SCORES" + (og ? "  (OWN GOAL)" : ""), 3f);
+            Banner($"GOAL!  {Side(team)} SCORES" + (og ? "  (OWN GOAL)" : ""), 3f, true);
         }
 
         void OnRestart(RestartType type, int team)
@@ -151,20 +154,19 @@ namespace FootballSim.UI
 
         void OnFullTime()
         {
-            resultText.text = match.HomeScore > match.AwayScore ? $"{Side(0)} WINS  {match.HomeScore} - {match.AwayScore}"
-                : match.AwayScore > match.HomeScore ? $"{Side(1)} WINS  {match.AwayScore} - {match.HomeScore}"
-                : $"DRAW  {match.HomeScore} - {match.AwayScore}";
-            goalsText.text = GoalsSummary(match);
-            statsText.text = StatLines(match);
+            resultText.text = match.HomeScore > match.AwayScore ? $"{Side(0)} WINS"
+                : match.AwayScore > match.HomeScore ? $"{Side(1)} WINS"
+                : "DRAW";
+            FillFullTime();
             if (!TrainingMode.Active)
             {
                 CareerRecord.Record(match.HomeScore, match.AwayScore);
                 int levelBefore = PlayerProfile.Level;
                 PlayerProfile.AwardMatch(match.HomeScore, match.AwayScore);
                 PlayerProfile.Reward(match.HomeScore, match.AwayScore, out int earnedCoins, out int earnedXp);
-                earnedText.text = $"+{earnedCoins} coins   +{earnedXp} XP" + (PlayerProfile.Level > levelBefore ? $"   LEVEL UP!  Level {PlayerProfile.Level}" : "");
+                SetEarned(earnedCoins, earnedXp, PlayerProfile.GemsFor(match.HomeScore, match.AwayScore), PlayerProfile.Level > levelBefore);
             }
-            else earnedText.text = "Training: no rewards";
+            else SetNoReward();
             if (MiniLeague.Active && !MiniLeague.Finished) MiniLeague.RecordResult(match.HomeScore, match.AwayScore); // the human is home
             if (Tournament.Active && !Tournament.Over)
             {
@@ -174,15 +176,15 @@ namespace FootballSim.UI
                     ShootOut.Chances(Tournament.CurrentOpponent, out float homeChance, out float awayChance);
                     penalties = ShootOut.Simulate(new RandomStream(System.Environment.TickCount), homeChance, awayChance);
                     // on the same line, smaller: the result box is one line high and a second line was cut off
-                    resultText.text += $"  <size=30>({(penalties.homeWins ? "HOME" : "AWAY")} WIN {(penalties.homeWins ? penalties.homeGoals : penalties.awayGoals)} - {(penalties.homeWins ? penalties.awayGoals : penalties.homeGoals)} ON PENALTIES)</size>";
+                    resultText.text = $"DRAW - {(penalties.homeWins ? "HOME" : "AWAY")} WIN {(penalties.homeWins ? penalties.homeGoals : penalties.awayGoals)} - {(penalties.homeWins ? penalties.awayGoals : penalties.homeGoals)} ON PENALTIES";
                 }
                 Tournament.RecordResult(match.HomeScore, match.AwayScore, penalties);
             }
             if (Season.Active && !Season.Over) Season.RecordResult(match.HomeScore, match.AwayScore);
             leagueText.text = Tournament.Active ? Tournament.Summary() : Season.Active ? Season.Summary() : MiniLeague.Summary();
-            rematchLabel.text = Season.Active ? (Season.Over ? "NEW SEASON" : "NEXT MATCH")
-                : Tournament.Active ? (Tournament.Over ? "NEW TOURNAMENT" : "NEXT MATCH")
-                : !MiniLeague.Active ? "REMATCH" : MiniLeague.Finished ? "NEW LEAGUE" : "NEXT MATCH";
+            rematchLabel.text = Season.Active ? (Season.Over ? "New Season" : "Next Match")
+                : Tournament.Active ? (Tournament.Over ? "New Tournament" : "Next Match")
+                : !MiniLeague.Active ? "Rematch" : MiniLeague.Finished ? "New League" : "Next Match";
             fullTimePanel.SetActive(true);
             Time.timeScale = 0f;
         }
@@ -214,7 +216,12 @@ namespace FootballSim.UI
                  + $"Fouls   {m.HomeFouls}  -  {m.AwayFouls}      Yellow   {m.HomeYellows}  -  {m.AwayYellows}      Red   {m.HomeReds}  -  {m.AwayReds}";
         }
 
-        void Banner(string text, float seconds) { bannerText.text = text; bannerTimer = seconds; }
+        /// <summary>Shows an event banner. With Commentary off in Settings only the important ones (goals, half time) are shown.</summary>
+        void Banner(string text, float seconds, bool important = false)
+        {
+            if (!important && !FootballSim.Audio.MatchAudio.CommentaryOn) return;
+            bannerText.text = text; bannerTimer = seconds;
+        }
 
         // ---- menus ----
         void ShowStart()
@@ -259,8 +266,7 @@ namespace FootballSim.UI
         void GoToMainMenu()
         {
             OpenSetupDirectly = false;
-            Time.timeScale = 1f;
-            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+            LoadWithScreen();
         }
 
         void Rematch()
@@ -269,8 +275,7 @@ namespace FootballSim.UI
             if (Tournament.Over) Tournament.Start(); // "NEW TOURNAMENT"
             if (Season.Over) Season.Start(); // "NEW SEASON"
             OpenSetupDirectly = true;
-            Time.timeScale = 1f;
-            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+            LoadWithScreen();
         }
 
         void ApplyFormations()
@@ -285,12 +290,12 @@ namespace FootballSim.UI
         {
             int n = FormationData.PresetNames.Length;
             selectedFormation = (selectedFormation + step + n) % n;
-            formationLabel.text = $"Your formation: {FormationData.PresetNames[selectedFormation]}";
+            formationLabel.text = FormationData.PresetNames[selectedFormation];
             if (save) SaveSettings();
         }
 
         int selectedKit;
-        Text kitLabel, subtitleLabel, recordLabel;
+        TextMeshProUGUI kitLabel, subtitleLabel, recordLabel;
 
         /// <summary>Choose the home shirt colour (index into KitPalette); the away team gets a colour that does not clash.</summary>
         public void SetHomeKit(int index, bool save = true)
@@ -306,8 +311,8 @@ namespace FootballSim.UI
             int away = KitPalette.AwayFor(selectedKit);
             FootballSim.Players.TeamKits.Apply(homeTeam, awayTeam, selectedKit);
             bool club = TeamSelection.Home >= 0 || TeamSelection.Away >= 0;
-            if (kitLabel != null) kitLabel.text = club ? "Your kit: set by the club (see Teams)" : $"Your kit: {KitPalette.Names[selectedKit]}";
-            if (kitRings != null) for (int i = 0; i < kitRings.Length; i++) kitRings[i].color = i == selectedKit && TeamSelection.Home < 0 ? Color.white : new Color(1f, 1f, 1f, 0.12f);
+            if (kitLabel != null) kitLabel.text = club ? "Kit set by the club (see Teams)" : $"{KitPalette.Names[selectedKit]} kit";
+            if (kitRings != null) for (int i = 0; i < kitRings.Length; i++) kitRings[i].color = i == selectedKit && TeamSelection.Home < 0 ? UITheme.Gold : new Color(0.02f, 0.06f, 0.16f, 0.9f);
             if (subtitleLabel != null)
                 subtitleLabel.text = club ? $"Kick-Off  -  {TeamSelection.NameOf(TeamSelection.Home, "Home")} vs {TeamSelection.NameOf(TeamSelection.Away, "Away")}"
                     : $"Kick-Off  -  Home ({KitPalette.Names[selectedKit].ToLower()}) vs Away ({KitPalette.Names[away].ToLower()})";
@@ -337,14 +342,12 @@ namespace FootballSim.UI
             }
             int n = System.Enum.GetValues(typeof(Difficulty)).Length;
             AiTuning.CurrentDifficulty = (Difficulty)(((int)AiTuning.CurrentDifficulty + step + n) % n);
-            difficultyLabel.text = $"Difficulty: {AiTuning.CurrentDifficulty}";
+            difficultyLabel.text = AiTuning.CurrentDifficulty.ToString();
             if (save) SaveSettings();
         }
 
-        Text modeLabel, leagueText, earnedText;
+        TextMeshProUGUI modeLabel, leagueText;
         Image[] kitRings, modeCards, durationCards;
-        /// <summary>The "+coins +XP" line on the full-time panel (test hook).</summary>
-        public string EarnedText => earnedText != null ? earnedText.text : "";
         TMPro.TMP_Text rematchLabel;
         /// <summary>The text on the full-time screen's main button (test hook).</summary>
         public string RematchButtonText => rematchLabel != null ? rematchLabel.text : "";
@@ -364,7 +367,7 @@ namespace FootballSim.UI
         Difficulty savedDifficulty = Difficulty.Professional;
 
         // ---- reset saved progress: two taps within a few seconds, so a stray touch cannot erase a league ----
-        Text resetLabel;
+        TextMeshProUGUI resetLabel;
         float resetArmedUntil = -1f;
         const float ResetConfirmSeconds = 4f;
         public bool ResetArmed => Time.unscaledTime < resetArmedUntil;
@@ -395,11 +398,11 @@ namespace FootballSim.UI
         void RefreshMode()
         {
             if (modeLabel != null)
-                modeLabel.text = TrainingMode.Active ? "Mode: Training"
-                    : Season.Active ? (Season.Over ? "Mode: Season over" : $"Mode: Season {Season.Round + 1}/{Season.Rounds}")
-                    : Tournament.Active ? (Tournament.Won ? "Mode: Tournament won" : Tournament.Eliminated ? "Mode: Tournament over" : $"Mode: Tournament - {Tournament.CurrentStage}")
-                    : !MiniLeague.Active ? "Mode: Single match"
-                    : MiniLeague.Finished ? "Mode: League complete" : $"Mode: League {MiniLeague.Round + 1}/{MiniLeague.Matches}";
+                modeLabel.text = TrainingMode.Active ? "Training"
+                    : Season.Active ? (Season.Over ? "Season over" : $"Season {Season.Round + 1}/{Season.Rounds}")
+                    : Tournament.Active ? (Tournament.Won ? "Cup won" : Tournament.Eliminated ? "Cup over" : $"Cup - {Tournament.CurrentStage}")
+                    : !MiniLeague.Active ? "Friendly"
+                    : MiniLeague.Finished ? "League complete" : $"League {MiniLeague.Round + 1}/{MiniLeague.Matches}";
             if (recordLabel != null)
                 recordLabel.text = Tournament.Active ? "Cup path\n" + Tournament.Bracket()
                     : CareerRecord.Summary() + (TeamGrowth.CurrentLevel > 0 ? $"   Squad lv {TeamGrowth.CurrentLevel}" : "");
@@ -418,7 +421,7 @@ namespace FootballSim.UI
         void SetMinutes(float m, bool save = true)
         {
             selectedMinutes = m;
-            durationLabel.text = $"Match length: {m:0} min";
+            durationLabel.text = $"{m:0} min";
             if (durationCards != null)
             {
                 float[] lengths = { 3f, 5f, 10f };
@@ -484,69 +487,37 @@ namespace FootballSim.UI
 
             BuildRadar(root);
 
-            // Start panel: a wide landscape card with two columns (match options left, kit and mode right), PLAY at the bottom
-            startPanel = Glassify(Rect("StartPanel", root, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1560, 760), Panel).gameObject);
-            var st = startPanel.transform;
-            var title = Label("Title", st, 66, TextAnchor.MiddleCenter, new Vector2(0, 312), new Vector2(900, 90)); title.text = "SOCCER FIGHT"; title.fontStyle = FontStyle.Bold; title.color = UITheme.Gold;
-            var sub = Label("Sub", st, 30, TextAnchor.MiddleCenter, new Vector2(0, 250), new Vector2(900, 44)); sub.text = "Kick-Off  -  Home vs Away"; sub.color = UITheme.Muted;
-            subtitleLabel = sub;
-            var btnCol = new Color(0.2f, 0.3f, 0.45f);
-            var divider = UIKit.Image(st, "Divider", UITheme.Rounded, new Color(1f, 1f, 1f, 0.14f), false, false);
-            divider.rectTransform.anchorMin = divider.rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
-            divider.rectTransform.anchoredPosition = new Vector2(0f, 60f); divider.rectTransform.sizeDelta = new Vector2(3f, 320f);
-            const float xL = -400f, xR = 400f;
-            // left column: match length, formation, difficulty
-            durationLabel = Label("Duration", st, 34, TextAnchor.MiddleCenter, new Vector2(xL, 200), new Vector2(700, 50));
-            durationCards = new Image[3];
-            float[] lengths = { 3f, 5f, 10f };
-            for (int d = 0; d < lengths.Length; d++)
-            {
-                float len = lengths[d];
-                var dc = Button(st, $"{len:0} min", new Vector2(xL + (d - 1) * 220, 130), new Vector2(200, 72), () => SetMinutes(len), btnCol);
-                dc.GetComponentInChildren<Text>().fontSize = 34;
-                durationCards[d] = dc.GetComponent<Image>();
-            }
-            formationLabel = Label("Formation", st, 34, TextAnchor.MiddleCenter, new Vector2(xL, 20), new Vector2(520, 50));
-            Button(st, "<", new Vector2(xL - 300, 20), new Vector2(90, 72), () => CycleFormation(-1), btnCol);
-            Button(st, ">", new Vector2(xL + 300, 20), new Vector2(90, 72), () => CycleFormation(1), btnCol);
-            difficultyLabel = Label("Difficulty", st, 34, TextAnchor.MiddleCenter, new Vector2(xL, -90), new Vector2(520, 50));
-            Button(st, "<", new Vector2(xL - 300, -90), new Vector2(90, 72), () => CycleDifficulty(-1), btnCol);
-            Button(st, ">", new Vector2(xL + 300, -90), new Vector2(90, 72), () => CycleDifficulty(1), btnCol);
-            // right column. kit: one colour swatch per shirt colour (the chosen one is ringed); mode: one card per mode (the current one is gold)
-            kitLabel = Label("Kit", st, 34, TextAnchor.MiddleCenter, new Vector2(xR, 200), new Vector2(700, 50));
+            // Match setup, as designed: match length, formation and difficulty on the left, competition type and kit selection on the right
+            var setup = UIKit.Screen(root, "StartPanel", new Vector2(SettingsW, SettingsH), "Match Setup", UIIcon.Trophy, ShowMainMenu, ShowMainMenu, out startPanel);
+            var btnCol = new Color(0.2f, 0.3f, 0.45f); // the colour the older builders (splash, name) still ask for
+            var left = UIKit.Card(setup, "Options", UIKit.TopLeft, new Vector2(36f, -118f), new Vector2(700f, 540f));
+            durationLabel = SetupBlock(left, 0, "Match Length", UIIcon.Clock, CycleDuration);
+            formationLabel = SetupBlock(left, 1, "Formation", UIIcon.Clock, () => CycleFormation(1));
+            difficultyLabel = SetupBlock(left, 2, "Difficulty", UIIcon.Bars, () => CycleDifficulty(1));
+            var comp = UIKit.Card(setup, "Competition", UIKit.TopLeft, new Vector2(776f, -118f), new Vector2(688f, 190f));
+            modeLabel = SetupBlock(comp, 0, "Competition Type", UIIcon.Trophy, ToggleLeagueMode, 190f);
+            var kits = UIKit.Card(setup, "Kits", UIKit.TopLeft, new Vector2(776f, -328f), new Vector2(688f, 250f));
+            UIKit.TextAt(kits, "KitTitle", "Kit Selection", 36f, Color.white, UIKit.TopLeft, new Vector2(0f, -14f), new Vector2(688f, 46f), TextAlignmentOptions.Center, true);
             kitRings = new Image[KitPalette.Count];
-            float swatchGap = 96f, swatchX0 = xR - swatchGap * (KitPalette.Count - 1) * 0.5f;
+            float kitGap = 108f, kitX0 = 344f - kitGap * (KitPalette.Count - 1) * 0.5f;
             for (int k = 0; k < KitPalette.Count; k++)
             {
                 int kit = k;
-                var ringImg = UIKit.Image(st, "KitRing" + k, UITheme.Circle, Color.white, false, false);
-                ringImg.rectTransform.anchorMin = ringImg.rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
-                ringImg.rectTransform.anchoredPosition = new Vector2(swatchX0 + k * swatchGap, 130f); ringImg.rectTransform.sizeDelta = new Vector2(78f, 78f);
-                kitRings[k] = ringImg;
-                var sw = UIKit.Image(ringImg.transform, "Swatch", UITheme.Circle, KitPalette.Colors[k], false, true);
-                sw.rectTransform.anchorMin = Vector2.zero; sw.rectTransform.anchorMax = Vector2.one; sw.rectTransform.offsetMin = new Vector2(7f, 7f); sw.rectTransform.offsetMax = new Vector2(-7f, -7f);
-                var swBtn = sw.gameObject.AddComponent<UnityEngine.UI.Button>(); swBtn.targetGraphic = sw; swBtn.onClick.AddListener(() => SetHomeKit(kit));
+                var frame = UIKit.Image(kits, "KitFrame" + k, UITheme.Rounded, Color.white, true, true);
+                frame.rectTransform.anchorMin = frame.rectTransform.anchorMax = frame.rectTransform.pivot = new Vector2(0.5f, 0.5f);
+                frame.rectTransform.anchoredPosition = new Vector2(kitX0 + k * kitGap - 344f, -10f); frame.rectTransform.sizeDelta = new Vector2(98f, 112f);
+                kitRings[k] = frame;
+                var kb = frame.gameObject.AddComponent<Button>(); kb.targetGraphic = frame; kb.onClick.AddListener(() => { if (TeamSelection.Home >= 0) TeamSelection.Set(-1, TeamSelection.Away); SetHomeKit(kit); });
+                var inner = UIKit.Image(frame.transform, "Back", UITheme.Rounded, new Color(0.12f, 0.2f, 0.38f, 1f), true, false);
+                inner.rectTransform.anchorMin = Vector2.zero; inner.rectTransform.anchorMax = Vector2.one; inner.rectTransform.offsetMin = new Vector2(4f, 4f); inner.rectTransform.offsetMax = new Vector2(-4f, -4f);
+                var shirt = UIKit.Image(inner.transform, "Shirt", UITheme.Icon(UIIcon.Shirt), KitPalette.Colors[k], false, false);
+                shirt.rectTransform.anchorMin = new Vector2(0.1f, 0.12f); shirt.rectTransform.anchorMax = new Vector2(0.9f, 0.88f); shirt.rectTransform.offsetMin = shirt.rectTransform.offsetMax = Vector2.zero;
             }
-            modeLabel = Label("Mode", st, 34, TextAnchor.MiddleCenter, new Vector2(xR, 20), new Vector2(700, 50));
-            string[] modeNames = { "Single", "League", "Cup", "Season", "Training" };
-            PlayMode[] modes = { PlayMode.Single, PlayMode.League, PlayMode.Tournament, PlayMode.Season, PlayMode.Training };
-            modeCards = new Image[modes.Length];
-            for (int m = 0; m < modes.Length; m++)
-            {
-                var mode = modes[m];
-                var card = Button(st, modeNames[m], new Vector2(xR + (m - 2) * 142, -60), new Vector2(134, 70), () => { SelectMode(mode); RefreshModeCards(); }, btnCol);
-                card.GetComponentInChildren<Text>().fontSize = 25;
-                modeCards[m] = card.GetComponent<Image>();
-            }
-            recordLabel = Label("Record", st, 30, TextAnchor.MiddleCenter, new Vector2(xR, -160), new Vector2(740, 100));
-            recordLabel.color = new Color(1f, 0.9f, 0.4f);
+            kitLabel = UIKit.TextAt(kits, "KitName", "", 28f, UITheme.Muted, UIKit.TopLeft, new Vector2(0f, -196f), new Vector2(688f, 40f), TextAlignmentOptions.Center, false);
+            recordLabel = UIKit.TextAt(setup, "Record", "", 28f, new Color(1f, 0.9f, 0.4f), UIKit.TopLeft, new Vector2(776f, -590f), new Vector2(688f, 80f), TextAlignmentOptions.Center, true);
+            recordLabel.enableAutoSizing = true; recordLabel.fontSizeMin = 18f; recordLabel.fontSizeMax = 28f;
             recordLabel.text = CareerRecord.Summary() + (TeamGrowth.CurrentLevel > 0 ? $"   Squad lv {TeamGrowth.CurrentLevel}" : "");
-            Button(st, "PLAY", new Vector2(0, -270), new Vector2(560, 106), BeginMatch, Accent);
-            var resetButton = Button(st, "Reset progress", new Vector2(-620, -318), new Vector2(250, 60), TapResetProgress, btnCol);
-            resetLabel = resetButton.GetComponentInChildren<Text>();
-            resetLabel.fontSize = 24; // the default 40 is wider than this small button
-            var onlineButton = Button(st, "Online", new Vector2(650, 312), new Vector2(200, 64), OpenOnline, btnCol);
-            onlineButton.GetComponentInChildren<Text>().fontSize = 28;
+            UIKit.ActionButton(setup, "Start Match", UIIcon.Play, true, new Vector2(0.5f, 0f), new Vector2(0f, 26f), new Vector2(560f, 92f), BeginMatch, 50f);
             var saved = MatchSettingsStore.Load(selectedMinutes, FormationData.PresetNames.Length, (int)AiTuning.CurrentDifficulty, System.Enum.GetValues(typeof(Difficulty)).Length);
             selectedFormation = saved.formation;
             AiTuning.CurrentDifficulty = (Difficulty)saved.difficulty;
@@ -556,51 +527,47 @@ namespace FootballSim.UI
             RefreshMode(); // also sets the difficulty label (the league's opponent while a league is running)
             SetHomeKit(KitPalette.Load(), false);
 
-            // the start panel stays the match-setup screen; the main menu and settings sit above it, the online panel above those
-            var setupBack = Button(st, "< Menu", new Vector2(-650, 312), new Vector2(200, 64), ShowMainMenu, btnCol);
-            setupBack.GetComponentInChildren<Text>().fontSize = 28;
+            // the main menu and settings sit above the setup screen, the online panel above those
+            bracketButton = UIKit.SmallButton(setup, "Bracket", UITheme.Blue, UIKit.TopRight, new Vector2(-120f, -22f), new Vector2(200f, 74f), OpenBracket, 32f).gameObject;
+            bracketButton.SetActive(false);
             BuildMainMenu(root, btnCol);
             BuildOnlinePanel(root, btnCol);
             BuildSplashAndName(root);
             BuildFpsReadout(root);
 
-            // Full-time panel
-            var ftGlass = UIKit.GlassPanel(root, "FullTimePanel", UIKit.Center, Vector2.zero, new Vector2(1500, 760), true, 0.97f);
-            fullTimePanel = ftGlass.parent.gameObject; // the rim holds the glass, so hiding it hides both
-            var ft = ftGlass;
-            var ftTitle = Label("FT", ft, 76, TextAnchor.MiddleCenter, new Vector2(0, 305), new Vector2(900, 100)); ftTitle.text = "FULL TIME"; ftTitle.fontStyle = FontStyle.Bold; ftTitle.color = UITheme.Gold;
-            // two columns: the goals on the left, the match stats on the right; the result above, what was earned and the buttons below
-            resultText = Label("Result", ft, 56, TextAnchor.MiddleCenter, new Vector2(0, 225), new Vector2(1200, 80));
-            var ftDivider = UIKit.Image(ft, "Divider", UITheme.Rounded, new Color(1f, 1f, 1f, 0.14f), false, false);
-            ftDivider.rectTransform.anchorMin = ftDivider.rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
-            ftDivider.rectTransform.anchoredPosition = new Vector2(0f, 45f); ftDivider.rectTransform.sizeDelta = new Vector2(3f, 290f);
-            goalsText = Label("Goals", ft, 28, TextAnchor.MiddleCenter, new Vector2(-370, 45), new Vector2(660, 290));
-            goalsText.verticalOverflow = VerticalWrapMode.Truncate; goalsText.lineSpacing = 1.1f;
-            statsText = Label("Stats", ft, 30, TextAnchor.MiddleCenter, new Vector2(370, 45), new Vector2(660, 290));
-            statsText.verticalOverflow = VerticalWrapMode.Truncate; statsText.lineSpacing = 1.15f;
-            leagueText = Label("League", ft, 26, TextAnchor.MiddleCenter, new Vector2(0, -140), new Vector2(1200, 40));
-            leagueText.color = new Color(1f, 0.9f, 0.4f);
-            earnedText = Label("Earned", ft, 34, TextAnchor.MiddleCenter, new Vector2(0, -190), new Vector2(1200, 46));
-            earnedText.color = UITheme.Gold; earnedText.fontStyle = FontStyle.Bold;
-            var rematchButton = UIKit.SmallButton(ft, "REMATCH", UITheme.Blue, UIKit.Center, new Vector2(-240, -285), new Vector2(420, 100), Rematch, 46f);
-            UIKit.SmallButton(ft, "MENU", UITheme.Slate, UIKit.Center, new Vector2(240, -285), new Vector2(420, 100), GoToMainMenu, 46f);
-            rematchLabel = rematchButton.GetComponentInChildren<TMPro.TMP_Text>();
-            fullTimePanel.SetActive(false);
+            BuildFullTime(root);
 
             // Pause button (top-right) and pause panel with touch-control settings
             var pb = Button(root, "II", new Vector2(-150, -70), new Vector2(100, 90), TogglePause, new Color(0.05f, 0.08f, 0.12f, 0.7f));
             pb.anchorMin = pb.anchorMax = new Vector2(1f, 1f);
             pauseButton = pb.gameObject;
             // the pause menu of the reference design: four big icon buttons (button size, opacity and sound live in Settings)
-            var pauseGlass = UIKit.GlassPanel(root, "PausePanel", UIKit.Center, Vector2.zero, new Vector2(720, 800), true, 0.95f);
-            pausePanel = pauseGlass.parent.gameObject;
-            var pp = pauseGlass;
-            UIKit.TextAt(pp, "Paused", "Paused", 76f, Color.white, UIKit.Center, new Vector2(0f, 300f), new Vector2(600f, 100f), TMPro.TextAlignmentOptions.Center, true);
-            UIKit.MenuButton(pp, "Resume", UIIcon.Play, UITheme.Blue, UIKit.Center, new Vector2(0f, 150f), new Vector2(580f, 120f), TogglePause, false, 50f);
-            UIKit.MenuButton(pp, "Settings", UIIcon.Gear, UITheme.Blue, UIKit.Center, new Vector2(0f, 10f), new Vector2(580f, 120f), PauseSettings, false, 50f);
-            UIKit.MenuButton(pp, "Main Menu", UIIcon.Home, UITheme.Blue, UIKit.Center, new Vector2(0f, -130f), new Vector2(580f, 120f), GoToMainMenu, false, 50f);
-            UIKit.MenuButton(pp, "Restart", UIIcon.Close, UITheme.Red, UIKit.Center, new Vector2(0f, -270f), new Vector2(580f, 120f), Rematch, false, 50f);
-            pausePanel.SetActive(false);
+            BuildPauseScreen(root);
+            BuildExtras(root);
+            WireFx(root);
+        }
+
+        /// <summary>One block of the match-setup card: a centred title, an icon on the left, the value in the middle and a "next" arrow on the right.</summary>
+        TextMeshProUGUI SetupBlock(RectTransform card, int index, string title, UIIcon icon, UnityEngine.Events.UnityAction onNext, float blockHeight = 172f)
+        {
+            float top = -index * blockHeight;
+            UIKit.TextAt(card, title + "Title", title, 36f, Color.white, UIKit.TopLeft, new Vector2(0f, top - 14f), new Vector2(card.sizeDelta.x, 46f), TextAlignmentOptions.Center, true);
+            var ic = UIKit.Image(card, title + "Icon", UITheme.Icon(icon), new Color(0.82f, 0.9f, 1f, 1f), false, false);
+            ic.rectTransform.anchorMin = ic.rectTransform.anchorMax = ic.rectTransform.pivot = UIKit.TopLeft;
+            ic.rectTransform.anchoredPosition = new Vector2(34f, top - 84f); ic.rectTransform.sizeDelta = new Vector2(58f, 58f);
+            var value = UIKit.TextAt(card, title + "Value", "", 42f, Color.white, UIKit.TopLeft, new Vector2(110f, top - 74f), new Vector2(card.sizeDelta.x - 230f, 78f), TextAlignmentOptions.Center, true);
+            value.enableAutoSizing = true; value.fontSizeMin = 22f; value.fontSizeMax = 42f;
+            UIKit.Arrow(card, title + "Next", UIKit.TopLeft, new Vector2(card.sizeDelta.x - 104f, top - 74f), 78f, false, onNext);
+            return value;
+        }
+
+        /// <summary>3 min, 5 min, 10 min, and round again.</summary>
+        void CycleDuration()
+        {
+            float[] lengths = { 3f, 5f, 10f };
+            int at = 0;
+            for (int i = 0; i < lengths.Length; i++) if (Mathf.Approximately(lengths[i], selectedMinutes)) at = i;
+            SetMinutes(lengths[(at + 1) % lengths.Length]);
         }
 
         /// <summary>Shrinks a big panel so it fits inside the canvas (a wide phone shows only about 960 canvas units of height); never enlarges it.</summary>
@@ -615,10 +582,19 @@ namespace FootballSim.UI
 
         void FitSetupPanel()
         {
-            FitToCanvas(startPanel, 1560f, 760f);
-            FitToCanvas(onlinePanel, 1560f, 760f);
-            FitToCanvas(teamsCard, 1560f, 860f);
-            FitToCanvas(fullTimePanel, 1500f, 760f);
+            FitToCanvas(startPanel, SettingsW + 24f, SettingsH + 24f);
+            FitToCanvas(onlinePanel, SettingsW + 24f, SettingsH + 24f);
+            FitToCanvas(teamsPanel, SettingsW + 24f, SettingsH + 24f);
+            FitToCanvas(fullTimePanel, SettingsW + 24f, SettingsH + 24f);
+            FitToCanvas(settingsPanel, SettingsW + 24f, SettingsH + 24f);
+            FitToCanvas(bracketPanel, SettingsW + 24f, SettingsH + 24f);
+            FitToCanvas(lineupPanel, SettingsW + 24f, SettingsH + 24f);
+            FitToCanvas(statsPanel, 1224f, 844f);
+            FitToCanvas(careerPanel, 1224f, 824f);
+            FitToCanvas(pausePanel, 944f, 804f);
+            FitToCanvas(netPanel, 1004f, 584f);
+            FitToCanvas(confirmPanel, 924f, 464f);
+            FitToCanvas(controlsPanel, 1224f, 904f);
         }
 
         /// <summary>The scale the setup panel is currently shown at (test hook).</summary>

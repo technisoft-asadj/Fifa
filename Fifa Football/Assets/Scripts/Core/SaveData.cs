@@ -30,7 +30,7 @@ namespace FootballSim.Core
                 {
                     MatchSettingsStore.MinutesKey, MatchSettingsStore.FormationKey, MatchSettingsStore.DifficultyKey,
                     KitPalette.KitKey, TeamSelection.HomeKey, TeamSelection.AwayKey,FootballSim.Inputs.TouchControls.PrefScale, FootballSim.Inputs.TouchControls.PrefOpacity, FootballSim.CameraSystem.BroadcastCamera.PrefKey, FootballSim.CameraSystem.BroadcastCamera.PrefZoom, FootballSim.Inputs.TouchControls.PrefLeft, FootballSim.Inputs.TouchControls.PrefFixed,
-                    FootballSim.Audio.MatchAudio.PrefKey,
+                    FootballSim.Audio.MatchAudio.PrefKey, FootballSim.Audio.MatchAudio.MusicKey, FootballSim.Audio.MatchAudio.SfxKey, FootballSim.Audio.MatchAudio.CrowdKey, FootballSim.Audio.MatchAudio.CommentaryKey,
                 })
                     PlayerPrefs.DeleteKey(key);
                 PlayerPrefs.Save();

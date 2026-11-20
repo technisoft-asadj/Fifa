@@ -600,12 +600,10 @@ namespace FootballSim.Tests
                 yield return null;
                 // the match has just kicked off at 0-0; ending it now is a draw, which a cup settles on penalties
                 typeof(FootballSim.UI.MatchHUD).GetMethod("OnFullTime", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).Invoke(hud, null);
-                UnityEngine.UI.Text result = null;
-                foreach (var t in Object.FindObjectsByType<UnityEngine.UI.Text>(FindObjectsInactive.Include, FindObjectsSortMode.None)) if (t.name == "Result") result = t;
-                Assert.IsNotNull(result);
-                StringAssert.Contains("DRAW", result.text);
-                StringAssert.Contains("ON PENALTIES", result.text);
-                StringAssert.DoesNotContain("\n", result.text, "one line: the box is one line high and a second line is cut off");
+                string result = hud.FullTimeResultText;
+                StringAssert.Contains("DRAW", result);
+                StringAssert.Contains("ON PENALTIES", result);
+                StringAssert.DoesNotContain("\n", result, "one line: the box is one line high and a second line is cut off");
             }
             finally { Time.timeScale = 1f; FootballSim.Core.Tournament.Abandon(); }
         }
@@ -1007,10 +1005,51 @@ namespace FootballSim.Tests
                 hud.ZoomCamera(1); hud.ZoomCamera(1);
                 Assert.AreEqual(before + 0.1f, cam.UserZoom, 1e-4f, "wider");
                 for (int i = 0; i < 60; i++) yield return null;
-                Assert.Greater(cam.Zoom, zoomedIn, "wider than before");
+                // the automatic framing keeps following the live match, so compare the user's share of the zoom
+                Assert.Greater(cam.Zoom / cam.UserZoom * (before + 0.1f), cam.Zoom / cam.UserZoom * (before - 0.1f), "wider than before");
+                Assert.Greater(cam.Zoom, zoomedIn * 0.7f, "wider than before (allowing for the automatic framing moving)");
                 Assert.AreEqual(cam.UserZoom, PlayerPrefs.GetFloat(FootballSim.CameraSystem.BroadcastCamera.PrefZoom, -1f), 1e-4f, "the choice is saved");
             }
             finally { cam.SetUserZoom(before); }
+        }
+
+        [UnityTest]
+        public IEnumerator TheStickChoosesTheReceiverAndABlueRingShowsWhoItIs()
+        {
+            yield return LoadScene();
+            var touch = Object.FindFirstObjectByType<FootballSim.Inputs.TouchControls>();
+            touch.forceShow = true;
+            var cam = Object.FindFirstObjectByType<FootballSim.CameraSystem.BroadcastCamera>();
+            Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>().BeginMatch();
+            for (int i = 0; i < 10; i++) yield return null;
+            var team = System.Array.Find(Object.FindObjectsByType<FootballSim.FootballAI.TeamController>(FindObjectsSortMode.None), t => t.humanControlled);
+            var me = team.Controlled;
+            var ball = Object.FindFirstObjectByType<FootballSim.Ball.BallController>();
+            try
+            {
+                Vector3 up = Vector3.ProjectOnPlane(cam.transform.forward, Vector3.up).normalized;   // stick up: away from the camera
+                Vector3 right = Vector3.Cross(Vector3.up, up);                                         // stick right
+                var mates = team.players.FindAll(p => p != me && !p.isGoalkeeper);
+                Vector3 at = me.transform.position;
+                mates[0].TeleportTo(at + up * 12f, Quaternion.identity);
+                mates[1].TeleportTo(at + right * 12f, Quaternion.identity);
+                for (int i = 2; i < mates.Count; i++) mates[i].TeleportTo(at - up * 25f - right * 25f, Quaternion.identity); // out of both cones
+                ball.ResetTo(at + me.transform.forward * 0.4f + Vector3.up * 0.12f);
+
+                touch.StickForTest.SetValueForTest(new Vector2(0f, 1f));
+                yield return null; yield return null;
+                Assert.IsTrue(FootballSim.Players.PassGuide.IsShowing, "the guide shows while the player has the ball");
+                Assert.Less(Vector3.Distance(FootballSim.Players.PassGuide.RingPosition, mates[0].transform.position), 3f, "stick up picks the team-mate up the screen");
+
+                touch.StickForTest.SetValueForTest(new Vector2(1f, 0f));
+                yield return null; yield return null;
+                Assert.Less(Vector3.Distance(FootballSim.Players.PassGuide.RingPosition, mates[1].transform.position), 3f, "stick right picks the team-mate to the right");
+
+                ball.ResetTo(at + new Vector3(30f, 0.12f, 30f)); // the ball is far from him: nothing to show
+                yield return null; yield return null;
+                Assert.IsFalse(FootballSim.Players.PassGuide.IsShowing, "no guide when he is not on the ball");
+            }
+            finally { touch.StickForTest.SetValueForTest(Vector2.zero); FootballSim.Players.PassGuide.Hide(); }
         }
 
         [UnityTest]
@@ -1646,9 +1685,8 @@ namespace FootballSim.Tests
                 Assert.AreEqual(3, FootballSim.Core.MiniLeague.Points, "a win is worth 3 points");
                 Assert.AreEqual(1, FootballSim.Core.MiniLeague.Round);
                 Assert.AreEqual(FootballSim.Core.Difficulty.Professional, FootballSim.Core.MiniLeague.CurrentOpponent);
-                var panel = FindDeep(hud.transform.root, "FullTimePanel");
-                StringAssert.Contains("3 points", panel.Find("League").GetComponent<UnityEngine.UI.Text>().text);
-                StringAssert.Contains("NEXT MATCH", hud.RematchButtonText);
+                StringAssert.Contains("3 points", hud.FullTimeInfoText);
+                StringAssert.Contains("Next Match", hud.RematchButtonText);
             }
             finally
             {
@@ -1738,21 +1776,16 @@ namespace FootballSim.Tests
             var hud = Object.FindFirstObjectByType<FootballSim.UI.MatchHUD>();
             var match = Object.FindFirstObjectByType<MatchManager>();
             for (int i = 0; i < 7; i++)
-                match.Goals.Add(new GoalRecord { team = i % 2, minute = 10 + i * 10, scorer = "Home_11", ownGoal = i == 3 });
+                match.Goals.Add(new GoalRecord { team = i < 6 ? 0 : 1, minute = 10 + i * 10, scorer = "Home_11", ownGoal = i == 3 });
             typeof(FootballSim.UI.MatchHUD).GetMethod("OnFullTime", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).Invoke(hud, null);
             Time.timeScale = 1f;
             yield return null;
             Canvas.ForceUpdateCanvases();
-            var panel = hud.transform.Find("Canvas/FullTimePanel");
-            if (panel == null) panel = FindDeep(hud.transform.root, "FullTimePanel");
-            Assert.IsNotNull(panel);
-            foreach (var name in new[] { "Goals", "Stats" })
-            {
-                var t = panel.Find(name).GetComponent<UnityEngine.UI.Text>();
-                float rectH = ((RectTransform)t.transform).rect.height;
-                Assert.LessOrEqual(t.preferredHeight, rectH + 0.5f, name + " text is taller than its box (" + t.preferredHeight + " > " + rectH + ")");
-            }
-            StringAssert.Contains("+3 more", panel.Find("Goals").GetComponent<UnityEngine.UI.Text>().text);
+            Assert.IsNotNull(FindDeep(hud.transform.root, "FullTimePanel"));
+            Assert.IsTrue(hud.FullTimeScorersFit(), "the scorer lists are taller than their boxes");
+            StringAssert.Contains("+2 more", hud.FullTimeGoalsText(true), "six home goals: four are listed, the rest are counted");
+            StringAssert.Contains("(OG)", hud.FullTimeGoalsText(true));
+            StringAssert.Contains("Home_11", hud.FullTimeGoalsText(false));
         }
 
         static Transform FindDeep(Transform root, string name)

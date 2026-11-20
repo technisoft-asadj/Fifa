@@ -29,7 +29,7 @@ namespace FootballSim.CameraSystem
         public const string PrefKey = "camera_preset", PrefZoom = "camera_zoom";
         /// <summary>Camera views the player can pick: (height, distance). The first is the default broadcast view.</summary>
         public static readonly string[] PresetNames = { "Broadcast", "Close", "Wide", "High" };
-        static readonly Vector2[] PresetValues = { new Vector2(18f, 22f), new Vector2(11f, 14f), new Vector2(26f, 32f), new Vector2(34f, 12f) };
+        static readonly Vector2[] PresetValues = { new Vector2(14f, 27f), new Vector2(9f, 15f), new Vector2(22f, 36f), new Vector2(34f, 12f) };
         public int Preset { get; private set; }
         public float Height => height;
         public float Distance => distance;
@@ -101,8 +101,19 @@ namespace FootballSim.CameraSystem
             if (ball == null) return;
             Vector3 focus = ball.position; focus.y = 0f;
             smoothFocus = focus; focusInitialised = true;
-            transform.position = focus + new Vector3(0f, height * Zoom * fovPullBack, -distance * Zoom * fovPullBack * viewSign);
+            transform.position = focus + SideOffset(Zoom);
             transform.rotation = Quaternion.LookRotation(focus - transform.position, Vector3.up);
+        }
+
+        /// <summary>
+        /// Where the camera sits relative to what it watches. It looks across the pitch from the side, like the TV picture in a football game:
+        /// the touchlines run left and right, and the user's team always attacks toward the right of the screen (the camera changes sides
+        /// with the teams at half-time, which is what <see cref="ViewSign"/> does). Pushing the stick right therefore always runs right.
+        /// </summary>
+        Vector3 SideOffset(float zoom)
+        {
+            float k = zoom * fovPullBack;
+            return new Vector3(distance * k * viewSign, height * k, 0f);
         }
         public float ViewSign => viewSign;
 
@@ -184,7 +195,8 @@ namespace FootballSim.CameraSystem
                 else focusTarget = null;
             }
             autoZoom = Mathf.SmoothDamp(autoZoom, targetZoom, ref autoZoomVel, 0.6f, float.MaxValue, Time.unscaledDeltaTime);
-            focus.x = Mathf.Clamp(focus.x, -pitchHalfExtents.x, pitchHalfExtents.x);
+            // side-on: the screen is wide along the pitch (z) and shallow across it (x), so the camera may follow play close to the near touchlines
+            focus.x = Mathf.Clamp(focus.x, -pitchHalfExtents.x * 0.85f, pitchHalfExtents.x * 0.85f);
             focus.z = Mathf.Clamp(focus.z, -pitchHalfExtents.y, pitchHalfExtents.y);
             focus.y = 0f;
 
@@ -193,7 +205,7 @@ namespace FootballSim.CameraSystem
             if (!focusInitialised) { smoothFocus = focus; focusInitialised = true; }
             smoothFocus = Vector3.SmoothDamp(smoothFocus, focus, ref vel, smoothTime);
             float z = Zoom;
-            transform.position = smoothFocus + new Vector3(0f, height * z * fovPullBack, -distance * z * fovPullBack * viewSign);
+            transform.position = smoothFocus + SideOffset(z);
             Quaternion look = Quaternion.LookRotation(smoothFocus - transform.position, Vector3.up);
             transform.rotation = Quaternion.Slerp(transform.rotation, look, 1f - Mathf.Exp(-12f * Time.deltaTime));
         }

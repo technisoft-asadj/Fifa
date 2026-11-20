@@ -72,6 +72,9 @@ namespace FootballSim.Core
             Make("Brazil", "BRA", 0xFFDC02, 0x009C3B, 0x1B3F94, 0xFFFFFF, KitPattern.Sleeves, "Alisson,Danilo,Marquinhos,Militao,Wendell,Casemiro,Paqueta,Raphinha,Rodrygo,Vinicius,Endrick"),
             Make("France", "FRA", 0x14275A, 0xFFFFFF, 0xFFFFFF, 0xDA291C, KitPattern.Solid, "Maignan,Kounde,Upamecano,Saliba,Theo Hernandez,Tchouameni,Kante,Dembele,Griezmann,Mbappe,Thuram"),
             Make("England", "ENG", 0xF4F4F4, 0x1B2A5C, 0x1B2A5C, 0xF4F4F4, KitPattern.Solid, "Pickford,Walker,Stones,Guehi,Shaw,Rice,Bellingham,Foden,Saka,Kane,Palmer"),
+            // the two made-up sides from the game's own art (Royal United's lion, Thunder FC's eagle)
+            Make("Royal United", "RUN", 0x1E4FC8, 0xFFFFFF, 0x14275A, 0x1E4FC8, KitPattern.Solid, "Hartley,Boone,Calder,Vance,Mercer,Dalton,Okoro,Silva,Reyes,Kovac,Lennox"),
+            Make("Thunder FC", "THU", 0xE23B2E, 0xFFFFFF, 0x1A1F3A, 0xE23B2E, KitPattern.Solid, "Brandt,Moreau,Ito,Castell,Novak,Duarte,Fenn,Ashby,Rourke,Santos,Varga"),
         };
 
         public static int Count => Clubs.Length;

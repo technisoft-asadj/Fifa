@@ -44,10 +44,12 @@ namespace FootballSim.Tests
         [Test]
         public void TheRadarPutsEachSideOfThePitchOnTheMatchingSideAndTurnsWithTheCamera()
         {
-            var size = new Vector2(135f, 200f);
+            // the radar lies like the picture: the pitch length runs left to right (the user attacks right), the near touchline is at the bottom
+            var size = new Vector2(210f, 140f);
             Assert.AreEqual(Vector2.zero, MiniRadar.Map(Vector3.zero, size, 1f));
             var corner = MiniRadar.Map(new Vector3(30f, 0f, 45f), size, 1f);
-            Assert.AreEqual(size.x * 0.5f, corner.x, 1e-3f); Assert.AreEqual(size.y * 0.5f, corner.y, 1e-3f);
+            Assert.AreEqual(size.x * 0.5f, corner.x, 1e-3f, "the far goal end is on the right");
+            Assert.AreEqual(-size.y * 0.5f, corner.y, 1e-3f, "x = +30 is the touchline nearest the camera, at the bottom");
             var turned = MiniRadar.Map(new Vector3(30f, 0f, 45f), size, -1f);
             Assert.AreEqual(-corner.x, turned.x, 1e-3f); Assert.AreEqual(-corner.y, turned.y, 1e-3f);
         }

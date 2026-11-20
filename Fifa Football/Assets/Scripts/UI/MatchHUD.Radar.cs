@@ -21,11 +21,11 @@ namespace FootballSim.UI
             var hr = (RectTransform)holder.transform;
             hr.anchorMin = Vector2.zero; hr.anchorMax = Vector2.one; hr.offsetMin = hr.offsetMax = Vector2.zero;
             radarRoot = holder;
-            radar = MiniRadar.Create(hr, new Vector2(135f, 200f), new Vector2(20f, -75f));
+            radar = MiniRadar.Create(hr, new Vector2(210f, 140f), new Vector2(20f, -75f));
             // zoom buttons: closer (-) and wider (+), with the current level between them
-            UIKit.SmallButton(hr, "-", UITheme.BlueDark, UIKit.TopLeft, new Vector2(20f, -285f), new Vector2(44f, 52f), () => ZoomCamera(-1), 36f);
-            zoomLabel = UIKit.TextAt(hr, "ZoomLabel", "", 20f, Color.white, UIKit.TopLeft, new Vector2(64f, -291f), new Vector2(47f, 40f), TextAlignmentOptions.Center, true);
-            UIKit.SmallButton(hr, "+", UITheme.BlueDark, UIKit.TopLeft, new Vector2(111f, -285f), new Vector2(44f, 52f), () => ZoomCamera(1), 36f);
+            UIKit.SmallButton(hr, "-", UITheme.BlueDark, UIKit.TopLeft, new Vector2(20f, -225f), new Vector2(44f, 52f), () => ZoomCamera(-1), 36f);
+            zoomLabel = UIKit.TextAt(hr, "ZoomLabel", "", 20f, Color.white, UIKit.TopLeft, new Vector2(92f, -231f), new Vector2(66f, 40f), TextAlignmentOptions.Center, true);
+            UIKit.SmallButton(hr, "+", UITheme.BlueDark, UIKit.TopLeft, new Vector2(186f, -225f), new Vector2(44f, 52f), () => ZoomCamera(1), 36f);
             RefreshZoomLabel();
         }
 

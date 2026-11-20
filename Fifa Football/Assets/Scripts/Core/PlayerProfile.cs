@@ -9,12 +9,12 @@ namespace FootballSim.Core
     /// </summary>
     public static class PlayerProfile
     {
-        public const string CoinsKey = "pf_coins", XpKey = "pf_xp", DailyKey = "pf_daily_day", NameKey = "pf_name";
+        public const string CoinsKey = "pf_coins", XpKey = "pf_xp", DailyKey = "pf_daily_day", NameKey = "pf_name", GemsKey = "pf_gems";
         public const int MaxNameLength = 16;
         public const int XpPerLevel = 100, DailyRewardCoins = 250, MaxValue = 100000000;
 
         static bool restored;
-        static int coins, xp;
+        static int coins, xp, gems;
         static long lastClaimDay = -1;
         static string name = "";
 
@@ -49,6 +49,10 @@ namespace FootballSim.Core
 
         public static int Coins { get { EnsureRestored(); return coins; } }
         public static int Xp { get { EnsureRestored(); return xp; } }
+        /// <summary>Gems: a second progress meter (like coins, local to this phone; nothing is sold for them).</summary>
+        public static int Gems { get { EnsureRestored(); return gems; } }
+        /// <summary>Gems a finished match pays: 50 for a win, 20 for a draw, 10 for a loss.</summary>
+        public static int GemsFor(int homeGoals, int awayGoals) { return homeGoals > awayGoals ? 50 : homeGoals == awayGoals ? 20 : 10; }
         public static int Level { get { EnsureRestored(); return 1 + xp / XpPerLevel; } }
         public static int XpInLevel { get { EnsureRestored(); return xp % XpPerLevel; } }
         public static bool DailyAvailable { get { EnsureRestored(); return Today() > lastClaimDay; } }
@@ -86,17 +90,18 @@ namespace FootballSim.Core
             Reward(homeGoals, awayGoals, out int c, out int x);
             coins = Mathf.Min(MaxValue, coins + c);
             xp = Mathf.Min(MaxValue, xp + x);
+            gems = Mathf.Min(MaxValue, gems + GemsFor(homeGoals, awayGoals));
             Save();
         }
 
         public static void Clear()
         {
-            restored = true; coins = 0; xp = 0; lastClaimDay = -1; name = "";
-            try { PlayerPrefs.DeleteKey(CoinsKey); PlayerPrefs.DeleteKey(XpKey); PlayerPrefs.DeleteKey(DailyKey); PlayerPrefs.DeleteKey(NameKey); PlayerPrefs.Save(); } catch { }
+            restored = true; coins = 0; xp = 0; gems = 0; lastClaimDay = -1; name = "";
+            try { PlayerPrefs.DeleteKey(GemsKey); PlayerPrefs.DeleteKey(CoinsKey); PlayerPrefs.DeleteKey(XpKey); PlayerPrefs.DeleteKey(DailyKey); PlayerPrefs.DeleteKey(NameKey); PlayerPrefs.Save(); } catch { }
         }
 
         /// <summary>Forgets the in-memory values so the next read loads from storage, as after a fresh launch. For tests.</summary>
-        public static void ForgetInMemory() { restored = false; coins = 0; xp = 0; lastClaimDay = -1; name = ""; }
+        public static void ForgetInMemory() { restored = false; coins = 0; xp = 0; gems = 0; lastClaimDay = -1; name = ""; }
 
         static void EnsureRestored()
         {
@@ -113,6 +118,7 @@ namespace FootballSim.Core
                     return;
                 }
                 coins = c; xp = x; lastClaimDay = d;
+                gems = Mathf.Clamp(PlayerPrefs.GetInt(GemsKey, 0), 0, MaxValue);
                 string saved = PlayerPrefs.GetString(NameKey, "");
                 name = saved.Length == 0 ? "" : CleanName(saved);
             }
@@ -123,7 +129,7 @@ namespace FootballSim.Core
         {
             try
             {
-                PlayerPrefs.SetInt(CoinsKey, coins); PlayerPrefs.SetInt(XpKey, xp); PlayerPrefs.SetString(DailyKey, lastClaimDay.ToString());
+                PlayerPrefs.SetInt(CoinsKey, coins); PlayerPrefs.SetInt(XpKey, xp); PlayerPrefs.SetInt(GemsKey, gems); PlayerPrefs.SetString(DailyKey, lastClaimDay.ToString());
                 if (name.Length > 0) PlayerPrefs.SetString(NameKey, name);
                 PlayerPrefs.Save();
             }

@@ -9,7 +9,7 @@ namespace FootballSim.UI
     /// 1920x1080 reference space of the canvas, measured from the chosen anchor. Nothing here has an Update: a screen is built once and
     /// only changes when a value changes.
     /// </summary>
-    public static class UIKit
+    public static partial class UIKit
     {
         public static readonly Vector2 Center = new Vector2(0.5f, 0.5f), TopLeft = new Vector2(0f, 1f), TopRight = new Vector2(1f, 1f), BottomLeft = new Vector2(0f, 0f), BottomRight = new Vector2(1f, 0f);
 
