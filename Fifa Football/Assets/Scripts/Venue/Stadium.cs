@@ -176,6 +176,7 @@ namespace FootballSim.Venue
                 m.mainTexture = finalTex;
             }
 
+            PitchDressing.Atmosphere();
             PitchDressing.GrassStripes();
             PitchDressing.BallPanels();
             PitchDressing.ColourGrade(QualitySettings.GetQualityLevel() >= 1);

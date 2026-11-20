@@ -119,20 +119,36 @@ namespace FootballSim.Venue
             var pitch = GameObject.Find("Pitch");
             var r = pitch != null ? pitch.GetComponent<Renderer>() : null;
             if (r == null) return;
-            const int w = 8, h = 64;
-            var tex = new Texture2D(w, h, TextureFormat.RGB24, true) { wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Bilinear, name = "GrassStripes" };
+            // the ground cube is 80 x 115 m; u runs along x and v along z
+            const int w = 160, h = 230;
+            var tex = new Texture2D(w, h, TextureFormat.RGB24, true) { wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Bilinear, anisoLevel = 4, name = "GrassStripes" };
             var px = new Color32[w * h];
             var rng = new System.Random(7);
             for (int y = 0; y < h; y++)
             {
-                // sixteen mown bands along the pitch, alternately lighter and darker
-                bool light = ((y * 16) / h) % 2 == 0;
-                float baseV = light ? 1.0f : 0.84f;
+                float z = ((y + 0.5f) / h - 0.5f) * 115f;
+                // sixteen mown bands across the playing length, alternately lighter and darker, with soft edges
+                float band = Mathf.Repeat((z + 52.5f) / 6.5625f, 2f);
+                float stripe = Mathf.SmoothStep(0f, 1f, Mathf.Abs(band - 1f) * 3f - 0.5f); // 0 = dark band, 1 = light band
+                float baseV = Mathf.Lerp(0.82f, 1.0f, stripe);
                 for (int x = 0; x < w; x++)
                 {
-                    float n = 1f + ((float)rng.NextDouble() - 0.5f) * 0.05f;
-                    byte v = (byte)Mathf.Clamp(baseV * n * 255f, 0f, 255f);
-                    px[y * w + x] = new Color32(v, v, v, 255);
+                    float xx = ((x + 0.5f) / w - 0.5f) * 80f;
+                    // low-frequency patchiness plus per-blade grain
+                    float patch = Mathf.PerlinNoise(xx * 0.18f + 40f, z * 0.18f + 11f) * 0.12f + Mathf.PerlinNoise(xx * 0.7f, z * 0.7f) * 0.06f;
+                    float grain = ((float)rng.NextDouble() - 0.5f) * 0.07f;
+                    // trampled goalmouths and centre spot: browner and paler
+                    float wear = 0f;
+                    for (int end = -1; end <= 1; end += 2)
+                    {
+                        float dz = z - end * 49f, dx = xx;
+                        wear = Mathf.Max(wear, Mathf.Clamp01(1f - Mathf.Sqrt(dx * dx * 0.5f + dz * dz) / 8f));
+                    }
+                    wear = Mathf.Max(wear, Mathf.Clamp01(1f - Mathf.Sqrt(xx * xx + z * z) / 2.5f) * 0.6f);
+                    float v = baseV * (0.94f + patch + grain);
+                    // multiply the grass colour; wear pulls red up and green down a little
+                    float cr = v * (1f + wear * 0.55f), cg = v * (1f - wear * 0.12f), cb = v * (1f + wear * 0.1f);
+                    px[y * w + x] = new Color32((byte)Mathf.Clamp(cr * 255f, 0f, 255f), (byte)Mathf.Clamp(cg * 255f, 0f, 255f), (byte)Mathf.Clamp(cb * 255f, 0f, 255f), 255);
                 }
             }
             tex.SetPixels32(px); tex.Apply(true, true);
@@ -202,6 +218,16 @@ namespace FootballSim.Venue
             ca.contrast.Override(10f); ca.saturation.Override(8f); ca.postExposure.Override(0.1f);
             var vg = profile.Add<Vignette>(true); vg.intensity.Override(0.22f); vg.smoothness.Override(0.5f);
             if (bloom) { var b = profile.Add<Bloom>(true); b.threshold.Override(1.05f); b.intensity.Override(0.3f); b.scatter.Override(0.6f); }
+        }
+
+        /// <summary>A light haze that fades the far stands into the sky, and shadows that reach a little further.</summary>
+        public static void Atmosphere()
+        {
+            RenderSettings.fog = true;
+            RenderSettings.fogMode = FogMode.ExponentialSquared;
+            RenderSettings.fogColor = new Color(0.66f, 0.74f, 0.84f);
+            RenderSettings.fogDensity = 0.0042f;
+            if (QualitySettings.GetQualityLevel() >= 1) QualitySettings.shadowDistance = Mathf.Max(QualitySettings.shadowDistance, 60f);
         }
 
         public static void Cleanup()
