@@ -395,7 +395,10 @@ namespace FootballSim.UI
                     : Season.Active ? (Season.Over ? "Mode: Season over" : $"Mode: Season {Season.Round + 1}/{Season.Rounds}")
                     : Tournament.Active ? (Tournament.Won ? "Mode: Tournament won" : Tournament.Eliminated ? "Mode: Tournament over" : $"Mode: Tournament - {Tournament.CurrentStage}")
                     : !MiniLeague.Active ? "Mode: Single match"
-                    : MiniLeague.Finished ? "Mode: League finished" : $"Mode: League {MiniLeague.Round + 1}/{MiniLeague.Matches}";
+                    : MiniLeague.Finished ? "Mode: League complete" : $"Mode: League {MiniLeague.Round + 1}/{MiniLeague.Matches}";
+            if (recordLabel != null)
+                recordLabel.text = Tournament.Active ? "Cup path\n" + Tournament.Bracket()
+                    : CareerRecord.Summary() + (TeamGrowth.CurrentLevel > 0 ? $"   Squad lv {TeamGrowth.CurrentLevel}" : "");
             CycleDifficulty(0, false);
             RefreshModeCards();
         }
@@ -531,7 +534,7 @@ namespace FootballSim.UI
                 card.GetComponentInChildren<Text>().fontSize = 25;
                 modeCards[m] = card.GetComponent<Image>();
             }
-            recordLabel = Label("Record", st, 26, TextAnchor.MiddleCenter, new Vector2(xR, -150), new Vector2(700, 76));
+            recordLabel = Label("Record", st, 30, TextAnchor.MiddleCenter, new Vector2(xR, -160), new Vector2(740, 100));
             recordLabel.color = new Color(1f, 0.9f, 0.4f);
             recordLabel.text = CareerRecord.Summary() + (TeamGrowth.CurrentLevel > 0 ? $"   Squad lv {TeamGrowth.CurrentLevel}" : "");
             Button(st, "PLAY", new Vector2(0, -270), new Vector2(560, 106), BeginMatch, Accent);

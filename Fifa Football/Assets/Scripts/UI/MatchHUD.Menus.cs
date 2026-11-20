@@ -257,7 +257,7 @@ namespace FootballSim.UI
             RowPlusMinus(p, "Stick response", -70f, out ctlSens, () => AdjustSensitivity(-0.1f), () => AdjustSensitivity(0.1f), UITheme.BlueDark);
             Row(p, "Vibration", -150f, out ctlBuzz, ToggleBuzz, "CHANGE");
             Row(p, "Auto sprint", -230f, out ctlAuto, ToggleAuto, "CHANGE");
-            UIKit.TextAt(p, "Note", "Auto sprint: push the stick all the way to run. The real buttons show while you change them.", 26f, UITheme.Muted, UIKit.Center, new Vector2(0f, -292f), new Vector2(1040f, 36f));
+            UIKit.TextAt(p, "Note", "Auto sprint: push the stick all the way to run.", 28f, UITheme.Muted, UIKit.Center, new Vector2(0f, -292f), new Vector2(900f, 36f));
             UIKit.SmallButton(p, "Move buttons", UITheme.Blue, UIKit.Center, new Vector2(-280f, -365f), new Vector2(480f, 80f), StartMovingButtons, 34f);
             UIKit.SmallButton(p, "Reset controls", UITheme.Red, UIKit.Center, new Vector2(280f, -365f), new Vector2(480f, 80f), ResetControls, 34f);
             controlsPanel.SetActive(false);
@@ -271,7 +271,8 @@ namespace FootballSim.UI
             moveBar.SetActive(false);
         }
 
-        public void OpenControls() { RefreshControls(); controlsPanel.SetActive(true); var tc = Touch(); if (tc != null) tc.SetPreview(true); }
+        // the live buttons only show behind this panel when it was opened from a paused match; from the main menu they would draw over the menus
+        public void OpenControls() { RefreshControls(); controlsPanel.SetActive(true); var tc = Touch(); if (tc != null) tc.SetPreview(pausedOverSettings); }
 
         public void CloseControls()
         {

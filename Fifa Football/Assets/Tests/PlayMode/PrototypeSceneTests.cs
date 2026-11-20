@@ -1144,7 +1144,7 @@ namespace FootballSim.Tests
             hud.OpenControls();
             yield return null; yield return null;
             Assert.IsTrue(hud.ControlsOpen);
-            Assert.IsTrue(touch.IsVisible, "the real controls show behind the screen so changes can be seen");
+            Assert.IsFalse(touch.IsVisible, "opened from the main menu the live buttons stay hidden so they do not draw over the menus");
             Assert.IsTrue(hud.GoBack()); Assert.IsFalse(hud.ControlsOpen); Assert.IsTrue(hud.SettingsOpen, "Back from controls returns to settings");
             yield return null; yield return null;
             Assert.IsFalse(touch.IsVisible, "no preview once the screen is closed (the main menu is up)");

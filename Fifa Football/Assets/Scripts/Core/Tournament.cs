@@ -53,6 +53,16 @@ namespace FootballSim.Core
             return o;
         }
 
+        /// <summary>The cup as a path, e.g. "Quarter-final (won)  >  [Semi-final]  >  Final": won rounds marked, the next one in brackets. Empty when no cup is running.</summary>
+        public static string Bracket()
+        {
+            if (!Active) return "";
+            var parts = new string[Rounds];
+            for (int i = 0; i < Rounds; i++)
+                parts[i] = i < round ? Stages[i] + " (won)" : (i == round && !eliminated ? "[" + Stages[i] + "]" : Stages[i]);
+            return string.Join("  >  ", parts);
+        }
+
         public static string Summary()
         {
             if (!Active) return "";

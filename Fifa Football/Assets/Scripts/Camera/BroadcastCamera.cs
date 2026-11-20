@@ -20,6 +20,8 @@ namespace FootballSim.CameraSystem
         [SerializeField, Range(0f, 1f)] float ballWeight = 0.7f;
         [SerializeField] Vector2 pitchHalfExtents = new Vector2(30f, 45f);
 
+        public const float FieldOfView = 36f;
+        float fovPullBack = 1f;
         Vector3 vel, smoothFocus;
         bool focusInitialised;
         float viewSign = 1f;
@@ -55,7 +57,12 @@ namespace FootballSim.CameraSystem
         {
             // Beyond the grass the default skybox showed a flat grey-brown void; a dark stadium green looks like the run-off and the stands in shadow
             var cam = GetComponent<Camera>();
-            if (cam != null) { cam.clearFlags = CameraClearFlags.SolidColor; cam.backgroundColor = new Color(0.07f, 0.16f, 0.1f); }
+            if (cam != null)
+            {
+                cam.clearFlags = CameraClearFlags.SolidColor; cam.backgroundColor = new Color(0.07f, 0.16f, 0.1f);
+                // a narrower lens (36 degrees, was 45) with the camera pulled back to match keeps the same picture but stops players at the screen edge looking tilted
+                if (cam.fieldOfView > FieldOfView + 0.5f) { fovPullBack = Mathf.Tan(cam.fieldOfView * 0.5f * Mathf.Deg2Rad) / Mathf.Tan(FieldOfView * 0.5f * Mathf.Deg2Rad); cam.fieldOfView = FieldOfView; }
+            }
             try { SetPreset(PlayerPrefs.GetInt(PrefKey, 0), false); UserZoom = CameraFraming.ClampUser(PlayerPrefs.GetFloat(PrefZoom, 1f)); } catch { }
         }
 
@@ -94,7 +101,7 @@ namespace FootballSim.CameraSystem
             if (ball == null) return;
             Vector3 focus = ball.position; focus.y = 0f;
             smoothFocus = focus; focusInitialised = true;
-            transform.position = focus + new Vector3(0f, height * Zoom, -distance * Zoom * viewSign);
+            transform.position = focus + new Vector3(0f, height * Zoom * fovPullBack, -distance * Zoom * fovPullBack * viewSign);
             transform.rotation = Quaternion.LookRotation(focus - transform.position, Vector3.up);
         }
         public float ViewSign => viewSign;
@@ -164,7 +171,12 @@ namespace FootballSim.CameraSystem
         {
             if (ball == null) return;
             Vector3 focus = ball.position;
-            if (player) focus = Vector3.Lerp(player.position, ball.position, ballWeight);
+            if (player)
+            {
+                // near either goal line the camera follows the ball alone, so a shot and the goal after it stay in the middle of the picture, not on the bottom edge
+                float nearGoal = Mathf.Clamp01((Mathf.Abs(ball.position.z) - 30f) / 12f);
+                focus = Vector3.Lerp(player.position, ball.position, Mathf.Lerp(ballWeight, 1f, nearGoal));
+            }
             float targetZoom = autoFrame ? AutoZoomFor(focus) : 1f;
             if (focusTarget != null)
             {
@@ -181,7 +193,7 @@ namespace FootballSim.CameraSystem
             if (!focusInitialised) { smoothFocus = focus; focusInitialised = true; }
             smoothFocus = Vector3.SmoothDamp(smoothFocus, focus, ref vel, smoothTime);
             float z = Zoom;
-            transform.position = smoothFocus + new Vector3(0f, height * z, -distance * z * viewSign);
+            transform.position = smoothFocus + new Vector3(0f, height * z * fovPullBack, -distance * z * fovPullBack * viewSign);
             Quaternion look = Quaternion.LookRotation(smoothFocus - transform.position, Vector3.up);
             transform.rotation = Quaternion.Slerp(transform.rotation, look, 1f - Mathf.Exp(-12f * Time.deltaTime));
         }
