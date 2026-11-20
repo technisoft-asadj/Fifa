@@ -59,16 +59,67 @@ namespace FootballSim.Players
         float phase, amp, kickT = -1f, tackleT = -1f;
         bool kickRight = true;
 
-        Material shirtMaterial, shortsMaterial, sockMaterial;
+        Material shirtMaterial, shortsMaterial, sockMaterial, secondaryMaterial, gloveMaterial, skinMaterial, hairMaterial;
+        readonly System.Collections.Generic.List<GameObject> patternParts = new System.Collections.Generic.List<GameObject>();
+        readonly System.Collections.Generic.List<Renderer> sleeves = new System.Collections.Generic.List<Renderer>();
+        TMPro.TextMeshPro numberText;
+        string shirtNumber;
 
         /// <summary>Change the team kit (shirt, shorts and socks) after the player has been built.</summary>
-        public void SetKit(Color shirt)
+        public void SetKit(Color shirt) { ApplyKit(Core.ClubKit.Plain(shirt), false, null); }
+
+        /// <summary>Puts a full strip on the player: shirt with its pattern, shorts, socks, the number on the back and (for a keeper) gloves.</summary>
+        public void ApplyKit(Core.ClubKit kit, bool keeper, string number)
         {
-            shirtColor = shirt;
-            Tint(shirtMaterial, shirt);
-            Tint(shortsMaterial, Color.Lerp(shirt, Color.white, 0.75f));
-            Tint(sockMaterial, Color.Lerp(shirt, Color.black, 0.15f));
-            if (animated != null) animated.SetKit(shirt);
+            shirtColor = kit.shirt;
+            Tint(shirtMaterial, kit.shirt);
+            Tint(shortsMaterial, kit.shorts);
+            Tint(sockMaterial, kit.socks);
+            Tint(secondaryMaterial, kit.secondary);
+            Tint(gloveMaterial, keeper ? Color.Lerp(kit.shirt, Color.white, 0.55f) : skinColor);
+            shirtNumber = number;
+            if (body != null) BuildPattern(kit);
+            if (animated != null) animated.SetKit(kit.shirt);
+        }
+
+        Color skinColor = Color.white;
+
+        void BuildPattern(Core.ClubKit kit)
+        {
+            foreach (var g in patternParts) if (g != null) Destroy(g);
+            patternParts.Clear();
+            var torso = body.Find("Torso");
+            if (torso == null || secondaryMaterial == null) return;
+            // the sleeves wear the second colour on a "sleeves" strip
+            foreach (var r in sleeves) if (r != null) r.sharedMaterial = kit.pattern == Core.KitPattern.Sleeves ? secondaryMaterial : shirtMaterial;
+            if (kit.pattern == Core.KitPattern.Stripes)
+                for (int i = -1; i <= 1; i++) patternParts.Add(Part(PrimitiveType.Cube, "Stripe", body, new Vector3(i * 0.135f, 0.3f, 0f), new Vector3(0.07f, 0.5f, 0.236f), secondaryMaterial));
+            else if (kit.pattern == Core.KitPattern.Hoops)
+                for (int i = 0; i < 3; i++) patternParts.Add(Part(PrimitiveType.Cube, "Hoop", body, new Vector3(0f, 0.13f + i * 0.17f, 0f), new Vector3(0.404f, 0.075f, 0.236f), secondaryMaterial));
+            // a collar in the second colour
+            patternParts.Add(Part(PrimitiveType.Cube, "Collar", body, new Vector3(0f, 0.55f, 0f), new Vector3(0.17f, 0.035f, 0.14f), secondaryMaterial));
+            // the number on the back
+            try
+            {
+                if (numberText == null)
+                {
+                    var go = new GameObject("Number");
+                    go.transform.SetParent(body, false);
+                    go.transform.localPosition = new Vector3(0f, 0.3f, -0.122f);
+                    go.transform.localRotation = Quaternion.identity; // the player faces +Z, so text that reads from -Z is on his back
+                    numberText = go.AddComponent<TMPro.TextMeshPro>();
+                    numberText.alignment = TMPro.TextAlignmentOptions.Center;
+                    numberText.fontStyle = TMPro.FontStyles.Bold;
+                    numberText.enableAutoSizing = true; numberText.fontSizeMin = 0.5f; numberText.fontSizeMax = 3.2f;
+                    numberText.rectTransform.sizeDelta = new Vector2(0.3f, 0.22f);
+                    numberText.raycastTarget = false;
+                    numberText.textWrappingMode = TMPro.TextWrappingModes.NoWrap;
+                }
+                numberText.text = shirtNumber ?? "";
+                numberText.color = Core.TeamCatalog.Distance(kit.secondary, kit.shirt) > 0.7f ? kit.secondary : ((kit.shirt.r + kit.shirt.g + kit.shirt.b) / 3f > 0.55f ? new Color(0.08f, 0.08f, 0.1f) : Color.white);
+                numberText.gameObject.SetActive(!string.IsNullOrEmpty(shirtNumber));
+            }
+            catch { /* no text font in this build: the shirt simply has no number */ }
         }
 
         /// <summary>Tells the visual whether the human controls this player (in <see cref="ModelMode.One"/> only that player is animated).</summary>
@@ -143,6 +194,7 @@ namespace FootballSim.Players
             var mShirt = M(shirt); var mShorts = M(shorts); var mSkin = M(skin); var mHair = M(hair); var mBoot = M(boot);
             var mSock = M(Color.Lerp(shirt, Color.black, 0.15f));
             shirtMaterial = mShirt; shortsMaterial = mShorts; sockMaterial = mSock;
+            secondaryMaterial = M(Color.white); gloveMaterial = M(skin); skinMaterial = mSkin; hairMaterial = mHair; skinColor = skin;
 
             shirtColor = shirt;
             var visual = new GameObject("Visual").transform;
@@ -152,15 +204,39 @@ namespace FootballSim.Players
             body = new GameObject("Body").transform;
             body.SetParent(visual, false);
 
-            Part(PrimitiveType.Capsule, "Torso", body, new Vector3(0f, 0.3f, 0f), new Vector3(0.38f, 0.29f, 0.22f), mShirt);
-            Part(PrimitiveType.Sphere, "Head", body, new Vector3(0f, 0.74f, 0f), Vector3.one * 0.22f, mSkin);
-            Part(PrimitiveType.Sphere, "Hair", body, new Vector3(0f, 0.8f, -0.012f), new Vector3(0.235f, 0.13f, 0.235f), mHair);
-            Part(PrimitiveType.Cube, "Shorts", body, new Vector3(0f, -0.07f, 0f), new Vector3(0.36f, 0.24f, 0.22f), mShorts);
+            Part(PrimitiveType.Cube, "Torso", body, new Vector3(0f, 0.3f, 0f), new Vector3(0.4f, 0.5f, 0.23f), mShirt);
+            Part(PrimitiveType.Cylinder, "Neck", body, new Vector3(0f, 0.6f, 0f), new Vector3(0.09f, 0.04f, 0.09f), mSkin);
+            Part(PrimitiveType.Sphere, "Head", body, new Vector3(0f, 0.74f, 0f), new Vector3(0.21f, 0.24f, 0.22f), mSkin);
+            // face: eyes and ears, and a hair style that varies from player to player
+            Part(PrimitiveType.Sphere, "EyeL", body, new Vector3(-0.04f, 0.76f, 0.098f), new Vector3(0.028f, 0.03f, 0.02f), MatOf(shader, new Color(0.05f, 0.05f, 0.06f)));
+            Part(PrimitiveType.Sphere, "EyeR", body, new Vector3(0.04f, 0.76f, 0.098f), new Vector3(0.028f, 0.03f, 0.02f), MatOf(shader, new Color(0.05f, 0.05f, 0.06f)));
+            Part(PrimitiveType.Sphere, "Nose", body, new Vector3(0f, 0.72f, 0.108f), new Vector3(0.035f, 0.04f, 0.035f), mSkin);
+            Part(PrimitiveType.Sphere, "EarL", body, new Vector3(-0.108f, 0.74f, 0f), new Vector3(0.03f, 0.06f, 0.045f), mSkin);
+            Part(PrimitiveType.Sphere, "EarR", body, new Vector3(0.108f, 0.74f, 0f), new Vector3(0.03f, 0.06f, 0.045f), mSkin);
+            int style = (h / 3) % 5;
+            if (style == 0) Part(PrimitiveType.Sphere, "Hair", body, new Vector3(0f, 0.8f, -0.012f), new Vector3(0.235f, 0.13f, 0.235f), mHair);
+            else if (style == 1) Part(PrimitiveType.Sphere, "Hair", body, new Vector3(0f, 0.815f, -0.005f), new Vector3(0.226f, 0.09f, 0.228f), mHair); // cropped
+            else if (style == 2)
+            {
+                Part(PrimitiveType.Sphere, "Hair", body, new Vector3(0f, 0.8f, -0.012f), new Vector3(0.24f, 0.14f, 0.24f), mHair);
+                Part(PrimitiveType.Cube, "HairBack", body, new Vector3(0f, 0.72f, -0.1f), new Vector3(0.2f, 0.16f, 0.07f), mHair); // longer at the back
+            }
+            else if (style == 3) Part(PrimitiveType.Sphere, "Hair", body, new Vector3(0f, 0.83f, -0.01f), new Vector3(0.27f, 0.2f, 0.27f), mHair); // big curly hair
+            else { Part(PrimitiveType.Sphere, "Hair", body, new Vector3(0f, 0.805f, -0.01f), new Vector3(0.232f, 0.11f, 0.232f), mHair); Part(PrimitiveType.Sphere, "Bun", body, new Vector3(0f, 0.9f, -0.07f), Vector3.one * 0.08f, mHair); }
+            Part(PrimitiveType.Cube, "Shorts", body, new Vector3(0f, -0.07f, 0f), new Vector3(0.38f, 0.24f, 0.22f), mShorts);
 
             hipL = Leg("L", -0.12f, body, mSkin, mSock, mBoot, out kneeL);
             hipR = Leg("R", 0.12f, body, mSkin, mSock, mBoot, out kneeR);
-            shoulderL = Arm("L", -0.27f, body, mSkin, mShirt);
-            shoulderR = Arm("R", 0.27f, body, mSkin, mShirt);
+            shoulderL = Arm("L", -0.27f, body, mSkin, mShirt, gloveMaterial, sleeves);
+            shoulderR = Arm("R", 0.27f, body, mSkin, mShirt, gloveMaterial, sleeves);
+            BuildPattern(Core.ClubKit.Plain(shirt));
+        }
+
+        static Material MatOf(Shader shader, Color c)
+        {
+            var m = new Material(shader) { color = c };
+            if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", c);
+            return m;
         }
 
         static GameObject Part(PrimitiveType type, string n, Transform parent, Vector3 pos, Vector3 scale, Material mat)
@@ -186,12 +262,14 @@ namespace FootballSim.Players
             return hip;
         }
 
-        static Transform Arm(string side, float x, Transform parent, Material skin, Material sleeve)
+        static Transform Arm(string side, float x, Transform parent, Material skin, Material sleeve, Material hand, System.Collections.Generic.List<Renderer> sleeveList)
         {
             var sh = new GameObject("Shoulder" + side).transform;
             sh.SetParent(parent, false); sh.localPosition = new Vector3(x, 0.5f, 0f);
             Part(PrimitiveType.Capsule, "Arm", sh, new Vector3(0f, -0.22f, 0f), new Vector3(0.095f, 0.22f, 0.095f), skin);
-            Part(PrimitiveType.Capsule, "Sleeve", sh, new Vector3(0f, -0.07f, 0f), new Vector3(0.115f, 0.08f, 0.115f), sleeve);
+            var s = Part(PrimitiveType.Capsule, "Sleeve", sh, new Vector3(0f, -0.08f, 0f), new Vector3(0.12f, 0.1f, 0.12f), sleeve);
+            sleeveList.Add(s.GetComponent<Renderer>());
+            Part(PrimitiveType.Sphere, "Hand", sh, new Vector3(0f, -0.45f, 0f), Vector3.one * 0.1f, hand); // a keeper's gloves are this material in his colour
             return sh;
         }
 

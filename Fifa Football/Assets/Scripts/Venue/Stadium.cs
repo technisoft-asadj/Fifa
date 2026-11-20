@@ -90,10 +90,9 @@ namespace FootballSim.Venue
 
         void ApplyKits()
         {
-            int sel = KitPalette.Load();
-            Color home = KitPalette.Colors[sel], away = KitPalette.Colors[KitPalette.AwayFor(sel)];
-            Tint(homeJacket, Color.Lerp(home, Color.black, 0.15f));
-            Tint(awayJacket, Color.Lerp(away, Color.black, 0.15f));
+            FootballSim.Players.TeamKits.Resolve(KitPalette.Load(), out var home, out var away, out _, out _);
+            Tint(homeJacket, Color.Lerp(home.shirt, Color.black, 0.15f));
+            Tint(awayJacket, Color.Lerp(away.shirt, Color.black, 0.15f));
         }
 
         static void Tint(Material m, Color c) { if (m == null) return; m.color = c; if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", c); }

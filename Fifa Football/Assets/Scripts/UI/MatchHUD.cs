@@ -116,7 +116,7 @@ namespace FootballSim.UI
                 if (bannerTimer <= 0f) bannerText.text = "";
             }
             if (match == null || OnlineGuestActive) return; // a guest's scoreboard is driven by the host's snapshots (see UpdateOnlineLabels)
-            scoreText.text = $"HOME  {match.HomeScore}  -  {match.AwayScore}  AWAY";
+            scoreText.text = $"{SideShort(0)}  {match.HomeScore}  -  {match.AwayScore}  {SideShort(1)}";
             clockText.text = $"{Mathf.FloorToInt(match.GameMinute):00}:00";
             var me = homeTeam != null ? homeTeam.Controlled : null;
             if (me != null)
@@ -129,25 +129,30 @@ namespace FootballSim.UI
         // ---- match events ----
         void OnHalfTime() { Banner($"HALF TIME  {match.HomeScore} - {match.AwayScore}\n<size=60%>Teams change ends</size>", MatchManager.HalfTimeSeconds - 0.5f); }
 
+        /// <summary>"HOME" / "AWAY", or the club's name in capitals when a club was picked for that side.</summary>
+        string Side(int team) { return team == 0 ? TeamSelection.NameOf(TeamSelection.Home, "HOME").ToUpperInvariant() : TeamSelection.NameOf(TeamSelection.Away, "AWAY").ToUpperInvariant(); }
+        /// <summary>The short form for the scoreboard: "HOME" / "AWAY" or the club's three letters.</summary>
+        string SideShort(int team) { return team == 0 ? TeamSelection.ShortOf(TeamSelection.Home, "HOME") : TeamSelection.ShortOf(TeamSelection.Away, "AWAY"); }
+
         void OnGoal(int team)
         {
             bool og = match.Goals.Count > 0 && match.Goals[match.Goals.Count - 1].ownGoal;
-            Banner((team == 0 ? "GOAL!  HOME SCORES" : "GOAL!  AWAY SCORES") + (og ? "  (OWN GOAL)" : ""), 3f);
+            Banner($"GOAL!  {Side(team)} SCORES" + (og ? "  (OWN GOAL)" : ""), 3f);
         }
 
         void OnRestart(RestartType type, int team)
         {
             string name = type == RestartType.ThrowIn ? "THROW-IN" : type == RestartType.Corner ? "CORNER" : type == RestartType.FreeKick ? "FOUL - FREE KICK" : type == RestartType.Penalty ? "PENALTY" : type == RestartType.Offside ? "OFFSIDE - FREE KICK" : "GOAL KICK";
-            Banner($"{name}  -  {(team == 0 ? "HOME" : "AWAY")}", 1.4f);
+            Banner($"{name}  -  {Side(team)}", 1.4f);
         }
 
-        void OnYellow(int team, int total) { Banner($"YELLOW CARD  -  {(team == 0 ? "HOME" : "AWAY")}", 2f); }
-        void OnRed(int team, int total) { Banner($"RED CARD  -  {(team == 0 ? "HOME" : "AWAY")} DOWN TO {(team == 0 ? homeTeam : awayTeam)?.ActiveCount ?? 0}", 3f); }
+        void OnYellow(int team, int total) { Banner($"YELLOW CARD  -  {Side(team)}", 2f); }
+        void OnRed(int team, int total) { Banner($"RED CARD  -  {Side(team)} DOWN TO {(team == 0 ? homeTeam : awayTeam)?.ActiveCount ?? 0}", 3f); }
 
         void OnFullTime()
         {
-            resultText.text = match.HomeScore > match.AwayScore ? $"HOME WINS  {match.HomeScore} - {match.AwayScore}"
-                : match.AwayScore > match.HomeScore ? $"AWAY WINS  {match.AwayScore} - {match.HomeScore}"
+            resultText.text = match.HomeScore > match.AwayScore ? $"{Side(0)} WINS  {match.HomeScore} - {match.AwayScore}"
+                : match.AwayScore > match.HomeScore ? $"{Side(1)} WINS  {match.AwayScore} - {match.HomeScore}"
                 : $"DRAW  {match.HomeScore} - {match.AwayScore}";
             goalsText.text = GoalsSummary(match);
             statsText.text = StatLines(match);
@@ -291,23 +296,22 @@ namespace FootballSim.UI
         public void SetHomeKit(int index, bool save = true)
         {
             selectedKit = ((index % KitPalette.Count) + KitPalette.Count) % KitPalette.Count;
-            int away = KitPalette.AwayFor(selectedKit);
-            Recolour(homeTeam, KitPalette.Colors[selectedKit]);
-            Recolour(awayTeam, KitPalette.Colors[away]);            if (kitLabel != null) kitLabel.text = $"Your kit: {KitPalette.Names[selectedKit]}";
-            if (kitRings != null) for (int i = 0; i < kitRings.Length; i++) kitRings[i].color = i == selectedKit ? Color.white : new Color(1f, 1f, 1f, 0.12f);
-            if (subtitleLabel != null) subtitleLabel.text = $"Kick-Off  -  Home ({KitPalette.Names[selectedKit].ToLower()}) vs Away ({KitPalette.Names[away].ToLower()})";
             if (save) KitPalette.Save(selectedKit);
-            FootballSim.Venue.Stadium.RefreshKits(); // the benches' jackets follow the kits
+            ApplyTeams();
         }
 
-        static void Recolour(TeamController team, Color shirt)
+        /// <summary>Puts the chosen strips, goalkeeper colours, shirt numbers and player names on both teams and updates the labels that name them.</summary>
+        public void ApplyTeams()
         {
-            if (team == null) return;
-            foreach (var p in team.players)
-            {
-                var v = p.GetComponent<FootballSim.Players.PlayerVisual>();
-                if (v != null) v.SetKit(shirt);
-            }
+            int away = KitPalette.AwayFor(selectedKit);
+            FootballSim.Players.TeamKits.Apply(homeTeam, awayTeam, selectedKit);
+            bool club = TeamSelection.Home >= 0 || TeamSelection.Away >= 0;
+            if (kitLabel != null) kitLabel.text = club ? "Your kit: set by the club (see Teams)" : $"Your kit: {KitPalette.Names[selectedKit]}";
+            if (kitRings != null) for (int i = 0; i < kitRings.Length; i++) kitRings[i].color = i == selectedKit && TeamSelection.Home < 0 ? Color.white : new Color(1f, 1f, 1f, 0.12f);
+            if (subtitleLabel != null)
+                subtitleLabel.text = club ? $"Kick-Off  -  {TeamSelection.NameOf(TeamSelection.Home, "Home")} vs {TeamSelection.NameOf(TeamSelection.Away, "Away")}"
+                    : $"Kick-Off  -  Home ({KitPalette.Names[selectedKit].ToLower()}) vs Away ({KitPalette.Names[away].ToLower()})";
+            FootballSim.Venue.Stadium.RefreshKits(); // the benches' jackets follow the kits
         }
 
         void CycleDifficulty(int step, bool save = true)

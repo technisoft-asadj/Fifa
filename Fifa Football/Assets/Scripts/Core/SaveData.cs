@@ -29,11 +29,12 @@ namespace FootballSim.Core
                 foreach (var key in new[]
                 {
                     MatchSettingsStore.MinutesKey, MatchSettingsStore.FormationKey, MatchSettingsStore.DifficultyKey,
-                    KitPalette.KitKey, FootballSim.Inputs.TouchControls.PrefScale, FootballSim.Inputs.TouchControls.PrefOpacity, FootballSim.CameraSystem.BroadcastCamera.PrefKey, FootballSim.CameraSystem.BroadcastCamera.PrefZoom, FootballSim.Inputs.TouchControls.PrefLeft, FootballSim.Inputs.TouchControls.PrefFixed,
+                    KitPalette.KitKey, TeamSelection.HomeKey, TeamSelection.AwayKey,FootballSim.Inputs.TouchControls.PrefScale, FootballSim.Inputs.TouchControls.PrefOpacity, FootballSim.CameraSystem.BroadcastCamera.PrefKey, FootballSim.CameraSystem.BroadcastCamera.PrefZoom, FootballSim.Inputs.TouchControls.PrefLeft, FootballSim.Inputs.TouchControls.PrefFixed,
                     FootballSim.Audio.MatchAudio.PrefKey,
                 })
                     PlayerPrefs.DeleteKey(key);
                 PlayerPrefs.Save();
+                TeamSelection.ForgetInMemory();
             }
             catch { }
         }

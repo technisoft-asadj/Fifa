@@ -25,11 +25,28 @@ namespace FootballSim.UI
 
         public void CloseTeams() { if (teamsPanel != null) teamsPanel.SetActive(false); }
 
+        Text teamsHomeClubLabel, teamsAwayClubLabel;
+
+        void CycleClub(bool homeSide, int dir)
+        {
+            TeamSelection.Cycle(homeSide, dir);
+            ApplyTeams();
+            RefreshTeams();
+        }
+
+        static Color Readable(Color c) { return (c.r + c.g + c.b) / 3f < 0.35f ? Color.Lerp(c, Color.white, 0.6f) : c; }
+
         void RefreshTeams()
         {
             teamsFormationLabel.text = FormationData.PresetNames[selectedFormation];
             teamsKitLabel.text = KitPalette.Names[selectedKit];
             teamsKitLabel.color = KitPalette.Colors[selectedKit];
+            if (teamsHomeClubLabel != null)
+            {
+                FootballSim.Players.TeamKits.Resolve(selectedKit, out var hk, out var ak, out _, out _);
+                teamsHomeClubLabel.text = TeamSelection.NameOf(TeamSelection.Home, "Plain colours"); teamsHomeClubLabel.color = Readable(hk.shirt);
+                teamsAwayClubLabel.text = TeamSelection.NameOf(TeamSelection.Away, "Plain colours"); teamsAwayClubLabel.color = Readable(ak.shirt);
+            }
             int level = FootballSim.Players.TeamGrowth.CurrentLevel;
             teamsInfoLabel.text = $"Team level {level} of {FootballSim.Players.TeamGrowth.MaxLevel}\n" +
                                   $"Win matches to level up: every {FootballSim.Players.TeamGrowth.PointsPerLevel} points (win = 2, draw = 1) adds +1 to your players.";
@@ -79,8 +96,20 @@ namespace FootballSim.UI
             teamsKitLabel = Label("KitName", card, 48, TextAnchor.MiddleCenter, new Vector2(390f, 10f), new Vector2(700f, 70f));
             teamsKitLabel.fontStyle = FontStyle.Bold;
 
+            // clubs: real sides with their strips and player names, for you and for the opponent (or plain colours)
+            var btnCol = new Color(0.2f, 0.3f, 0.5f);
+            var cap1 = Label("HomeClubTitle", card, 32, TextAnchor.MiddleCenter, new Vector2(-390f, -45f), new Vector2(700f, 50f)); cap1.text = "Your club"; cap1.color = UITheme.Muted;
+            var cap2 = Label("AwayClubTitle", card, 32, TextAnchor.MiddleCenter, new Vector2(390f, -45f), new Vector2(700f, 50f)); cap2.text = "Opponent"; cap2.color = UITheme.Muted;
+            Button(card, "<", new Vector2(-640f, -115f), new Vector2(110f, 84f), () => CycleClub(true, -1), btnCol);
+            Button(card, ">", new Vector2(-140f, -115f), new Vector2(110f, 84f), () => CycleClub(true, 1), btnCol);
+            Button(card, "<", new Vector2(140f, -115f), new Vector2(110f, 84f), () => CycleClub(false, -1), btnCol);
+            Button(card, ">", new Vector2(640f, -115f), new Vector2(110f, 84f), () => CycleClub(false, 1), btnCol);
+            teamsHomeClubLabel = Label("HomeClub", card, 40, TextAnchor.MiddleCenter, new Vector2(-390f, -115f), new Vector2(380f, 80f)); teamsHomeClubLabel.fontStyle = FontStyle.Bold;
+            teamsAwayClubLabel = Label("AwayClub", card, 40, TextAnchor.MiddleCenter, new Vector2(390f, -115f), new Vector2(380f, 80f)); teamsAwayClubLabel.fontStyle = FontStyle.Bold;
+            teamsHomeClubLabel.horizontalOverflow = teamsAwayClubLabel.horizontalOverflow = HorizontalWrapMode.Wrap;
+
             // bottom of the card: how the team levels up
-            teamsInfoLabel = Label("Info", card, 34, TextAnchor.MiddleCenter, new Vector2(0f, -170f), new Vector2(1400f, 150f));
+            teamsInfoLabel = Label("Info", card, 30, TextAnchor.MiddleCenter, new Vector2(0f, -235f), new Vector2(1400f, 110f));
             teamsInfoLabel.horizontalOverflow = HorizontalWrapMode.Wrap; teamsInfoLabel.color = UITheme.Muted;
 
             Button(holder, "BACK", new Vector2(-300f, -385f), new Vector2(400f, 90f), CloseTeams, new Color(0.2f, 0.3f, 0.5f));
