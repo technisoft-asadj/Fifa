@@ -154,6 +154,9 @@ namespace FootballSim.Venue
             Dugout(kit, new Vector3(BenchX, 0f, -9.5f), concreteDark);
             Dugout(kit, new Vector3(BenchX, 0f, 9.5f), concreteDark);
 
+            PitchDressing.Markings(kit, palette);
+            PitchDressing.Nets(kit, palette);
+
             var mat = NewMaterial(palette.Bake(), false);
             var go = new GameObject("StadiumShell"); go.transform.SetParent(shared, false);
             Attach(go, kit.Build("StadiumShell"), mat);
@@ -164,6 +167,18 @@ namespace FootballSim.Venue
             crowdMaterial = mat;
             BuildCrowd();
             BuildPeople();
+
+            // the crowd and the people registered colours after the first bake: bake again so every cell holds its colour
+            var finalTex = palette.Bake();
+            foreach (var m in new[] { mat, lampMat })
+            {
+                if (m.HasProperty("_BaseMap")) m.SetTexture("_BaseMap", finalTex);
+                m.mainTexture = finalTex;
+            }
+
+            PitchDressing.GrassStripes();
+            PitchDressing.BallPanels();
+            PitchDressing.ColourGrade(QualitySettings.GetQualityLevel() >= 1);
         }
 
         Material crowdMaterial;

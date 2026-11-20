@@ -57,13 +57,23 @@ namespace FootballSim.Venue
             if ((mask & NZ) != 0) Quad(c + new Vector3(-h.x, -h.y, -h.z), c + new Vector3(-h.x, h.y, -h.z), c + new Vector3(h.x, h.y, -h.z), c + new Vector3(h.x, -h.y, -h.z), Vector3.back, uv);
         }
 
+        /// <summary>A flat strip lying on the ground from a to b (a painted line), facing up.</summary>
+        public void Strip(Vector3 a, Vector3 b, float width, int color)
+        {
+            Vector3 d = b - a; d.y = 0f;
+            if (d.sqrMagnitude < 1e-6f) return;
+            Vector3 side = Vector3.Cross(Vector3.up, d.normalized) * (width * 0.5f);
+            Quad(a - side, b - side, b + side, a + side, Vector3.up, palette.Uv(color));
+        }
+
         void Quad(Vector3 a, Vector3 b, Vector3 c, Vector3 d, Vector3 normal, Vector2 uv)
         {
             int i = verts.Count;
             verts.Add(a); verts.Add(b); verts.Add(c); verts.Add(d);
             for (int k = 0; k < 4; k++) { norms.Add(normal); uvs.Add(uv); }
-            // Unity draws clockwise triangles as front faces: flip when this order runs counter-clockwise seen from outside
-            if (Vector3.Dot(Vector3.Cross(b - a, c - a), normal) > 0f) { tris.Add(i); tris.Add(i + 2); tris.Add(i + 1); tris.Add(i); tris.Add(i + 3); tris.Add(i + 2); }
+            // Unity draws clockwise triangles as front faces. Its Cross is a right-handed formula in a left-handed space, so a positive dot with the
+            // outward normal already means clockwise seen from outside; flip only when it is negative.
+            if (Vector3.Dot(Vector3.Cross(b - a, c - a), normal) < 0f) { tris.Add(i); tris.Add(i + 2); tris.Add(i + 1); tris.Add(i); tris.Add(i + 3); tris.Add(i + 2); }
             else { tris.Add(i); tris.Add(i + 1); tris.Add(i + 2); tris.Add(i); tris.Add(i + 2); tris.Add(i + 3); }
         }
 

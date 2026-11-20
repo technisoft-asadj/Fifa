@@ -10,7 +10,9 @@
         "Unity.Services.Core",
         "Unity.Services.Authentication",
         "Unity.Services.Relay",
-        "Unity.Services.Lobbies"
+        "Unity.Services.Lobbies",
+        "Unity.RenderPipelines.Core.Runtime",
+        "Unity.RenderPipelines.Universal.Runtime"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

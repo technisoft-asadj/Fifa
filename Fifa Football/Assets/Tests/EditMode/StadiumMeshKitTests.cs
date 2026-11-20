@@ -27,6 +27,23 @@ namespace FootballSim.Tests
         }
 
         [Test]
+        public void PaintedStripFacesUpSoItIsNotCulledFromAbove()
+        {
+            var p = new StadiumPalette();
+            var kit = new StadiumMeshKit(p);
+            kit.Strip(new Vector3(0f, 0.03f, 0f), new Vector3(0f, 0.03f, 5f), 0.2f, p.Get(Color.white));
+            Assert.AreEqual(4, kit.VertexCount);
+            var mesh = kit.Build("strip");
+            var v = mesh.vertices; var t = mesh.triangles;
+            for (int i = 0; i < t.Length; i += 3)
+            {
+                // Unity's clockwise-from-outside front faces come out of Cross with a positive Y for an upward face
+                Assert.Greater(Vector3.Cross(v[t[i + 1]] - v[t[i]], v[t[i + 2]] - v[t[i]]).y, 0f);
+            }
+            Object.DestroyImmediate(mesh);
+        }
+
+        [Test]
         public void BuiltMeshFacesOutward()
         {
             var p = new StadiumPalette();
