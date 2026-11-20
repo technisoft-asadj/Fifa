@@ -293,11 +293,11 @@ namespace FootballSim.UI
             selectedKit = ((index % KitPalette.Count) + KitPalette.Count) % KitPalette.Count;
             int away = KitPalette.AwayFor(selectedKit);
             Recolour(homeTeam, KitPalette.Colors[selectedKit]);
-            Recolour(awayTeam, KitPalette.Colors[away]);
-            if (kitLabel != null) kitLabel.text = $"Your kit: {KitPalette.Names[selectedKit]}";
+            Recolour(awayTeam, KitPalette.Colors[away]);            if (kitLabel != null) kitLabel.text = $"Your kit: {KitPalette.Names[selectedKit]}";
             if (kitRings != null) for (int i = 0; i < kitRings.Length; i++) kitRings[i].color = i == selectedKit ? Color.white : new Color(1f, 1f, 1f, 0.12f);
             if (subtitleLabel != null) subtitleLabel.text = $"Kick-Off  -  Home ({KitPalette.Names[selectedKit].ToLower()}) vs Away ({KitPalette.Names[away].ToLower()})";
             if (save) KitPalette.Save(selectedKit);
+            FootballSim.Venue.Stadium.RefreshKits(); // the benches' jackets follow the kits
         }
 
         static void Recolour(TeamController team, Color shirt)

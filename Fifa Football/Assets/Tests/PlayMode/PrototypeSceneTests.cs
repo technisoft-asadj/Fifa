@@ -723,7 +723,7 @@ namespace FootballSim.Tests
                 hud.BeginMatch();
                 match.SetDurationMinutes(0.5f);
                 Time.captureFramerate = 60;
-                for (int i = 0; i < 2400 && !match.Finished; i++) yield return null;
+                for (int i = 0; i < 6000 && !match.Finished; i++) yield return null; // the clock stops for each goal's celebration, so a match with goals takes longer
                 Time.captureFramerate = 0;
                 Assert.IsTrue(match.Finished);
                 Assert.AreEqual(1, FootballSim.Core.CareerRecord.Played);
