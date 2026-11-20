@@ -37,35 +37,45 @@ namespace FootballSim.UI
 
         void BuildOnlinePanel(RectTransform root, Color btnCol)
         {
-            onlinePanel = MatchHUD.Glassify(Rect("OnlinePanel", root, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(960, 1000), new Color(0.05f, 0.08f, 0.12f, 1f)).gameObject);
+            onlinePanel = MatchHUD.Glassify(Rect("OnlinePanel", root, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1560, 760), new Color(0.05f, 0.08f, 0.12f, 1f)).gameObject);
             var op = onlinePanel.transform;
-            var title = Label("OnlineTitle", op, 64, TextAnchor.MiddleCenter, new Vector2(0, 440), new Vector2(900, 90)); title.text = "PLAY ONLINE"; title.fontStyle = FontStyle.Bold; title.color = UITheme.Gold;
-            var note = Label("OnlineNote", op, 26, TextAnchor.MiddleCenter, new Vector2(0, 375), new Vector2(900, 40));
-            note.text = "Play a friend or a stranger anywhere in the world."; note.color = new Color(1, 1, 1, 0.8f);
+            var onlineFill = onlinePanel.GetComponent<Image>(); var oc = onlineFill.color; oc.a = 1f; onlineFill.color = oc; // opaque: it sits over the main menu
+            var title = Label("OnlineTitle", op, 66, TextAnchor.MiddleCenter, new Vector2(0, 312), new Vector2(900, 90)); title.text = "PLAY ONLINE"; title.fontStyle = FontStyle.Bold; title.color = UITheme.Gold;
+            var note = Label("OnlineNote", op, 28, TextAnchor.MiddleCenter, new Vector2(0, 250), new Vector2(1000, 44));
+            note.text = "Play a friend or a stranger anywhere in the world."; note.color = UITheme.Muted;
+            Button(op, "BACK", new Vector2(-650, 312), new Vector2(200, 64), CloseOnline, btnCol).GetComponentInChildren<Text>().fontSize = 28;
+            var divider = UIKit.Image(op, "Divider", UITheme.Rounded, new Color(1f, 1f, 1f, 0.14f), false, false);
+            divider.rectTransform.anchorMin = divider.rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
+            divider.rectTransform.anchoredPosition = new Vector2(0f, -30f); divider.rectTransform.sizeDelta = new Vector2(3f, 400f);
 
-            // internet: quick match with anyone, or a room code shared with a friend
-            Button(op, "QUICK MATCH", new Vector2(0, 290), new Vector2(560, 100), QuickMatchOnline, Accent);
-            Button(op, "CREATE ROOM", new Vector2(0, 175), new Vector2(560, 90), CreateRoomOnline, btnCol);
-            var codeLabel = Label("CodeLabel", op, 28, TextAnchor.MiddleCenter, new Vector2(0, 95), new Vector2(900, 40)); codeLabel.text = "Have a room code? Type it here";
-            roomCodeField = BuildAddressField(op, new Vector2(-170, 30), new Vector2(380, 80), "ROOM CODE", 8, TouchScreenKeyboardType.ASCIICapable, false);
-            Button(op, "JOIN ROOM", new Vector2(190, 30), new Vector2(300, 80), () => JoinRoomOnline(roomCodeField.text), btnCol);
-
+            // left: over the internet. Quick match with anyone, or a room code shared with a friend
+            var netLabel = Label("NetLabel", op, 32, TextAnchor.MiddleCenter, new Vector2(-400, 190), new Vector2(700, 44)); netLabel.text = "Over the internet"; netLabel.color = UITheme.Gold;
+            Button(op, "QUICK MATCH", new Vector2(-400, 110), new Vector2(560, 100), QuickMatchOnline, Accent);
+            Button(op, "CREATE ROOM", new Vector2(-400, 0), new Vector2(560, 88), CreateRoomOnline, btnCol);
+            var codeLabel = Label("CodeLabel", op, 26, TextAnchor.MiddleCenter, new Vector2(-400, -76), new Vector2(700, 36)); codeLabel.text = "Have a room code?";
+            codeLabel.color = new Color(1, 1, 1, 0.75f);
+            roomCodeField = BuildAddressField(op, new Vector2(-545, -142), new Vector2(290, 80), "ROOM CODE", 8, TouchScreenKeyboardType.ASCIICapable, false);
+            Button(op, "JOIN ROOM", new Vector2(-255, -142), new Vector2(270, 80), () => JoinRoomOnline(roomCodeField.text), btnCol);
             // a created room: the code shows here until the host starts the match
-            onlineInfo = Label("OnlineInfo", op, 34, TextAnchor.MiddleCenter, new Vector2(0, -75), new Vector2(900, 100));
-            onlineInfo.color = UITheme.Gold;
-            roomStartButton = Button(op, "START MATCH", new Vector2(0, -170), new Vector2(460, 80), StartRoomMatch, Accent).gameObject;
+            onlineInfo = Label("OnlineInfo", op, 40, TextAnchor.MiddleCenter, new Vector2(-400, -225), new Vector2(700, 56));
+            onlineInfo.color = UITheme.Gold; onlineInfo.fontStyle = FontStyle.Bold;
+            roomStartButton = Button(op, "START MATCH", new Vector2(-400, -300), new Vector2(420, 66), StartRoomMatch, Accent).gameObject;
             roomStartButton.SetActive(false);
 
-            // same Wi-Fi, no internet needed
-            var lanLabel = Label("LanLabel", op, 26, TextAnchor.MiddleCenter, new Vector2(0, -255), new Vector2(900, 40)); lanLabel.text = "Same Wi-Fi (no internet needed)";
-            lanLabel.color = new Color(1, 1, 1, 0.7f);
-            Button(op, "HOST", new Vector2(-340, -320), new Vector2(200, 70), HostOnline, btnCol);
-            addressField = BuildAddressField(op, new Vector2(-20, -320), new Vector2(380, 70));
-            Button(op, "JOIN", new Vector2(310, -320), new Vector2(200, 70), () => JoinOnline(addressField.text), btnCol);
+            // right: same Wi-Fi, no internet needed
+            var lanLabel = Label("LanLabel", op, 32, TextAnchor.MiddleCenter, new Vector2(400, 190), new Vector2(700, 44)); lanLabel.text = "Same Wi-Fi";
+            lanLabel.color = UITheme.Gold;
+            var lanNote = Label("LanNote", op, 24, TextAnchor.MiddleCenter, new Vector2(400, 150), new Vector2(700, 34)); lanNote.text = "No internet needed";
+            lanNote.color = new Color(1, 1, 1, 0.65f);
+            Button(op, "HOST", new Vector2(400, 80), new Vector2(480, 84), HostOnline, btnCol);
+            var joinHint = Label("JoinHint", op, 26, TextAnchor.MiddleCenter, new Vector2(400, 0), new Vector2(700, 36)); joinHint.text = "Or join: type the address your friend sees";
+            joinHint.color = new Color(1, 1, 1, 0.75f);
+            addressField = BuildAddressField(op, new Vector2(400, -62), new Vector2(480, 80));
+            Button(op, "JOIN", new Vector2(400, -160), new Vector2(480, 84), () => JoinOnline(addressField.text), btnCol);
 
-            onlineStatus = Label("OnlineStatus", op, 28, TextAnchor.MiddleCenter, new Vector2(0, -395), new Vector2(920, 50));
+            onlineStatus = Label("OnlineStatus", op, 28, TextAnchor.MiddleCenter, new Vector2(400, -250), new Vector2(700, 90));
+            onlineStatus.horizontalOverflow = HorizontalWrapMode.Wrap;
             onlineStatus.color = new Color(1f, 0.9f, 0.4f);
-            Button(op, "BACK", new Vector2(0, -455), new Vector2(260, 64), CloseOnline, btnCol);
 
             // a one-line status in the corner while hosting or playing as a guest
             onlineBanner = Label("OnlineBanner", root, 26, TextAnchor.MiddleLeft, new Vector2(20, -30), new Vector2(900, 40));

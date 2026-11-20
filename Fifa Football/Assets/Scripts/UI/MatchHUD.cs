@@ -477,63 +477,69 @@ namespace FootballSim.UI
 
             BuildRadar(root);
 
-            // Start panel
-            startPanel = Glassify(Rect("StartPanel", root, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(900, 1000), Panel).gameObject);
+            // Start panel: a wide landscape card with two columns (match options left, kit and mode right), PLAY at the bottom
+            startPanel = Glassify(Rect("StartPanel", root, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1560, 760), Panel).gameObject);
             var st = startPanel.transform;
-            var title = Label("Title", st, 72, TextAnchor.MiddleCenter, new Vector2(0, 320), new Vector2(860, 100)); title.text = "SOCCER FIGHT"; title.fontStyle = FontStyle.Bold; title.color = UITheme.Gold;
-            var sub = Label("Sub", st, 30, TextAnchor.MiddleCenter, new Vector2(0, 245), new Vector2(860, 50)); sub.text = "Kick-Off  -  Home vs Away"; sub.color = UITheme.Muted;
+            var title = Label("Title", st, 66, TextAnchor.MiddleCenter, new Vector2(0, 312), new Vector2(900, 90)); title.text = "SOCCER FIGHT"; title.fontStyle = FontStyle.Bold; title.color = UITheme.Gold;
+            var sub = Label("Sub", st, 30, TextAnchor.MiddleCenter, new Vector2(0, 250), new Vector2(900, 44)); sub.text = "Kick-Off  -  Home vs Away"; sub.color = UITheme.Muted;
             subtitleLabel = sub;
             var btnCol = new Color(0.2f, 0.3f, 0.45f);
-            durationLabel = Label("Duration", st, 34, TextAnchor.MiddleCenter, new Vector2(0, 170), new Vector2(860, 50));
+            var divider = UIKit.Image(st, "Divider", UITheme.Rounded, new Color(1f, 1f, 1f, 0.14f), false, false);
+            divider.rectTransform.anchorMin = divider.rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
+            divider.rectTransform.anchoredPosition = new Vector2(0f, 60f); divider.rectTransform.sizeDelta = new Vector2(3f, 320f);
+            const float xL = -400f, xR = 400f;
+            // left column: match length, formation, difficulty
+            durationLabel = Label("Duration", st, 34, TextAnchor.MiddleCenter, new Vector2(xL, 200), new Vector2(700, 50));
             durationCards = new Image[3];
             float[] lengths = { 3f, 5f, 10f };
             for (int d = 0; d < lengths.Length; d++)
             {
                 float len = lengths[d];
-                var dc = Button(st, $"{len:0} min", new Vector2(-260 + d * 260, 100), new Vector2(220, 70), () => SetMinutes(len), btnCol);
+                var dc = Button(st, $"{len:0} min", new Vector2(xL + (d - 1) * 220, 130), new Vector2(200, 72), () => SetMinutes(len), btnCol);
+                dc.GetComponentInChildren<Text>().fontSize = 34;
                 durationCards[d] = dc.GetComponent<Image>();
             }
-            formationLabel = Label("Formation", st, 34, TextAnchor.MiddleCenter, new Vector2(0, 20), new Vector2(560, 50));
-            Button(st, "<", new Vector2(-370, 20), new Vector2(90, 70), () => CycleFormation(-1), btnCol);
-            Button(st, ">", new Vector2(370, 20), new Vector2(90, 70), () => CycleFormation(1), btnCol);
-            difficultyLabel = Label("Difficulty", st, 34, TextAnchor.MiddleCenter, new Vector2(0, -90), new Vector2(560, 50));
-            Button(st, "<", new Vector2(-370, -90), new Vector2(90, 70), () => CycleDifficulty(-1), btnCol);
-            Button(st, ">", new Vector2(370, -90), new Vector2(90, 70), () => CycleDifficulty(1), btnCol);
-            // kit: one colour swatch per shirt colour (the chosen one is ringed); mode: one card per mode (the current one is gold)
-            kitLabel = Label("Kit", st, 30, TextAnchor.MiddleCenter, new Vector2(0, -185), new Vector2(560, 44));
+            formationLabel = Label("Formation", st, 34, TextAnchor.MiddleCenter, new Vector2(xL, 20), new Vector2(520, 50));
+            Button(st, "<", new Vector2(xL - 300, 20), new Vector2(90, 72), () => CycleFormation(-1), btnCol);
+            Button(st, ">", new Vector2(xL + 300, 20), new Vector2(90, 72), () => CycleFormation(1), btnCol);
+            difficultyLabel = Label("Difficulty", st, 34, TextAnchor.MiddleCenter, new Vector2(xL, -90), new Vector2(520, 50));
+            Button(st, "<", new Vector2(xL - 300, -90), new Vector2(90, 72), () => CycleDifficulty(-1), btnCol);
+            Button(st, ">", new Vector2(xL + 300, -90), new Vector2(90, 72), () => CycleDifficulty(1), btnCol);
+            // right column. kit: one colour swatch per shirt colour (the chosen one is ringed); mode: one card per mode (the current one is gold)
+            kitLabel = Label("Kit", st, 34, TextAnchor.MiddleCenter, new Vector2(xR, 200), new Vector2(700, 50));
             kitRings = new Image[KitPalette.Count];
-            float swatchGap = 76f, swatchX0 = -swatchGap * (KitPalette.Count - 1) * 0.5f;
+            float swatchGap = 96f, swatchX0 = xR - swatchGap * (KitPalette.Count - 1) * 0.5f;
             for (int k = 0; k < KitPalette.Count; k++)
             {
                 int kit = k;
                 var ringImg = UIKit.Image(st, "KitRing" + k, UITheme.Circle, Color.white, false, false);
                 ringImg.rectTransform.anchorMin = ringImg.rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
-                ringImg.rectTransform.anchoredPosition = new Vector2(swatchX0 + k * swatchGap, -235f); ringImg.rectTransform.sizeDelta = new Vector2(64f, 64f);
+                ringImg.rectTransform.anchoredPosition = new Vector2(swatchX0 + k * swatchGap, 130f); ringImg.rectTransform.sizeDelta = new Vector2(78f, 78f);
                 kitRings[k] = ringImg;
                 var sw = UIKit.Image(ringImg.transform, "Swatch", UITheme.Circle, KitPalette.Colors[k], false, true);
-                sw.rectTransform.anchorMin = Vector2.zero; sw.rectTransform.anchorMax = Vector2.one; sw.rectTransform.offsetMin = new Vector2(6f, 6f); sw.rectTransform.offsetMax = new Vector2(-6f, -6f);
+                sw.rectTransform.anchorMin = Vector2.zero; sw.rectTransform.anchorMax = Vector2.one; sw.rectTransform.offsetMin = new Vector2(7f, 7f); sw.rectTransform.offsetMax = new Vector2(-7f, -7f);
                 var swBtn = sw.gameObject.AddComponent<UnityEngine.UI.Button>(); swBtn.targetGraphic = sw; swBtn.onClick.AddListener(() => SetHomeKit(kit));
             }
-            modeLabel = Label("Mode", st, 30, TextAnchor.MiddleCenter, new Vector2(0, -290), new Vector2(700, 44));
+            modeLabel = Label("Mode", st, 34, TextAnchor.MiddleCenter, new Vector2(xR, 20), new Vector2(700, 50));
             string[] modeNames = { "Single", "League", "Cup", "Season", "Training" };
             PlayMode[] modes = { PlayMode.Single, PlayMode.League, PlayMode.Tournament, PlayMode.Season, PlayMode.Training };
             modeCards = new Image[modes.Length];
             for (int m = 0; m < modes.Length; m++)
             {
                 var mode = modes[m];
-                var card = Button(st, modeNames[m], new Vector2(-348 + m * 174, -350), new Vector2(162, 64), () => { SelectMode(mode); RefreshModeCards(); }, btnCol);
-                card.GetComponentInChildren<Text>().fontSize = 26;
+                var card = Button(st, modeNames[m], new Vector2(xR + (m - 2) * 142, -60), new Vector2(134, 70), () => { SelectMode(mode); RefreshModeCards(); }, btnCol);
+                card.GetComponentInChildren<Text>().fontSize = 25;
                 modeCards[m] = card.GetComponent<Image>();
             }
-            Button(st, "PLAY", new Vector2(0, -435), new Vector2(420, 100), BeginMatch, Accent);
-            var resetButton = Button(st, "Reset progress", new Vector2(-345, -435), new Vector2(180, 60), TapResetProgress, btnCol);
-            resetLabel = resetButton.GetComponentInChildren<Text>();
-            resetLabel.fontSize = 22; // the default 40 is wider than this small button
-            var onlineButton = Button(st, "Online", new Vector2(370, 245), new Vector2(150, 50), OpenOnline, btnCol);
-            onlineButton.GetComponentInChildren<Text>().fontSize = 26;
-            recordLabel = Label("Record", st, 20, TextAnchor.MiddleCenter, new Vector2(345, -435), new Vector2(180, 84));
+            recordLabel = Label("Record", st, 26, TextAnchor.MiddleCenter, new Vector2(xR, -150), new Vector2(700, 76));
             recordLabel.color = new Color(1f, 0.9f, 0.4f);
-            recordLabel.text = CareerRecord.Summary() + (TeamGrowth.CurrentLevel > 0 ? $"\nSquad lv {TeamGrowth.CurrentLevel}" : "");
+            recordLabel.text = CareerRecord.Summary() + (TeamGrowth.CurrentLevel > 0 ? $"   Squad lv {TeamGrowth.CurrentLevel}" : "");
+            Button(st, "PLAY", new Vector2(0, -270), new Vector2(560, 106), BeginMatch, Accent);
+            var resetButton = Button(st, "Reset progress", new Vector2(-620, -318), new Vector2(250, 60), TapResetProgress, btnCol);
+            resetLabel = resetButton.GetComponentInChildren<Text>();
+            resetLabel.fontSize = 24; // the default 40 is wider than this small button
+            var onlineButton = Button(st, "Online", new Vector2(650, 312), new Vector2(200, 64), OpenOnline, btnCol);
+            onlineButton.GetComponentInChildren<Text>().fontSize = 28;
             var saved = MatchSettingsStore.Load(selectedMinutes, FormationData.PresetNames.Length, (int)AiTuning.CurrentDifficulty, System.Enum.GetValues(typeof(Difficulty)).Length);
             selectedFormation = saved.formation;
             AiTuning.CurrentDifficulty = (Difficulty)saved.difficulty;
@@ -544,30 +550,33 @@ namespace FootballSim.UI
             SetHomeKit(KitPalette.Load(), false);
 
             // the start panel stays the match-setup screen; the main menu and settings sit above it, the online panel above those
-            var setupBack = Button(st, "< Menu", new Vector2(-370, 245), new Vector2(150, 50), ShowMainMenu, btnCol);
-            setupBack.GetComponentInChildren<Text>().fontSize = 26;
+            var setupBack = Button(st, "< Menu", new Vector2(-650, 312), new Vector2(200, 64), ShowMainMenu, btnCol);
+            setupBack.GetComponentInChildren<Text>().fontSize = 28;
             BuildMainMenu(root, btnCol);
             BuildOnlinePanel(root, btnCol);
             BuildSplashAndName(root);
             BuildFpsReadout(root);
 
             // Full-time panel
-            var ftGlass = UIKit.GlassPanel(root, "FullTimePanel", UIKit.Center, Vector2.zero, new Vector2(900, 700), true, 0.95f);
+            var ftGlass = UIKit.GlassPanel(root, "FullTimePanel", UIKit.Center, Vector2.zero, new Vector2(1500, 760), true, 0.97f);
             fullTimePanel = ftGlass.parent.gameObject; // the rim holds the glass, so hiding it hides both
             var ft = ftGlass;
-            var ftTitle = Label("FT", ft, 72, TextAnchor.MiddleCenter, new Vector2(0, 270), new Vector2(860, 100)); ftTitle.text = "FULL TIME"; ftTitle.fontStyle = FontStyle.Bold; ftTitle.color = UITheme.Gold;
-            // Vertical budget (panel is 700 high): title, result, goal lines (<=5 lines), five stat lines, button. Nothing overlaps.
-            resultText = Label("Result", ft, 48, TextAnchor.MiddleCenter, new Vector2(0, 190), new Vector2(860, 70));
-            goalsText = Label("Goals", ft, 22, TextAnchor.MiddleCenter, new Vector2(0, 105), new Vector2(860, 130));
-            goalsText.verticalOverflow = VerticalWrapMode.Truncate; goalsText.lineSpacing = 1.05f;
-            statsText = Label("Stats", ft, 26, TextAnchor.MiddleCenter, new Vector2(0, -60), new Vector2(860, 190));
-            statsText.verticalOverflow = VerticalWrapMode.Truncate; statsText.lineSpacing = 1.1f;
-            leagueText = Label("League", ft, 24, TextAnchor.MiddleCenter, new Vector2(0, -175), new Vector2(860, 40));
+            var ftTitle = Label("FT", ft, 76, TextAnchor.MiddleCenter, new Vector2(0, 305), new Vector2(900, 100)); ftTitle.text = "FULL TIME"; ftTitle.fontStyle = FontStyle.Bold; ftTitle.color = UITheme.Gold;
+            // two columns: the goals on the left, the match stats on the right; the result above, what was earned and the buttons below
+            resultText = Label("Result", ft, 56, TextAnchor.MiddleCenter, new Vector2(0, 225), new Vector2(1200, 80));
+            var ftDivider = UIKit.Image(ft, "Divider", UITheme.Rounded, new Color(1f, 1f, 1f, 0.14f), false, false);
+            ftDivider.rectTransform.anchorMin = ftDivider.rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
+            ftDivider.rectTransform.anchoredPosition = new Vector2(0f, 45f); ftDivider.rectTransform.sizeDelta = new Vector2(3f, 290f);
+            goalsText = Label("Goals", ft, 28, TextAnchor.MiddleCenter, new Vector2(-370, 45), new Vector2(660, 290));
+            goalsText.verticalOverflow = VerticalWrapMode.Truncate; goalsText.lineSpacing = 1.1f;
+            statsText = Label("Stats", ft, 30, TextAnchor.MiddleCenter, new Vector2(370, 45), new Vector2(660, 290));
+            statsText.verticalOverflow = VerticalWrapMode.Truncate; statsText.lineSpacing = 1.15f;
+            leagueText = Label("League", ft, 26, TextAnchor.MiddleCenter, new Vector2(0, -140), new Vector2(1200, 40));
             leagueText.color = new Color(1f, 0.9f, 0.4f);
-            earnedText = Label("Earned", ft, 28, TextAnchor.MiddleCenter, new Vector2(0, -322), new Vector2(860, 40));
+            earnedText = Label("Earned", ft, 34, TextAnchor.MiddleCenter, new Vector2(0, -190), new Vector2(1200, 46));
             earnedText.color = UITheme.Gold; earnedText.fontStyle = FontStyle.Bold;
-            var rematchButton = UIKit.SmallButton(ft, "REMATCH", UITheme.Blue, UIKit.Center, new Vector2(-215, -250), new Vector2(400, 110), Rematch, 46f);
-            UIKit.SmallButton(ft, "MENU", UITheme.Slate, UIKit.Center, new Vector2(215, -250), new Vector2(400, 110), GoToMainMenu, 46f);
+            var rematchButton = UIKit.SmallButton(ft, "REMATCH", UITheme.Blue, UIKit.Center, new Vector2(-240, -285), new Vector2(420, 100), Rematch, 46f);
+            UIKit.SmallButton(ft, "MENU", UITheme.Slate, UIKit.Center, new Vector2(240, -285), new Vector2(420, 100), GoToMainMenu, 46f);
             rematchLabel = rematchButton.GetComponentInChildren<TMPro.TMP_Text>();
             fullTimePanel.SetActive(false);
 
@@ -587,14 +596,22 @@ namespace FootballSim.UI
             pausePanel.SetActive(false);
         }
 
-        /// <summary>The setup panel is laid out 1000 high, but a wide phone shows less canvas height than that (about 960 on 2436x1080), which cut off the PLAY button. Shrinks it to fit; never enlarges it.</summary>
+        /// <summary>Shrinks a big panel so it fits inside the canvas (a wide phone shows only about 960 canvas units of height); never enlarges it.</summary>
+        static void FitToCanvas(GameObject panel, float designWidth, float designHeight)
+        {
+            if (panel == null) return;
+            var canvasRect = panel.transform.parent as RectTransform;
+            if (canvasRect == null) return;
+            float scale = Mathf.Clamp(Mathf.Min(canvasRect.rect.height * 0.96f / designHeight, canvasRect.rect.width * 0.98f / designWidth), 0.4f, 1f);
+            if (!Mathf.Approximately(panel.transform.localScale.x, scale)) panel.transform.localScale = new Vector3(scale, scale, 1f);
+        }
+
         void FitSetupPanel()
         {
-            if (startPanel == null) return;
-            var canvasRect = startPanel.transform.parent as RectTransform;
-            if (canvasRect == null) return;
-            float scale = Mathf.Clamp(canvasRect.rect.height * 0.97f / 1000f, 0.5f, 1f);
-            if (!Mathf.Approximately(startPanel.transform.localScale.x, scale)) startPanel.transform.localScale = new Vector3(scale, scale, 1f);
+            FitToCanvas(startPanel, 1560f, 760f);
+            FitToCanvas(onlinePanel, 1560f, 760f);
+            FitToCanvas(teamsCard, 1560f, 860f);
+            FitToCanvas(fullTimePanel, 1500f, 760f);
         }
 
         /// <summary>The scale the setup panel is currently shown at (test hook).</summary>

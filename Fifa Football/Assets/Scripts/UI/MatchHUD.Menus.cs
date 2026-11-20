@@ -160,16 +160,16 @@ namespace FootballSim.UI
             UIKit.TextAt(menu, "TitleBottom", "FIGHT", 150f, Color.white, UIKit.Center, new Vector2(-480f, 60f), new Vector2(800f, 110f), TextAlignmentOptions.Center, true);
             var ball = UIKit.Image(menu, "Ball", UITheme.Icon(UIIcon.Ball), Color.white, false, false);
             ball.rectTransform.anchorMin = ball.rectTransform.anchorMax = UIKit.Center; ball.rectTransform.pivot = UIKit.Center;
-            ball.rectTransform.anchoredPosition = new Vector2(-480f, -185f); ball.rectTransform.sizeDelta = new Vector2(190f, 190f);
-            UIKit.TextAt(menu, "Tagline", "Play offline, or host a match on your Wi-Fi", 28f, UITheme.Muted, UIKit.Center, new Vector2(-480f, -40f), new Vector2(800f, 40f));
+            ball.rectTransform.anchoredPosition = new Vector2(-480f, -170f); ball.rectTransform.sizeDelta = new Vector2(170f, 170f);
+            UIKit.TextAt(menu, "Tagline", "Play offline, on Wi-Fi, or online worldwide", 30f, UITheme.Muted, UIKit.Center, new Vector2(-480f, -45f), new Vector2(800f, 40f));
 
             // right: the five big buttons
             var x = new Vector2(500f, 0f);
-            UIKit.MenuButton(menu, "Play", UIIcon.Ball, UITheme.Gold, UIKit.Center, x + new Vector2(0f, 300f), new Vector2(700f, 124f), MenuPlay, true, 56f);
-            UIKit.MenuButton(menu, "Tournaments", UIIcon.Trophy, UITheme.Blue, UIKit.Center, x + new Vector2(0f, 150f), new Vector2(700f, 124f), MenuTournaments, false, 52f);
-            UIKit.MenuButton(menu, "Online", UIIcon.Globe, UITheme.Purple, UIKit.Center, x + new Vector2(0f, 0f), new Vector2(700f, 124f), MenuOnline, false, 52f);
-            UIKit.MenuButton(menu, "Teams", UIIcon.Shirt, UITheme.Green, UIKit.Center, x + new Vector2(0f, -150f), new Vector2(700f, 124f), MenuTeams, false, 52f);
-            UIKit.MenuButton(menu, "Settings", UIIcon.Gear, UITheme.Slate, UIKit.Center, x + new Vector2(0f, -300f), new Vector2(700f, 124f), MenuSettings, false, 52f);
+            UIKit.MenuButton(menu, "Play", UIIcon.Ball, UITheme.Gold, UIKit.Center, x + new Vector2(0f, 262f), new Vector2(700f, 118f), MenuPlay, true, 56f);
+            UIKit.MenuButton(menu, "Tournaments", UIIcon.Trophy, UITheme.Blue, UIKit.Center, x + new Vector2(0f, 128f), new Vector2(700f, 118f), MenuTournaments, false, 52f);
+            UIKit.MenuButton(menu, "Online", UIIcon.Globe, UITheme.Purple, UIKit.Center, x + new Vector2(0f, -6f), new Vector2(700f, 118f), MenuOnline, false, 52f);
+            UIKit.MenuButton(menu, "Teams", UIIcon.Shirt, UITheme.Green, UIKit.Center, x + new Vector2(0f, -140f), new Vector2(700f, 118f), MenuTeams, false, 52f);
+            UIKit.MenuButton(menu, "Settings", UIIcon.Gear, UITheme.Slate, UIKit.Center, x + new Vector2(0f, -274f), new Vector2(700f, 118f), MenuSettings, false, 52f);
 
             // bottom-left: daily reward
             var card = UIKit.GlassPanel(menu, "DailyCard", UIKit.BottomLeft, new Vector2(50f, 50f), new Vector2(640f, 150f), false);
@@ -221,7 +221,7 @@ namespace FootballSim.UI
 
         void BuildSettingsPanel(RectTransform root)
         {
-            var rimGo = UIKit.GlassPanel(root, "Settings", UIKit.Center, Vector2.zero, new Vector2(1100f, 880f), true, 1f);
+            var rimGo = UIKit.GlassPanel(root, "Settings", UIKit.Center, Vector2.zero, new Vector2(1160f, 900f), true, 1f);
             settingsPanel = rimGo.parent.gameObject; // the rim object, so hiding it hides the whole card
             var p = rimGo;
             UIKit.TextAt(p, "Title", "SETTINGS", 64f, Color.white, UIKit.Center, new Vector2(0f, 350f), new Vector2(700f, 90f), TextAlignmentOptions.Center, true);
@@ -246,7 +246,7 @@ namespace FootballSim.UI
         // ---- controls customisation: stick style, handedness, button size and opacity; the real controls show live while it is open ----
         void BuildControlsPanel(RectTransform root)
         {
-            var p = UIKit.GlassPanel(root, "Controls", UIKit.Center, Vector2.zero, new Vector2(1100f, 880f), true, 1f);
+            var p = UIKit.GlassPanel(root, "Controls", UIKit.Center, Vector2.zero, new Vector2(1160f, 900f), true, 1f);
             controlsPanel = p.parent.gameObject;
             UIKit.TextAt(p, "Title", "CONTROLS", 64f, Color.white, UIKit.Center, new Vector2(0f, 350f), new Vector2(700f, 90f), TextAlignmentOptions.Center, true);
             UIKit.SmallButton(p, "< Back", UITheme.Slate, UIKit.TopLeft, new Vector2(30f, -30f), new Vector2(190f, 72f), CloseControls, 34f);
@@ -328,8 +328,17 @@ namespace FootballSim.UI
             ctlAuto.text = tc == null ? "-" : tc.autoSprint ? "On" : "Off";
         }
 
+        /// <summary>A faint rounded bar behind a settings row, so the label and its button read as one line.</summary>
+        static void RowStripe(RectTransform parent, float y)
+        {
+            var bar = UIKit.Image(parent, "RowStripe", UITheme.Rounded, new Color(0.35f, 0.5f, 0.85f, 0.10f), false, false); bar.type = Image.Type.Sliced;
+            bar.rectTransform.anchorMin = bar.rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
+            bar.rectTransform.anchoredPosition = new Vector2(0f, y); bar.rectTransform.sizeDelta = new Vector2(1040f, 72f);
+        }
+
         void Row(RectTransform parent, string label, float y, out TextMeshProUGUI value, UnityEngine.Events.UnityAction onClick, string button)
         {
+            RowStripe(parent, y);
             UIKit.TextAt(parent, label + "Label", label, 38f, Color.white, UIKit.Center, new Vector2(-250f, y), new Vector2(480f, 50f), TextAlignmentOptions.Left, true);
             var b = UIKit.SmallButton(parent, "", UITheme.BlueDark, UIKit.Center, new Vector2(250f, y), new Vector2(420f, 70f), onClick, 34f);
             value = b.GetComponentInChildren<TextMeshProUGUI>();
@@ -337,6 +346,7 @@ namespace FootballSim.UI
 
         void RowPlusMinus(RectTransform parent, string label, float y, out TextMeshProUGUI value, UnityEngine.Events.UnityAction minus, UnityEngine.Events.UnityAction plus, Color c)
         {
+            RowStripe(parent, y);
             UIKit.TextAt(parent, label + "Label", label, 38f, Color.white, UIKit.Center, new Vector2(-250f, y), new Vector2(480f, 50f), TextAlignmentOptions.Left, true);
             UIKit.SmallButton(parent, "-", c, UIKit.Center, new Vector2(100f, y), new Vector2(90f, 70f), minus, 46f);
             value = UIKit.TextAt(parent, label + "Value", "", 36f, Color.white, UIKit.Center, new Vector2(250f, y), new Vector2(200f, 50f), TextAlignmentOptions.Center, true);
