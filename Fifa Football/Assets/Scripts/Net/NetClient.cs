@@ -6,7 +6,7 @@ namespace FootballSim.Net
     /// <summary>Receives snapshots from a <see cref="NetServer"/> and keeps them in an interpolation buffer. Says hello once per second until the first snapshot arrives.</summary>
     public class NetClient : MonoBehaviour
     {
-        UdpEndpoint endpoint;
+        INetTransport endpoint;
         IPEndPoint server;
         readonly byte[] rx = new byte[1500];
         readonly WorldSnapshot incoming = new WorldSnapshot();
@@ -69,6 +69,9 @@ namespace FootballSim.Net
             // a loopback server needs a loopback socket; a server elsewhere can only be reached from a socket open to the network
             endpoint = new UdpEndpoint(0, !IPAddress.IsLoopback(serverEndPoint.Address));
         }
+
+        /// <summary>Connects over a transport the caller built (the internet relay); <paramref name="serverAddress"/> is the stand-in address that transport uses for the host.</summary>
+        public void Connect(INetTransport transport, IPEndPoint serverAddress) { server = serverAddress; endpoint = transport; }
 
         readonly byte[] inputPacket = new byte[NetCodec.InputPacketBytes];
         readonly System.Collections.Generic.Dictionary<int, ushort> nextSequence = new System.Collections.Generic.Dictionary<int, ushort>();

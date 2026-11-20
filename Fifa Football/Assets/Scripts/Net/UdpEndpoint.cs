@@ -8,7 +8,7 @@ namespace FootballSim.Net
     /// A non-blocking UDP socket for polling from Update. Datagrams are unreliable and may arrive late, twice or not at all,
     /// which is what <see cref="SnapshotInterpolator"/> is built to tolerate. No connection handling, encryption or NAT traversal.
     /// </summary>
-    public sealed class UdpEndpoint : IDisposable
+    public sealed class UdpEndpoint : INetTransport
     {
         readonly Socket socket;
 

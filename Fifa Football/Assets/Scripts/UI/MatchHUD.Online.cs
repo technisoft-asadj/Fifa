@@ -37,22 +37,35 @@ namespace FootballSim.UI
 
         void BuildOnlinePanel(RectTransform root, Color btnCol)
         {
-            onlinePanel = MatchHUD.Glassify(Rect("OnlinePanel", root, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(900, 900), new Color(0.05f, 0.08f, 0.12f, 1f)).gameObject);
+            onlinePanel = MatchHUD.Glassify(Rect("OnlinePanel", root, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(960, 1000), new Color(0.05f, 0.08f, 0.12f, 1f)).gameObject);
             var op = onlinePanel.transform;
-            var title = Label("OnlineTitle", op, 64, TextAnchor.MiddleCenter, new Vector2(0, 340), new Vector2(860, 90)); title.text = "PLAY ONLINE"; title.fontStyle = FontStyle.Bold;
-            var note = Label("OnlineNote", op, 26, TextAnchor.MiddleCenter, new Vector2(0, 270), new Vector2(860, 40));
-            note.text = "Both devices on the same Wi-Fi. No account or server needed."; note.color = new Color(1, 1, 1, 0.8f);
+            var title = Label("OnlineTitle", op, 64, TextAnchor.MiddleCenter, new Vector2(0, 440), new Vector2(900, 90)); title.text = "PLAY ONLINE"; title.fontStyle = FontStyle.Bold; title.color = UITheme.Gold;
+            var note = Label("OnlineNote", op, 26, TextAnchor.MiddleCenter, new Vector2(0, 375), new Vector2(900, 40));
+            note.text = "Play a friend or a stranger anywhere in the world."; note.color = new Color(1, 1, 1, 0.8f);
 
-            onlineInfo = Label("OnlineInfo", op, 30, TextAnchor.MiddleCenter, new Vector2(0, 170), new Vector2(860, 50));
-            Button(op, "HOST MATCH", new Vector2(0, 80), new Vector2(460, 100), HostOnline, Accent);
+            // internet: quick match with anyone, or a room code shared with a friend
+            Button(op, "QUICK MATCH", new Vector2(0, 290), new Vector2(560, 100), QuickMatchOnline, Accent);
+            Button(op, "CREATE ROOM", new Vector2(0, 175), new Vector2(560, 90), CreateRoomOnline, btnCol);
+            var codeLabel = Label("CodeLabel", op, 28, TextAnchor.MiddleCenter, new Vector2(0, 95), new Vector2(900, 40)); codeLabel.text = "Have a room code? Type it here";
+            roomCodeField = BuildAddressField(op, new Vector2(-170, 30), new Vector2(380, 80), "ROOM CODE", 8, TouchScreenKeyboardType.ASCIICapable, false);
+            Button(op, "JOIN ROOM", new Vector2(190, 30), new Vector2(300, 80), () => JoinRoomOnline(roomCodeField.text), btnCol);
 
-            var joinLabel = Label("JoinLabel", op, 30, TextAnchor.MiddleCenter, new Vector2(0, -50), new Vector2(860, 50)); joinLabel.text = "Or join a friend: type the address they see";
-            addressField = BuildAddressField(op, new Vector2(0, -130), new Vector2(560, 80));
-            Button(op, "JOIN", new Vector2(0, -245), new Vector2(460, 100), () => JoinOnline(addressField.text), Accent);
+            // a created room: the code shows here until the host starts the match
+            onlineInfo = Label("OnlineInfo", op, 34, TextAnchor.MiddleCenter, new Vector2(0, -75), new Vector2(900, 100));
+            onlineInfo.color = UITheme.Gold;
+            roomStartButton = Button(op, "START MATCH", new Vector2(0, -170), new Vector2(460, 80), StartRoomMatch, Accent).gameObject;
+            roomStartButton.SetActive(false);
 
-            onlineStatus = Label("OnlineStatus", op, 26, TextAnchor.MiddleCenter, new Vector2(0, -335), new Vector2(860, 50));
+            // same Wi-Fi, no internet needed
+            var lanLabel = Label("LanLabel", op, 26, TextAnchor.MiddleCenter, new Vector2(0, -255), new Vector2(900, 40)); lanLabel.text = "Same Wi-Fi (no internet needed)";
+            lanLabel.color = new Color(1, 1, 1, 0.7f);
+            Button(op, "HOST", new Vector2(-340, -320), new Vector2(200, 70), HostOnline, btnCol);
+            addressField = BuildAddressField(op, new Vector2(-20, -320), new Vector2(380, 70));
+            Button(op, "JOIN", new Vector2(310, -320), new Vector2(200, 70), () => JoinOnline(addressField.text), btnCol);
+
+            onlineStatus = Label("OnlineStatus", op, 28, TextAnchor.MiddleCenter, new Vector2(0, -395), new Vector2(920, 50));
             onlineStatus.color = new Color(1f, 0.9f, 0.4f);
-            Button(op, "BACK", new Vector2(0, -400), new Vector2(260, 70), CloseOnline, btnCol);
+            Button(op, "BACK", new Vector2(0, -455), new Vector2(260, 64), CloseOnline, btnCol);
 
             // a one-line status in the corner while hosting or playing as a guest
             onlineBanner = Label("OnlineBanner", root, 26, TextAnchor.MiddleLeft, new Vector2(20, -30), new Vector2(900, 40));
@@ -78,23 +91,27 @@ namespace FootballSim.UI
         public string OnlinePingText => pingText != null ? pingText.text : "";
         public bool OnlinePingShown => pingPill != null && pingPill.activeSelf;
 
-        InputField BuildAddressField(Transform parent, Vector2 pos, Vector2 size)
+        InputField roomCodeField;
+        GameObject roomStartButton;
+
+        InputField BuildAddressField(Transform parent, Vector2 pos, Vector2 size, string hint = "192.168.1.20", int limit = 21, TouchScreenKeyboardType keyboard = TouchScreenKeyboardType.NumbersAndPunctuation, bool rememberLast = true)
         {
             var go = new GameObject("AddressField", typeof(RectTransform), typeof(Image), typeof(InputField));
             go.transform.SetParent(parent, false);
             var rt = (RectTransform)go.transform;
             rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
             rt.anchoredPosition = pos; rt.sizeDelta = size;
-            var img = go.GetComponent<Image>(); img.color = new Color(0.14f, 0.19f, 0.27f);
+            var img = go.GetComponent<Image>(); img.sprite = UITheme.Rounded; img.type = Image.Type.Sliced; img.color = new Color(0.14f, 0.19f, 0.30f);
             var inner = size - new Vector2(30, 10);
             var text = Label("Text", go.transform, 38, TextAnchor.MiddleLeft, Vector2.zero, inner); text.supportRichText = false;
             var placeholder = Label("Placeholder", go.transform, 38, TextAnchor.MiddleLeft, Vector2.zero, inner);
-            placeholder.text = "192.168.1.20"; placeholder.fontStyle = FontStyle.Italic; placeholder.color = new Color(1, 1, 1, 0.35f);
+            placeholder.text = hint; placeholder.fontStyle = FontStyle.Italic; placeholder.color = new Color(1, 1, 1, 0.35f);
             var field = go.GetComponent<InputField>();
             field.targetGraphic = img; field.textComponent = text; field.placeholder = placeholder;
             field.lineType = InputField.LineType.SingleLine;
-            field.characterLimit = 21; // 255.255.255.255:65535
-            field.keyboardType = TouchScreenKeyboardType.NumbersAndPunctuation;
+            field.characterLimit = limit; // 255.255.255.255:65535 for an address
+            field.keyboardType = keyboard;
+            if (!rememberLast) { field.contentType = InputField.ContentType.Alphanumeric; return field; }
             string last = "";
             try { last = PlayerPrefs.GetString(LastAddressKey, ""); } catch { }
             field.text = last;
@@ -108,10 +125,128 @@ namespace FootballSim.UI
             onlineInfo.text = OnlineHosting ? $"Hosting at {AddressOfHost()}"
                 : mine != null ? $"Your address: {mine}:{OnlinePort}" : "No Wi-Fi address found - connect to Wi-Fi first";
             onlineStatus.text = "";
+            if (!OnlineHosting && pendingRoom == null) { onlineInfo.text = ""; roomStartButton.SetActive(false); }
             onlinePanel.SetActive(true);
         }
 
-        void CloseOnline() { onlinePanel.SetActive(false); }
+        void CloseOnline()
+        {
+            onlineRequest++; // an answer still on its way from the online service is ignored
+            if (pendingRoom != null && !OnlineHosting) DiscardPendingRoom();
+            onlinePanel.SetActive(false);
+        }
+
+        // ---- internet play: rooms and quick match (see OnlineService) ----
+        OnlineService.HostedRoom pendingRoom;
+        GameObject roomKeeper;
+        string roomCode = "";
+        bool guestIsRelay;
+        int onlineRequest;
+
+        /// <summary>The code of the internet room being hosted (empty when not hosting one).</summary>
+        public string OnlineRoomCode => roomCode;
+
+        void DiscardPendingRoom()
+        {
+            pendingRoom?.Transport?.Dispose();
+            pendingRoom = null; roomStartButton.SetActive(false); onlineInfo.text = "";
+        }
+
+        /// <summary>True and the away player a friend can take over when this match can be hosted; otherwise says why in the status line.</summary>
+        bool TryFindGuestSlot(out int slot)
+        {
+            slot = -1;
+            if (OnlineHosting) { onlineStatus.text = "Already hosting. Press BACK to return to the match."; return false; }
+            if (homeTeam == null || awayTeam == null || match == null) { onlineStatus.text = "No match to host."; return false; }
+            if (TrainingMode.Active || MiniLeague.Active || Tournament.Active || Season.Active)
+            {
+                onlineStatus.text = "Online needs Single match mode (turn off league, cup, season, training).";
+                return false;
+            }
+            for (int i = awayTeam.players.Count - 1; i >= 0; i--) if (!awayTeam.players[i].isGoalkeeper) { slot = homeTeam.players.Count + i; break; }
+            if (slot < 0) { onlineStatus.text = "No free player for a guest."; return false; }
+            return true;
+        }
+
+        /// <summary>Opens a private internet room and shows its code; the match starts when the host presses START.</summary>
+        public async void CreateRoomOnline()
+        {
+            if (OnlineGuestActive || !TryFindGuestSlot(out _)) return;
+            if (pendingRoom != null) DiscardPendingRoom();
+            int request = ++onlineRequest;
+            onlineStatus.text = "Opening a room...";
+            try
+            {
+                var room = await OnlineService.CreateRoom(false);
+                if (request != onlineRequest) { room.Transport.Dispose(); return; }
+                pendingRoom = room;
+                onlineInfo.text = $"ROOM CODE   {room.Code}";
+                roomStartButton.SetActive(true);
+                onlineStatus.text = "Tell your friend this code. Press START when you are ready.";
+            }
+            catch (System.Exception e) { if (request == onlineRequest) onlineStatus.text = OnlineService.Describe(e); }
+        }
+
+        /// <summary>Starts the match for the room that was just opened.</summary>
+        public void StartRoomMatch()
+        {
+            if (pendingRoom == null || OnlineHosting || !TryFindGuestSlot(out int slot)) return;
+            var room = pendingRoom; pendingRoom = null;
+            var players = new List<PlayerController>(homeTeam.players);
+            players.AddRange(awayTeam.players);
+            var ball = FindFirstObjectByType<FootballSim.Ball.BallController>();
+            BeginMatch();
+            try { hosting = NetSession.HostOn(room.Transport, match, ball, players, slot); }
+            catch (System.Exception e) { Debug.LogWarning("Could not host: " + e.Message); room.Transport.Dispose(); hosting = null; onlineStatus.text = "Could not start the room."; Time.timeScale = 0f; startPanel.SetActive(true); return; }
+            roomCode = room.Code;
+            if (room.LobbyId != null) roomKeeper = OnlineService.KeepListed(room);
+            roomStartButton.SetActive(false);
+            onlinePanel.SetActive(false);
+        }
+
+        /// <summary>Joins the internet room with the typed code.</summary>
+        public async void JoinRoomOnline(string code)
+        {
+            if (OnlineGuestActive) return;
+            string clean = OnlineService.NormaliseCode(code);
+            if (clean.Length == 0) { onlineStatus.text = "Type the room code first."; return; }
+            int request = ++onlineRequest;
+            onlineStatus.text = "Joining the room...";
+            try
+            {
+                var transport = await OnlineService.JoinRoom(clean);
+                if (request != onlineRequest) { transport.Dispose(); return; }
+                EnterRelayGuest(transport, "room " + clean);
+            }
+            catch (System.Exception e) { if (request == onlineRequest) onlineStatus.text = OnlineService.Describe(e); }
+        }
+
+        /// <summary>Finds an open public room and joins it, or opens one and plays the AI until someone arrives.</summary>
+        public async void QuickMatchOnline()
+        {
+            if (OnlineGuestActive || !TryFindGuestSlot(out _)) return;
+            int request = ++onlineRequest;
+            onlineStatus.text = "Looking for a player...";
+            try
+            {
+                var result = await OnlineService.QuickMatch();
+                if (request != onlineRequest) { result.Guest?.Dispose(); result.Hosted?.Transport.Dispose(); return; }
+                if (result.Guest != null) { EnterRelayGuest(result.Guest, "a player"); return; }
+                pendingRoom = result.Hosted;
+                StartRoomMatch(); // nobody waiting: the match starts at once and a stranger can join it
+            }
+            catch (System.Exception e) { if (request == onlineRequest) onlineStatus.text = OnlineService.Describe(e); }
+        }
+
+        void EnterRelayGuest(RelayTransport transport, string what)
+        {
+            FootballSim.Inputs.IPlayerInput source = homeTeam != null && homeTeam.humanInput != null ? (FootballSim.Inputs.IPlayerInput)homeTeam.humanInput : Touch();
+            guest = GuestMode.Enter(RelayTransport.HostAddress, source, true, transport);
+            guestIsRelay = true;
+            guestStartedAt = Time.unscaledTime; guestAddress = what;
+            HideAllMenus();
+            Time.timeScale = 1f;
+        }
 
         string AddressOfHost()
         {
@@ -153,6 +288,7 @@ namespace FootballSim.UI
             try { PlayerPrefs.SetString(LastAddressKey, text.Trim()); PlayerPrefs.Save(); } catch { }
             FootballSim.Inputs.IPlayerInput source = homeTeam != null && homeTeam.humanInput != null ? (FootballSim.Inputs.IPlayerInput)homeTeam.humanInput : Touch();
             guest = GuestMode.Enter(endPoint, source);
+            guestIsRelay = false;
             guestStartedAt = Time.unscaledTime; guestAddress = endPoint.ToString();
             HideAllMenus();
             Time.timeScale = 1f;
@@ -175,7 +311,8 @@ namespace FootballSim.UI
                 var client = guest.Session.client;
                 if (client.ServerFull) onlineBanner.text = "ONLINE: that match is full  -  Back to leave";
                 else if (client.Joined) onlineBanner.text = $"ONLINE GUEST  -  you play as player {client.PlayerIndex + 1}  -  Back to leave";
-                else if (Time.unscaledTime - guestStartedAt > 8f) onlineBanner.text = $"No answer from {guestAddress}. Same Wi-Fi? Host pressed HOST?  -  Back to leave";
+                else if (Time.unscaledTime - guestStartedAt > (guestIsRelay ? 15f : 8f))
+                    onlineBanner.text = guestIsRelay ? "No answer from the room. Is the host still there?  -  Back to leave" : $"No answer from {guestAddress}. Same Wi-Fi? Host pressed HOST?  -  Back to leave";
                 else onlineBanner.text = $"ONLINE: connecting to {guestAddress}...";
                 bool receiving = client.Received > 0;
                 if (client.Joined && receiving && client.SecondsSinceSnapshot > 2.5f)
@@ -204,10 +341,12 @@ namespace FootballSim.UI
             {
                 lastGuestHome = lastGuestAway = -1; pingPill.SetActive(false);
                 int n = hosting.server.ClientCount;
-                onlineBanner.text = n == 0 ? $"HOSTING at {AddressOfHost()}  -  waiting for a friend" : $"HOSTING at {AddressOfHost()}  -  friend connected";
+                if (roomCode.Length > 0) onlineBanner.text = n == 0 ? $"ROOM {roomCode}  -  waiting for a player" : $"ROOM {roomCode}  -  player connected";
+                else onlineBanner.text = n == 0 ? $"HOSTING at {AddressOfHost()}  -  waiting for a friend" : $"HOSTING at {AddressOfHost()}  -  friend connected";
             }
             else
             {
+                if (roomCode.Length > 0) { roomCode = ""; if (roomKeeper != null) Destroy(roomKeeper); roomKeeper = null; }
                 lastGuestHome = lastGuestAway = -1; pingPill.SetActive(false);
                 if (onlineBanner.text.Length > 0) onlineBanner.text = "";
             }

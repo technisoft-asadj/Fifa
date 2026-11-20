@@ -338,7 +338,7 @@ namespace FootballSim.UI
         }
 
         Text modeLabel, leagueText, earnedText;
-        Image[] kitRings, modeCards;
+        Image[] kitRings, modeCards, durationCards;
         /// <summary>The "+coins +XP" line on the full-time panel (test hook).</summary>
         public string EarnedText => earnedText != null ? earnedText.text : "";
         TMPro.TMP_Text rematchLabel;
@@ -412,6 +412,11 @@ namespace FootballSim.UI
         {
             selectedMinutes = m;
             durationLabel.text = $"Match length: {m:0} min";
+            if (durationCards != null)
+            {
+                float[] lengths = { 3f, 5f, 10f };
+                for (int i = 0; i < durationCards.Length; i++) durationCards[i].color = Mathf.Approximately(lengths[i], m) ? UITheme.Gold : UITheme.BlueDark;
+            }
             if (save) SaveSettings();
         }
 
@@ -475,14 +480,19 @@ namespace FootballSim.UI
             // Start panel
             startPanel = Glassify(Rect("StartPanel", root, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(900, 1000), Panel).gameObject);
             var st = startPanel.transform;
-            var title = Label("Title", st, 72, TextAnchor.MiddleCenter, new Vector2(0, 320), new Vector2(860, 100)); title.text = "SOCCER FIGHT"; title.fontStyle = FontStyle.Bold;
-            var sub = Label("Sub", st, 30, TextAnchor.MiddleCenter, new Vector2(0, 245), new Vector2(860, 50)); sub.text = "Kick-Off  -  Home vs Away";
+            var title = Label("Title", st, 72, TextAnchor.MiddleCenter, new Vector2(0, 320), new Vector2(860, 100)); title.text = "SOCCER FIGHT"; title.fontStyle = FontStyle.Bold; title.color = UITheme.Gold;
+            var sub = Label("Sub", st, 30, TextAnchor.MiddleCenter, new Vector2(0, 245), new Vector2(860, 50)); sub.text = "Kick-Off  -  Home vs Away"; sub.color = UITheme.Muted;
             subtitleLabel = sub;
             var btnCol = new Color(0.2f, 0.3f, 0.45f);
             durationLabel = Label("Duration", st, 34, TextAnchor.MiddleCenter, new Vector2(0, 170), new Vector2(860, 50));
-            Button(st, "3 min", new Vector2(-260, 100), new Vector2(220, 70), () => SetMinutes(3f), btnCol);
-            Button(st, "5 min", new Vector2(0, 100), new Vector2(220, 70), () => SetMinutes(5f), btnCol);
-            Button(st, "10 min", new Vector2(260, 100), new Vector2(220, 70), () => SetMinutes(10f), btnCol);
+            durationCards = new Image[3];
+            float[] lengths = { 3f, 5f, 10f };
+            for (int d = 0; d < lengths.Length; d++)
+            {
+                float len = lengths[d];
+                var dc = Button(st, $"{len:0} min", new Vector2(-260 + d * 260, 100), new Vector2(220, 70), () => SetMinutes(len), btnCol);
+                durationCards[d] = dc.GetComponent<Image>();
+            }
             formationLabel = Label("Formation", st, 34, TextAnchor.MiddleCenter, new Vector2(0, 20), new Vector2(560, 50));
             Button(st, "<", new Vector2(-370, 20), new Vector2(90, 70), () => CycleFormation(-1), btnCol);
             Button(st, ">", new Vector2(370, 20), new Vector2(90, 70), () => CycleFormation(1), btnCol);

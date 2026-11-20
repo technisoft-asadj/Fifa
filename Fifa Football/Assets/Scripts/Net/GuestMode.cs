@@ -30,11 +30,12 @@ namespace FootballSim.Net
         NetClient watched;
 
         /// <param name="silenceLocalMatch">false leaves the local simulation running; only for a test that hosts and joins inside one scene.</param>
-        public static GuestMode Enter(IPEndPoint server, IPlayerInput input, bool silenceLocalMatch = true)
+        /// <param name="transport">null joins over plain UDP at <paramref name="server"/>; the relay transport joins an internet room (then <paramref name="server"/> is <see cref="RelayTransport.HostAddress"/>).</param>
+        public static GuestMode Enter(IPEndPoint server, IPlayerInput input, bool silenceLocalMatch = true, INetTransport transport = null)
         {
             var g = new GuestMode();
             if (silenceLocalMatch) g.SilenceLocalMatch();
-            g.Session = NetSession.Join(server, input, Vector3.zero);
+            g.Session = NetSession.Join(server, transport, input, Vector3.zero);
             g.camera = Object.FindFirstObjectByType<BroadcastCamera>();
             if (g.camera != null)
             {

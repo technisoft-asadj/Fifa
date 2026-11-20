@@ -160,8 +160,8 @@ namespace FootballSim.UI
             UIKit.TextAt(menu, "TitleBottom", "FIGHT", 150f, Color.white, UIKit.Center, new Vector2(-480f, 60f), new Vector2(800f, 110f), TextAlignmentOptions.Center, true);
             var ball = UIKit.Image(menu, "Ball", UITheme.Icon(UIIcon.Ball), Color.white, false, false);
             ball.rectTransform.anchorMin = ball.rectTransform.anchorMax = UIKit.Center; ball.rectTransform.pivot = UIKit.Center;
-            ball.rectTransform.anchoredPosition = new Vector2(-480f, -150f); ball.rectTransform.sizeDelta = new Vector2(200f, 200f);
-            UIKit.TextAt(menu, "Tagline", "Play offline, or host a match on your Wi-Fi", 28f, UITheme.Muted, UIKit.Center, new Vector2(-480f, -5f), new Vector2(800f, 40f));
+            ball.rectTransform.anchoredPosition = new Vector2(-480f, -185f); ball.rectTransform.sizeDelta = new Vector2(190f, 190f);
+            UIKit.TextAt(menu, "Tagline", "Play offline, or host a match on your Wi-Fi", 28f, UITheme.Muted, UIKit.Center, new Vector2(-480f, -40f), new Vector2(800f, 40f));
 
             // right: the five big buttons
             var x = new Vector2(500f, 0f);

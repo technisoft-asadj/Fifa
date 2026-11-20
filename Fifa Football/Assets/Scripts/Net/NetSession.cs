@@ -43,13 +43,27 @@ namespace FootballSim.Net
             return new HostHandle { root = root, server = server };
         }
 
+        /// <summary>Like <see cref="Host"/> but over a transport the caller built (the internet relay).</summary>
+        public static HostHandle HostOn(INetTransport transport, MatchManager match, BallController ball, IList<PlayerController> players, params int[] remoteSlots)
+        {
+            var root = new GameObject("NetHost");
+            var server = root.AddComponent<NetServer>();
+            server.Init(match, ball, players, 3, transport);
+            server.OfferRemoteSlots(remoteSlots);
+            return new HostHandle { root = root, server = server };
+        }
+
         /// <summary>Starts a client that joins the server at <paramref name="server"/> and sends <paramref name="input"/> once it has a slot.</summary>
-        public static ClientHandle Join(IPEndPoint server, IPlayerInput input, Vector3 viewOrigin)
+        public static ClientHandle Join(IPEndPoint server, IPlayerInput input, Vector3 viewOrigin) { return Join(server, null, input, viewOrigin); }
+
+        /// <summary>Joins over <paramref name="transport"/> when given (the relay, with <paramref name="server"/> as the host's stand-in address), otherwise over plain UDP.</summary>
+        public static ClientHandle Join(IPEndPoint server, INetTransport transport, IPlayerInput input, Vector3 viewOrigin)
         {
             var root = new GameObject("NetClientSession");
             root.transform.position = viewOrigin;
             var client = root.AddComponent<NetClient>();
-            client.Connect(server); client.Join();
+            if (transport != null) client.Connect(transport, server); else client.Connect(server);
+            client.Join();
             var view = root.AddComponent<NetClientView>();
             view.client = client;
             var sender = root.AddComponent<NetInputSender>();

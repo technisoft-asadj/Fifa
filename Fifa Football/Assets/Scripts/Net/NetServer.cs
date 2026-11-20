@@ -13,7 +13,7 @@ namespace FootballSim.Net
     /// </summary>
     public class NetServer : MonoBehaviour
     {
-        UdpEndpoint endpoint;
+        INetTransport endpoint;
         readonly List<IPEndPoint> clients = new List<IPEndPoint>();
         readonly WorldSnapshot snapshot = new WorldSnapshot();
         readonly byte[] wire = new byte[NetCodec.SnapshotBytes];
@@ -93,6 +93,13 @@ namespace FootballSim.Net
         {
             this.match = match; this.ball = ball; this.players = players; sendEvery = Mathf.Max(1, sendEveryFrames);
             endpoint = new UdpEndpoint(port, listenOnAllInterfaces);
+        }
+
+        /// <summary>Like the other Init but on a transport the caller built (the internet relay).</summary>
+        public void Init(MatchManager match, BallController ball, IList<PlayerController> players, int sendEveryFrames, INetTransport transport)
+        {
+            this.match = match; this.ball = ball; this.players = players; sendEvery = Mathf.Max(1, sendEveryFrames);
+            endpoint = transport;
         }
 
         void Update()
