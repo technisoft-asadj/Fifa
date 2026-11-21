@@ -67,7 +67,9 @@ namespace FootballSim.UI
 
         public void MenuPlay() { mainMenu.SetActive(false); ShowStart(); }
         public void MenuTournaments() { SelectMode(PlayMode.Tournament); MenuPlay(); }
-        public void MenuOnline() { OpenOnline(); }
+        /// <summary>Online play is switched off for the first (offline) release. Set to false to bring the Online screen back.</summary>
+        public const bool OnlineLocked = true;
+        public void MenuOnline() { if (!OnlineLocked) OpenOnline(); }
         public void MenuTeams() { OpenTeams(); }
         public void MenuSettings() { RefreshSettings(); settingsPanel.SetActive(true); }
         public void CloseSettings() { settingsPanel.SetActive(false); RestorePauseAfterSettings(); }
@@ -214,7 +216,8 @@ namespace FootballSim.UI
             }
             var rowColor = new Color(0.1f, 0.3f, 0.78f, 1f);
             UIKit.MenuButton(menu, "Tournaments", UIIcon.Trophy, rowColor, UIKit.Center, x + new Vector2(0f, -40f), new Vector2(560f, 100f), MenuTournaments, false, 46f);
-            UIKit.MenuButton(menu, "Online", UIIcon.Globe, rowColor, UIKit.Center, x + new Vector2(0f, -152f), new Vector2(560f, 100f), MenuOnline, false, 46f);
+            var online = UIKit.MenuButton(menu, OnlineLocked ? "Online (Soon)" : "Online", UIIcon.Globe, OnlineLocked ? new Color(0.28f, 0.32f, 0.4f, 1f) : rowColor, UIKit.Center, x + new Vector2(0f, -152f), new Vector2(560f, 100f), MenuOnline, false, 46f);
+            if (OnlineLocked) online.GetComponentInChildren<TMP_Text>().color = new Color(1f, 1f, 1f, 0.7f);
             UIKit.MenuButton(menu, "Teams", UIIcon.Shirt, rowColor, UIKit.Center, x + new Vector2(0f, -264f), new Vector2(560f, 100f), MenuTeams, false, 46f);
             UIKit.MenuButton(menu, "Settings", UIIcon.Gear, rowColor, UIKit.Center, x + new Vector2(0f, -376f), new Vector2(560f, 100f), MenuSettings, false, 46f);
 
@@ -284,6 +287,7 @@ namespace FootballSim.UI
                 bg.rectTransform.anchorMin = bg.rectTransform.anchorMax = bg.rectTransform.pivot = UIKit.TopLeft;
                 bg.rectTransform.anchoredPosition = new Vector2(8f, -8f - i * 108f); bg.rectTransform.sizeDelta = new Vector2(304f, 98f);
                 var btn = bg.gameObject.AddComponent<Button>(); btn.targetGraphic = bg; btn.onClick.AddListener(() => SelectSettingsTab(tab));
+                UIKit.Raise(bg, UITheme.BlueDark);
                 var ic = UIKit.Image(bg.transform, "Icon", UITheme.Icon(icons[i]), Color.white, false, false);
                 ic.rectTransform.anchorMin = ic.rectTransform.anchorMax = new Vector2(0f, 0.5f); ic.rectTransform.pivot = new Vector2(0f, 0.5f);
                 ic.rectTransform.anchoredPosition = new Vector2(22f, 0f); ic.rectTransform.sizeDelta = new Vector2(54f, 54f);
@@ -440,8 +444,13 @@ namespace FootballSim.UI
             controlsPanel.SetActive(false);
 
             // while the buttons are being moved the big panel gets out of the way and only this bar stays
-            var bar = UIKit.GlassPanel(root, "MoveBar", UIKit.Center, new Vector2(0f, 400f), new Vector2(1000f, 150f), true, 0.9f);
-            moveBar = bar.parent.gameObject;
+            var holder = UIKit.Rect(root, "MoveBar", UIKit.Center, new Vector2(0f, 400f), new Vector2(1000f, 150f));
+            moveBar = holder.gameObject;
+            var rim = UIKit.Image(holder, "Rim", UITheme.Rounded, new Color(0.22f, 0.58f, 1f, 1f), true, true);
+            rim.rectTransform.anchorMin = Vector2.zero; rim.rectTransform.anchorMax = Vector2.one; rim.rectTransform.offsetMin = rim.rectTransform.offsetMax = Vector2.zero;
+            var inner = UIKit.Image(rim.transform, "Card", UITheme.Rounded, new Color(0.04f, 0.09f, 0.22f, 0.96f), true, false);
+            inner.rectTransform.anchorMin = Vector2.zero; inner.rectTransform.anchorMax = Vector2.one; inner.rectTransform.offsetMin = new Vector2(3f, 3f); inner.rectTransform.offsetMax = new Vector2(-3f, -3f);
+            var bar = inner.rectTransform;
             UIKit.TextAt(bar, "Hint", "Drag a button to where your thumb likes it", 36f, Color.white, UIKit.Center, new Vector2(0f, 38f), new Vector2(900f, 50f), TextAlignmentOptions.Center, true);
             UIKit.SmallButton(bar, "Done", UITheme.Blue, UIKit.Center, new Vector2(-150f, -32f), new Vector2(260f, 64f), StopMovingButtons, 32f);
             UIKit.SmallButton(bar, "Put back", UITheme.Slate, UIKit.Center, new Vector2(150f, -32f), new Vector2(260f, 64f), PutButtonsBack, 32f);

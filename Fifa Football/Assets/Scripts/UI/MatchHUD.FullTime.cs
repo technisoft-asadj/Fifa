@@ -102,8 +102,8 @@ namespace FootballSim.UI
             ftXp.enableAutoSizing = true; ftXp.fontSizeMin = 16f; ftXp.fontSizeMax = 28f;
 
             // buttons
-            var rematch = UIKit.ActionButton(ft, "Rematch", UIIcon.Refresh, false, new Vector2(0.5f, 0f), new Vector2(-190f, 28f), new Vector2(340f, 92f), Rematch, 42f);
-            UIKit.ActionButton(ft, "Menu", UIIcon.Home, false, new Vector2(0.5f, 0f), new Vector2(190f, 28f), new Vector2(340f, 92f), GoToMainMenu, 42f);
+            var rematch = UIKit.ActionButton(ft, "Rematch", UIIcon.Refresh, true, new Vector2(0.5f, 0f), new Vector2(-230f, 30f), new Vector2(420f, 96f), Rematch, 42f);
+            UIKit.ActionButton(ft, "Menu", UIIcon.Home, false, new Vector2(0.5f, 0f), new Vector2(230f, 30f), new Vector2(420f, 96f), GoToMainMenu, 42f);
             rematchLabel = rematch.GetComponentInChildren<TextMeshProUGUI>();
             fullTimePanel.SetActive(false);
         }

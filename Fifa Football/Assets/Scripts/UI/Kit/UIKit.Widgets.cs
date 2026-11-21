@@ -62,6 +62,8 @@ namespace FootballSim.UI
             body.rectTransform.anchorMin = Vector2.zero; body.rectTransform.anchorMax = Vector2.one; body.rectTransform.offsetMin = new Vector2(3f, 3f); body.rectTransform.offsetMax = new Vector2(-3f, -3f);
             var ic = Image(body.transform, "Icon", UITheme.Icon(icon), Color.white, false, false);
             ic.rectTransform.anchorMin = new Vector2(0.2f, 0.2f); ic.rectTransform.anchorMax = new Vector2(0.8f, 0.8f); ic.rectTransform.offsetMin = ic.rectTransform.offsetMax = Vector2.zero;
+            Edge(rim, tint ?? new Color(0.1f, 0.3f, 0.78f, 1f));
+            Gloss(body.transform, true);
             var btn = rim.gameObject.AddComponent<Button>(); btn.targetGraphic = rim;
             var c = btn.colors; c.highlightedColor = new Color(1.15f, 1.15f, 1.15f); c.pressedColor = new Color(0.75f, 0.75f, 0.75f); c.fadeDuration = 0.05f; btn.colors = c;
             if (onClick != null) btn.onClick.AddListener(onClick);
@@ -76,10 +78,11 @@ namespace FootballSim.UI
             if (gold) t.color = UITheme.GoldText;
             if (icon.HasValue)
             {
+                // the icon sits at the left end and the label gets the rest (and shrinks to fit), so a longer label such as "New Tournament" never runs into it
                 float s = size.y * 0.5f;
                 var ic = Image(b.transform, "Icon", UITheme.Icon(icon.Value), gold ? UITheme.GoldText : Color.white, false, false);
-                float w = label.Length * fontSize * 0.55f;
-                Place(ic.rectTransform, Center, new Vector2(-w * 0.5f - s * 1.05f, 0f), new Vector2(s, s));
+                Place(ic.rectTransform, new Vector2(0f, 0.5f), new Vector2(size.y * 0.32f, 0f), new Vector2(s, s));
+                t.rectTransform.offsetMin = new Vector2(size.y * 0.32f + s + 8f, 0f); t.rectTransform.offsetMax = new Vector2(-12f, 0f);
             }
             return b;
         }
@@ -103,6 +106,7 @@ namespace FootballSim.UI
             var btn = img.gameObject.AddComponent<Button>(); btn.targetGraphic = img;
             var c = btn.colors; c.highlightedColor = new Color(1.15f, 1.15f, 1.15f); c.pressedColor = new Color(0.75f, 0.75f, 0.75f); c.fadeDuration = 0.05f; btn.colors = c;
             if (onClick != null) btn.onClick.AddListener(onClick);
+            Raise(img, ButtonBlue);
             var ic = Image(img.transform, "Chevron", UITheme.Icon(UIIcon.Chevron), Color.white, false, false);
             ic.rectTransform.anchorMin = new Vector2(0.18f, 0.18f); ic.rectTransform.anchorMax = new Vector2(0.82f, 0.82f); ic.rectTransform.offsetMin = ic.rectTransform.offsetMax = Vector2.zero;
             if (pointLeft) ic.rectTransform.localScale = new Vector3(-1f, 1f, 1f);

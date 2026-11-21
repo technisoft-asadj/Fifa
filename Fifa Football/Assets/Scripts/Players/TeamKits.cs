@@ -10,6 +10,47 @@ namespace FootballSim.Players
     {
         static readonly Dictionary<PlayerController, string> baseNames = new Dictionary<PlayerController, string>();
 
+        // ---- the player's lineup: which squad member (0-10) stands in each slot. The keeper (slot 0) never moves. ----
+        const string OrderKey = "lineup_order";
+        static int[] order;
+
+        /// <summary>The squad member in each home slot (identity by default). Saved on the phone.</summary>
+        public static int[] HomeOrder
+        {
+            get
+            {
+                if (order == null)
+                {
+                    order = new int[11];
+                    for (int i = 0; i < 11; i++) order[i] = i;
+                    var parts = PlayerPrefs.GetString(OrderKey, "").Split(',');
+                    if (parts.Length == 11)
+                    {
+                        var loaded = new int[11]; var seen = new bool[11]; bool ok = true;
+                        for (int i = 0; i < 11 && ok; i++) { ok = int.TryParse(parts[i], out loaded[i]) && loaded[i] >= 0 && loaded[i] < 11 && !seen[loaded[i]]; if (ok) seen[loaded[i]] = true; }
+                        if (ok && loaded[0] == 0) order = loaded;
+                    }
+                }
+                return order;
+            }
+        }
+
+        /// <summary>Swaps two outfield slots (1-10). Returns false for the keeper or an invalid slot.</summary>
+        public static bool SwapSlots(int a, int b)
+        {
+            if (a < 1 || b < 1 || a > 10 || b > 10 || a == b) return false;
+            var o = HomeOrder; int t = o[a]; o[a] = o[b]; o[b] = t;
+            PlayerPrefs.SetString(OrderKey, string.Join(",", o)); return true;
+        }
+
+        public static void ResetOrder()
+        {
+            order = null; PlayerPrefs.DeleteKey(OrderKey);
+        }
+
+        /// <summary>The shirt number worn in a home slot (1-based) given the lineup.</summary>
+        public static int NumberInSlot(int slotNumber) { return slotNumber >= 1 && slotNumber <= 11 ? HomeOrder[slotNumber - 1] + 1 : slotNumber; }
+
         /// <summary>The strips for the two sides. A side is the plain coloured team (<paramref name="plainKit"/> picks the home colour) or a club.
         /// When the shirts would clash the away side changes: a club to its second strip, a plain team to the palette colour farthest from the home shirt.</summary>
         public static void Resolve(int plainKit, out ClubKit home, out ClubKit away, out ClubKit homeKeeper, out ClubKit awayKeeper)
@@ -44,11 +85,11 @@ namespace FootballSim.Players
         public static void Apply(TeamController home, TeamController away, int plainKit)
         {
             Resolve(plainKit, out var hk, out var ak, out var hgk, out var agk);
-            Dress(home, hk, hgk, TeamSelection.Home);
-            Dress(away, ak, agk, TeamSelection.Away);
+            Dress(home, hk, hgk, TeamSelection.Home, true);
+            Dress(away, ak, agk, TeamSelection.Away, false);
         }
 
-        static void Dress(TeamController team, ClubKit outfield, ClubKit keeper, int clubIndex)
+        static void Dress(TeamController team, ClubKit outfield, ClubKit keeper, int clubIndex, bool isHome)
         {
             if (team == null) return;
             foreach (var p in team.players)
@@ -56,6 +97,7 @@ namespace FootballSim.Players
                 if (p == null) continue;
                 if (!baseNames.TryGetValue(p, out var baseName)) { baseName = p.name; baseNames[p] = baseName; }
                 int number = ShirtNumber(baseName);
+                if (isHome && number >= 1 && number <= 11) number = NumberInSlot(number);
                 var v = p.GetComponent<PlayerVisual>();
                 if (v != null) v.ApplyKit(p.isGoalkeeper ? keeper : outfield, p.isGoalkeeper, number > 0 ? number.ToString() : null);
                 p.name = clubIndex >= 0 && number >= 1 && number <= TeamCatalog.Clubs[clubIndex].players.Length ? TeamCatalog.Clubs[clubIndex].players[number - 1] : baseName;

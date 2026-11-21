@@ -689,6 +689,7 @@ namespace FootballSim.UI
             var colors = btn.colors; colors.highlightedColor = new Color(1.2f, 1.2f, 1.2f); colors.pressedColor = new Color(0.8f, 0.8f, 0.8f);
             btn.colors = colors;
             btn.onClick.AddListener(onClick);
+            UIKit.Raise(img, img.color);
             var t = Label("Text", go.transform, 40, TextAnchor.MiddleCenter, Vector2.zero, size);
             t.text = label; t.fontStyle = FontStyle.Bold;
             if (primary) t.color = UITheme.GoldText;

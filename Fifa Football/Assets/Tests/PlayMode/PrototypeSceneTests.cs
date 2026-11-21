@@ -1993,8 +1993,8 @@ namespace FootballSim.Tests
             Assert.IsTrue(hud.GoBack()); Assert.IsFalse(hud.SettingsOpen); Assert.IsTrue(hud.MainMenuOpen, "still on the main menu underneath");
 
             hud.MenuOnline();
-            Assert.IsTrue(hud.OnlineOpen);
-            Assert.IsTrue(hud.GoBack()); Assert.IsFalse(hud.OnlineOpen); Assert.IsTrue(hud.MainMenuOpen);
+            if (FootballSim.UI.MatchHUD.OnlineLocked) { Assert.IsFalse(hud.OnlineOpen, "online play is locked for the offline release"); Assert.IsTrue(hud.MainMenuOpen); }
+            else { Assert.IsTrue(hud.OnlineOpen); Assert.IsTrue(hud.GoBack()); Assert.IsFalse(hud.OnlineOpen); Assert.IsTrue(hud.MainMenuOpen); }
         }
 
         [UnityTest]

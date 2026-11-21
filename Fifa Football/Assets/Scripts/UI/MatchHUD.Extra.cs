@@ -301,8 +301,9 @@ namespace FootballSim.UI
         string LineupName(int slot)
         {
             int club = TeamSelection.Home;
-            if (club >= 0 && club < TeamCatalog.Count && slot < TeamCatalog.Clubs[club].players.Length) return TeamCatalog.Clubs[club].players[slot];
-            return "Player " + (slot + 1);
+            int member = FootballSim.Players.TeamKits.HomeOrder[Mathf.Clamp(slot, 0, 10)];
+            if (club >= 0 && club < TeamCatalog.Count && member < TeamCatalog.Clubs[club].players.Length) return TeamCatalog.Clubs[club].players[member];
+            return "Player " + (member + 1);
         }
 
         void BuildLineup(RectTransform root)
@@ -326,7 +327,7 @@ namespace FootballSim.UI
                 ring.rectTransform.anchorMin = ring.rectTransform.anchorMax = ring.rectTransform.pivot = Vector2.zero; ring.rectTransform.sizeDelta = new Vector2(50f, 50f);
                 var dot = UIKit.Image(ring.transform, "Dot", UITheme.Circle, Color.white, false, false);
                 dot.rectTransform.anchorMin = Vector2.zero; dot.rectTransform.anchorMax = Vector2.one; dot.rectTransform.offsetMin = new Vector2(4f, 4f); dot.rectTransform.offsetMax = new Vector2(-4f, -4f);
-                var num = UIKit.Text(dot.transform, "Number", (i + 1).ToString(), 24f, Color.white, TextAlignmentOptions.Center, true);
+                lineupDotNo[i] = UIKit.Text(dot.transform, "Number", (i + 1).ToString(), 24f, Color.white, TextAlignmentOptions.Center, true);
                 var b = ring.gameObject.AddComponent<Button>(); b.targetGraphic = ring; b.onClick.AddListener(() => SelectLineupSlot(slot));
                 lineupDots[i] = dot; lineupRings[i] = ring.rectTransform;
             }
@@ -340,16 +341,51 @@ namespace FootballSim.UI
                 row.rectTransform.anchorMin = row.rectTransform.anchorMax = row.rectTransform.pivot = UIKit.TopLeft;
                 row.rectTransform.anchoredPosition = new Vector2(12f, -12f - i * 49.5f); row.rectTransform.sizeDelta = new Vector2(764f, 44f);
                 var b = row.gameObject.AddComponent<Button>(); b.targetGraphic = row; b.onClick.AddListener(() => SelectLineupSlot(slot));
-                UIKit.TextAt(row.transform, "No", (i + 1).ToString(), 26f, UITheme.Gold, UIKit.TopLeft, new Vector2(14f, 0f), new Vector2(60f, 44f), TextAlignmentOptions.Left, true);
+                lineupRowNo[i] = UIKit.TextAt(row.transform, "No", (i + 1).ToString(), 26f, UITheme.Gold, UIKit.TopLeft, new Vector2(14f, 0f), new Vector2(60f, 44f), TextAlignmentOptions.Left, true);
                 lineupNames[i] = UIKit.TextAt(row.transform, "Name", "", 28f, Color.white, UIKit.TopLeft, new Vector2(80f, 0f), new Vector2(520f, 44f), TextAlignmentOptions.Left, true);
                 lineupRoles[i] = UIKit.TextAt(row.transform, "Role", "", 26f, UITheme.Muted, UIKit.TopRight, new Vector2(-16f, 0f), new Vector2(140f, 44f), TextAlignmentOptions.Right, true);
                 lineupRows[i] = row;
             }
+            lineupSwapLabel = UIKit.SmallButton(p, "Swap", UITheme.Blue, UIKit.TopLeft, new Vector2(676f, -688f), new Vector2(190f, 84f), ToggleSwap, 34f).GetComponentInChildren<TextMeshProUGUI>();
+            UIKit.SmallButton(p, "Reset", UITheme.Slate, UIKit.TopLeft, new Vector2(876f, -688f), new Vector2(180f, 84f), ResetLineup, 34f);
+            lineupHint = UIKit.TextAt(p, "Hint", "", 26f, UITheme.Muted, UIKit.TopLeft, new Vector2(60f, -756f), new Vector2(980f, 34f), TextAlignmentOptions.Left, false);
             UIKit.ActionButton(p, "Done", UIIcon.Check, true, UIKit.TopLeft, new Vector2(1070f, -688f), new Vector2(394f, 84f), CloseLineup, 44f);
             lineupPanel.SetActive(false);
         }
 
-        void SelectLineupSlot(int slot) { lineupSelected = Mathf.Clamp(slot, 0, 10); RefreshLineup(); }
+        readonly TextMeshProUGUI[] lineupDotNo = new TextMeshProUGUI[11], lineupRowNo = new TextMeshProUGUI[11];
+        TextMeshProUGUI lineupSwapLabel, lineupHint;
+        bool lineupSwapArmed;
+
+        void ToggleSwap()
+        {
+            lineupSwapArmed = !lineupSwapArmed;
+            if (lineupSwapArmed && lineupSelected == 0) lineupSelected = 1; // the keeper stays in goal
+            RefreshLineup();
+        }
+
+        void ResetLineup()
+        {
+            FootballSim.Players.TeamKits.ResetOrder(); lineupSwapArmed = false; ApplyLineupToTeam(); RefreshLineup();
+        }
+
+        /// <summary>Puts the saved lineup on the players now, so the new numbers and names show without a restart.</summary>
+        void ApplyLineupToTeam()
+        {
+            if (homeTeam != null && awayTeam != null) FootballSim.Players.TeamKits.Apply(homeTeam, awayTeam, selectedKit);
+        }
+
+        void SelectLineupSlot(int slot)
+        {
+            slot = Mathf.Clamp(slot, 0, 10);
+            if (lineupSwapArmed && slot != lineupSelected)
+            {
+                if (FootballSim.Players.TeamKits.SwapSlots(lineupSelected, slot)) { ApplyLineupToTeam(); lineupSelected = slot; }
+                lineupSwapArmed = false;
+            }
+            else lineupSelected = slot;
+            RefreshLineup();
+        }
 
         void RefreshLineup()
         {
@@ -365,11 +401,16 @@ namespace FootballSim.UI
                 lineupDots[i].color = i == 0 ? new Color(0.98f, 0.82f, 0.2f) : Readable(hk.shirt);
                 lineupRows[i].color = sel ? new Color(0.5f, 0.38f, 0.05f, 0.95f) : new Color(0.04f, 0.1f, 0.24f, 0.9f);
                 lineupNames[i].text = LineupName(i); lineupRoles[i].text = RoleOf(i, slots);
+                string no = FootballSim.Players.TeamKits.NumberInSlot(i + 1).ToString();
+                lineupDotNo[i].text = no; lineupRowNo[i].text = no;
             }
+            lineupSwapLabel.text = lineupSwapArmed ? "Pick..." : "Swap";
+            lineupHint.text = lineupSwapArmed ? $"Tap the player to swap with {lineupNames[lineupSelected].text}." : lineupSelected == 0 ? "The goalkeeper always stays in goal." : $"{lineupNames[lineupSelected].text} selected. Press Swap, then tap another outfield player.";
         }
 
         public void OpenLineup()
         {
+            lineupSwapArmed = false; lineupSelected = 0;
             RefreshLineup();
             lineupPanel.transform.SetAsLastSibling(); lineupPanel.SetActive(true);
         }

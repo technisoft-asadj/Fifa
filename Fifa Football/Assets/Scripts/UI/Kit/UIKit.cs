@@ -81,6 +81,36 @@ namespace FootballSim.UI
         }
 
         /// <summary>
+        /// Gives a button face a raised, glossy look: a darker "thickness" edge under it (a hard drop copy of the shape, no extra object) and a
+        /// bright glass highlight over its top half. <paramref name="circle"/> uses the round sprite for the highlight. Safe to call once per face.
+        /// </summary>
+        public static void Raise(Image face, Color tint, bool circle = false)
+        {
+            Edge(face, tint);
+            Gloss(face.transform, circle);
+        }
+
+        /// <summary>The darker thickness under a button face.</summary>
+        public static void Edge(Image face, Color tint)
+        {
+            var rt = face.rectTransform;
+            float h = Mathf.Max(24f, rt.rect.height > 1f ? rt.rect.height : rt.sizeDelta.y);
+            float lip = Mathf.Clamp(h * 0.085f, 4f, 9f);
+            var edge = face.gameObject.AddComponent<Shadow>();
+            edge.effectDistance = new Vector2(0f, -lip); edge.useGraphicAlpha = false;
+            edge.effectColor = new Color(tint.r * 0.30f, tint.g * 0.32f, tint.b * 0.42f, 1f);
+        }
+
+        /// <summary>The glass highlight over the top half of a button face.</summary>
+        public static void Gloss(Transform face, bool circle)
+        {
+            var gloss = Image(face, "Gloss", circle ? UITheme.Circle : UITheme.Rounded, new Color(1f, 1f, 1f, circle ? 0.26f : 0.20f), !circle, false);
+            gloss.rectTransform.anchorMin = new Vector2(circle ? 0.2f : 0.025f, 0.52f); gloss.rectTransform.anchorMax = new Vector2(circle ? 0.8f : 0.975f, circle ? 0.93f : 0.95f);
+            gloss.rectTransform.offsetMin = new Vector2(circle ? 0f : 4f, 0f); gloss.rectTransform.offsetMax = new Vector2(circle ? 0f : -4f, circle ? 0f : -3f);
+            gloss.transform.SetAsFirstSibling(); // under the icon and label
+        }
+
+        /// <summary>
         /// Menu button: a gradient-tinted rounded rectangle, a round icon badge on the left and a bold label. <paramref name="dark"/> text is
         /// for the gold button. Returns the button root so callers can read its label (<c>GetComponentInChildren&lt;TMP_Text&gt;</c>).
         /// </summary>
@@ -93,6 +123,7 @@ namespace FootballSim.UI
             var colors = btn.colors; colors.highlightedColor = new Color(1.12f, 1.12f, 1.12f); colors.pressedColor = new Color(0.78f, 0.78f, 0.78f); colors.fadeDuration = 0.05f;
             btn.colors = colors;
             btn.onClick.AddListener(onClick);
+            Raise(img, color);
 
             float badge = size.y * 0.66f;
             var badgeImg = Image(img.transform, "Badge", UITheme.Circle, dark ? new Color(0.35f, 0.2f, 0f, 0.9f) : new Color(0f, 0f, 0f, 0.28f), false, false);
@@ -115,7 +146,10 @@ namespace FootballSim.UI
             var colors = btn.colors; colors.highlightedColor = new Color(1.12f, 1.12f, 1.12f); colors.pressedColor = new Color(0.78f, 0.78f, 0.78f); colors.fadeDuration = 0.05f;
             btn.colors = colors;
             btn.onClick.AddListener(onClick);
-            Text(img.transform, "Label", label, fontSize, Color.white, TextAlignmentOptions.Center, true);
+            Raise(img, color);
+            var t = Text(img.transform, "Label", label, fontSize, Color.white, TextAlignmentOptions.Center, true);
+            t.enableAutoSizing = true; t.fontSizeMin = Mathf.Max(14f, fontSize * 0.55f); t.fontSizeMax = fontSize; // long labels shrink instead of spilling out
+            t.rectTransform.offsetMin = new Vector2(10f, 0f); t.rectTransform.offsetMax = new Vector2(-10f, 0f);
             return btn;
         }
 

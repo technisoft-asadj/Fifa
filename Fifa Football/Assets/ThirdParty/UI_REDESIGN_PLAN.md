@@ -16,8 +16,12 @@ Not restyled: the Controls panel (still the older layout; it works) and the in-m
 ## Tests at the last run
 EditMode 217/217. PlayMode 113/113 passed (the 5 balance probes are inconclusive by design without `run_balance.flag`).
 
+## Done after the first commit
+- Controls panel and the "move buttons" bar restyled.
+- Lineup: Swap / Reset. The chosen order is saved (`TeamKits.HomeOrder`) and changes the shirt number and name worn in each outfield slot (the keeper stays). Positions and ability follow the slot, not the person.
+
 ## Open items
-- Controls panel restyle; phone-ratio (19.5:9, 4:3) visual check of the new screens (they use `FitToCanvas`).
-- Lineup screen shows the current formation and the club's players; it does not yet reassign players to slots.
+- Phone-ratio (19.5:9, 4:3) visual check of the new screens (they use `FitToCanvas`); the editor stopped rendering frames when this was attempted.
+- `MovedButtonsStay...` PlayMode test fails when the Game view is very small (630x240), with or without these changes; it passed at the usual size.
 - The new reference image from the earlier message was never attached; only the six-screen mock was available.
 - Real club and player names in `TeamCatalog` need licences before a store release (see `ASSETS.md`).

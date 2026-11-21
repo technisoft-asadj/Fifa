@@ -7,6 +7,25 @@ namespace FootballSim.Tests
     public class UiLogicTests
     {
         [Test]
+        public void LineupSwapMovesTwoOutfieldPlayersAndKeepsTheKeeper()
+        {
+            FootballSim.Players.TeamKits.ResetOrder();
+            try
+            {
+                Assert.IsFalse(FootballSim.Players.TeamKits.SwapSlots(0, 5), "the keeper cannot be swapped");
+                Assert.IsFalse(FootballSim.Players.TeamKits.SwapSlots(3, 3));
+                Assert.IsFalse(FootballSim.Players.TeamKits.SwapSlots(3, 11));
+                Assert.IsTrue(FootballSim.Players.TeamKits.SwapSlots(9, 10));
+                Assert.AreEqual(11, FootballSim.Players.TeamKits.NumberInSlot(10), "slot 10 now wears the other forward's number");
+                Assert.AreEqual(10, FootballSim.Players.TeamKits.NumberInSlot(11));
+                Assert.AreEqual(1, FootballSim.Players.TeamKits.NumberInSlot(1));
+                FootballSim.Players.TeamKits.ResetOrder();
+                Assert.AreEqual(10, FootballSim.Players.TeamKits.NumberInSlot(10), "reset restores the default order");
+            }
+            finally { FootballSim.Players.TeamKits.ResetOrder(); }
+        }
+
+        [Test]
         public void TeamStrengthsFollowTheFormationAndTheTeamLevel()
         {
             MatchHUD.Strengths(1, 0, out int a433, out int m433, out int d433, out int o433);   // 4-3-3: three attackers
